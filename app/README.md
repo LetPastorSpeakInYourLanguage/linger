@@ -8,6 +8,8 @@ Local studio for turning movies, podcasts and lectures into searchable subtitle 
 - ffmpeg on your PATH (`ffmpeg -version` should work) — https://ffmpeg.org/download.html
 - Optional, for auto-transcribing media that has no subtitles:
   `pip install faster-whisper` (first transcription downloads the model, ~500 MB)
+- Optional, for importing public video links (YouTube etc.):
+  `pip install yt-dlp`
 
 ## Run it
 
@@ -30,10 +32,19 @@ The frontend is pre-built (`frontend/dist`), so nothing else is needed. If you e
 
 ## How to use it
 
-1. **Library** → *Add media*. Attach a `.srt`/`.vtt` if you have one; otherwise the file is queued for Whisper transcription (status shows on the card). Files are remuxed once on upload to be instantly seekable.
-2. Open a ready media → the **cut maker**: the transcript is flowing text. Click a line to play it, shift-click to extend a contiguous selection, *Play selection* to check it, then **Save as Cut** (`s`) with a title, tags and folder.
-3. **Cuts** tab → search every cut by title or spoken text (full-text), filter by folder/tag, preview any cut, multi-select → *Add to recomposition*.
-4. **Studio** tab → open a recomposition: search cuts on the left, add them, drag to reorder, **Play all** — playback jumps across the source files automatically.
+1. **Library** → *Add media*. Three ways in:
+   - **Upload file** — browser upload with a progress bar. Fine for small files.
+   - **From this PC** — paste the file's full path (e.g. `D:\movies\film.mp4`). Fastest: no upload copy, your original is read in place and never modified or deleted.
+   - **From link** — paste a YouTube/public video URL (needs `pip install yt-dlp`).
+
+   Attach a `.srt`/`.vtt` if you have one; otherwise the file is queued for Whisper transcription. Every import is converted once in the background into an instantly-seekable file: h264 video is a fast remux (disk speed), anything else is re-encoded with percent progress shown on the media card **and** in the server terminal. Adding media returns immediately — watch the card.
+2. Open a ready media → the **cut maker**: video + flowing transcript on the left, a resizable tabbed panel on the right.
+   - *Selecting lines*: click a line to play it; extend across lines with shift-click, **shift-↓/↑**, or the **⊕ prev / ⊕ next** buttons. *Play selection* to check it, then **Save as Cut** (`s`).
+   - *🔍 Search tab*: searches this transcript — **fuzzy by default**, so typos still find the line. Hits are underlined in the transcript; clicking one scrolls to it and seeks the player.
+   - *✂ Cuts tab*: every cut made from this media — play it in the main player, show it in the transcript, edit or delete it.
+   - Shortcuts: `space` play/pause · `←/→` seek 5s · `shift-↑/↓` extend selection · `s` save cut · `esc` clear.
+3. **Cuts** tab → left: all cuts with a filter engine — add any mix of **#tag / 📁 folder / 🎬 media** filters via searchable pickers (chips show what's active, one click removes). The tag/folder/media labels on each cut card are clickable and add that filter. Right (resizable): **transcript search across every media file in the library** — fuzzy, with preview popups and "open media ↗" jumping straight to that line.
+4. **Studio** tab → open a recomposition: cut browser on the left (resizable, same filter engine), sequence on the right. Drag to reorder, **Play all**, **🔁 loop** any cut to immerse. **Right-click a sequence item** to filter the browser by that cut's media, folder or tags. Shortcuts work from anywhere: `space` play/pause · `←/→` seek · `↑/↓` previous/next cut · `L` toggle loop · `esc` closes any popup (playback resumes).
 
 ## Where things live
 
@@ -48,9 +59,10 @@ app/
   run.py                 start here
   backend/
     main.py              API + streaming + serves the frontend
-    db.py                SQLite schema (FTS5 search index included)
-    jobs.py              background worker (transcription queue)
-    media_ops.py         ffmpeg probe/remux/extract
+    db.py                SQLite schema (FTS5 exact + trigram fuzzy indexes)
+    search.py            search engine: exact FTS5 + trigram fuzzy re-ranking
+    jobs.py              background worker (download → prepare → transcribe)
+    media_ops.py         ffmpeg probe/remux/re-encode with progress
     srt_parser.py        .srt/.vtt parsing
   frontend/              React + Vite + Tailwind (dist/ is the build)
   media_store/           your media (created on first upload)
@@ -58,4 +70,4 @@ app/
 
 ## What's next (per the concept doc)
 
-Phase 2: export a recomposition to a real `.mp4`/`.wav` (ffmpeg concat), crossfade smoothing at joins, background-audio layer, YouTube import. Phase 3: translation + dubbing. Phase 4: community beyond the LAN.
+Phase 2: export a recomposition to a real `.mp4`/`.wav` (ffmpeg concat), crossfade smoothing at joins, background-audio layer. Phase 3: translation + dubbing. Phase 4: community beyond the LAN. (YouTube import via yt-dlp was pulled forward into Phase 1 — done.)

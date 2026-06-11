@@ -1,9 +1,7 @@
 """Recomposer — single-process FastAPI app: API + media streaming + frontend."""
 import mimetypes
-import os
 import re
 import shutil
-import tempfile
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
@@ -11,7 +9,7 @@ from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import jobs, media_ops
+from . import jobs, media_ops, search
 from .db import get_db, init_db, rows_to_dicts
 from .srt_parser import parse_subtitles
 
@@ -66,6 +64,19 @@ def list_media():
     return rows_to_dicts(rows)
 
 
+def _insert_subtitles(db, media_id: int, raw: str) -> bool:
+    """Parse and store subtitle text. Returns True if segments were created."""
+    segs = parse_subtitles(raw)
+    if not segs:
+        return False
+    db.execute("DELETE FROM segments WHERE media_id=?", (media_id,))
+    for i, s in enumerate(segs):
+        db.execute(
+            "INSERT INTO segments (media_id, idx, start_s, end_s, text) VALUES (?,?,?,?,?)",
+            (media_id, i, s["start_s"], s["end_s"], s["text"]))
+    return True
+
+
 @app.post("/api/media")
 async def upload_media(
     file: UploadFile = File(...),
@@ -73,50 +84,99 @@ async def upload_media(
     title: str = Form(""),
     user_id: int = Form(...),
 ):
+    """Browser upload: save the raw bytes, return immediately; ffmpeg runs in background."""
     db = get_db()
     title = title.strip() or Path(file.filename or "untitled").stem
     cur = db.execute(
         "INSERT INTO media (title, type, filename, status, added_by) VALUES (?,?,?,?,?)",
-        (title, "video", "", "processing", user_id))
+        (title, "video", "", "preparing", user_id))
     media_id = cur.lastrowid
     db.commit()
 
     suffix = Path(file.filename or "upload.bin").suffix or ".bin"
-    fd, tmp_name = tempfile.mkstemp(suffix=suffix)
-    os.close(fd)  # Windows: an open handle would block every later move/delete
-    tmp = Path(tmp_name)
+    raw_path = media_ops.media_dir(media_id) / ("raw" + suffix.lower())
     try:
-        with tmp.open("wb") as out:
-            shutil.copyfileobj(file.file, out)
-        final, mtype, duration = media_ops.prepare_for_streaming(tmp, media_id)
+        with raw_path.open("wb") as out:
+            shutil.copyfileobj(file.file, out, length=1024 * 1024)
     except Exception as e:
         db.execute("DELETE FROM media WHERE id=?", (media_id,))
         db.commit()
-        media_ops.safe_unlink(tmp)
-        raise HTTPException(400, f"could not process media: {e}")
+        media_ops.safe_unlink(raw_path)
+        raise HTTPException(400, f"could not save upload: {e}")
 
-    db.execute("UPDATE media SET type=?, filename=?, duration=? WHERE id=?",
-               (mtype, final.name, duration, media_id))
+    has_subs = False
+    if subtitle is not None and subtitle.filename:
+        text = (await subtitle.read()).decode("utf-8", errors="replace")
+        has_subs = _insert_subtitles(db, media_id, text)
+        if not has_subs:
+            db.execute("UPDATE media SET status_detail=? WHERE id=?",
+                       ("subtitle file could not be parsed — will auto-transcribe", media_id))
+        db.commit()
+
+    jobs.enqueue("prepare", media_id,
+                 {"src": str(raw_path), "keep_src": False,
+                  "then_transcribe": not has_subs})
+    row = db.execute("SELECT * FROM media WHERE id=?", (media_id,)).fetchone()
+    return dict(row)
+
+
+class PathImport(BaseModel):
+    path: str
+    subtitle_path: str | None = None
+    title: str = ""
+    user_id: int
+
+
+@app.post("/api/media/import-path")
+def import_path(body: PathImport):
+    """Import a file already on the host machine — no HTTP copy, ffmpeg reads it directly."""
+    src = Path(body.path.strip().strip('"'))
+    if not src.is_file():
+        raise HTTPException(400, f"file not found on the host: {src}")
+    db = get_db()
+    title = body.title.strip() or src.stem
+    cur = db.execute(
+        "INSERT INTO media (title, type, filename, status, added_by) VALUES (?,?,?,?,?)",
+        (title, "video", "", "preparing", body.user_id))
+    media_id = cur.lastrowid
+
+    has_subs = False
+    if body.subtitle_path:
+        sub = Path(body.subtitle_path.strip().strip('"'))
+        if not sub.is_file():
+            db.execute("DELETE FROM media WHERE id=?", (media_id,))
+            db.commit()
+            raise HTTPException(400, f"subtitle file not found: {sub}")
+        has_subs = _insert_subtitles(db, media_id, sub.read_text(encoding="utf-8", errors="replace"))
     db.commit()
 
-    if subtitle is not None and subtitle.filename:
-        raw = (await subtitle.read()).decode("utf-8", errors="replace")
-        segs = parse_subtitles(raw)
-        if not segs:
-            db.execute("UPDATE media SET status=?, status_detail=? WHERE id=?",
-                       ("error", "subtitle file could not be parsed", media_id))
-        else:
-            for i, s in enumerate(segs):
-                db.execute(
-                    "INSERT INTO segments (media_id, idx, start_s, end_s, text) VALUES (?,?,?,?,?)",
-                    (media_id, i, s["start_s"], s["end_s"], s["text"]))
-            db.execute("UPDATE media SET status='ready' WHERE id=?", (media_id,))
-        db.commit()
-    else:
-        db.execute("UPDATE media SET status='queued_transcription' WHERE id=?", (media_id,))
-        db.commit()
-        jobs.enqueue("transcribe", media_id)
+    jobs.enqueue("prepare", media_id,
+                 {"src": str(src), "keep_src": True,  # never touch the user's original
+                  "then_transcribe": not has_subs})
+    row = db.execute("SELECT * FROM media WHERE id=?", (media_id,)).fetchone()
+    return dict(row)
 
+
+class UrlImport(BaseModel):
+    url: str
+    title: str = ""
+    user_id: int
+
+
+@app.post("/api/media/from-url")
+def import_url(body: UrlImport):
+    """Import from YouTube & co. via yt-dlp (pip install yt-dlp)."""
+    url = body.url.strip()
+    if not url.lower().startswith(("http://", "https://")):
+        raise HTTPException(400, "that doesn't look like a link")
+    db = get_db()
+    title = body.title.strip() or f"Link import {url[:60]}"
+    cur = db.execute(
+        "INSERT INTO media (title, type, filename, status, added_by) VALUES (?,?,?,?,?)",
+        (title, "video", "", "downloading", body.user_id))
+    media_id = cur.lastrowid
+    db.commit()
+    jobs.enqueue("download", media_id, {"url": url, "then_transcribe": True})
     row = db.execute("SELECT * FROM media WHERE id=?", (media_id,)).fetchone()
     return dict(row)
 
@@ -335,18 +395,48 @@ def create_cut(c: CutIn):
     return _cut_payload(db, db.execute("SELECT * FROM cuts WHERE id=?", (cut_id,)).fetchone())
 
 
+def _csv_ints(s: str) -> list[int]:
+    out = []
+    for part in s.split(","):
+        part = part.strip()
+        if part.isdigit():
+            out.append(int(part))
+    return out
+
+
 @app.get("/api/cuts")
 def list_cuts(q: str = "", folder_id: int | None = None, tag: str = "",
-              media_id: int | None = None):
+              media_id: int | None = None,
+              tags: str = "", folder_ids: str = "", media_ids: str = ""):
+    """Filters: multi-value CSV params (tags/folder_ids/media_ids) are OR within
+    a category, AND across categories. Single-value params kept for compat."""
     db = get_db()
     where, params = [], []
+
+    fids = _csv_ints(folder_ids)
     if folder_id is not None:
-        where.append("c.folder_id = ?"); params.append(folder_id)
+        fids.append(folder_id)
+    if fids:
+        where.append(f"c.folder_id IN ({','.join('?' * len(fids))})")
+        params.extend(fids)
+
+    mids = _csv_ints(media_ids)
     if media_id is not None:
-        where.append("c.media_id = ?"); params.append(media_id)
+        mids.append(media_id)
+    if mids:
+        where.append(f"c.media_id IN ({','.join('?' * len(mids))})")
+        params.extend(mids)
+
+    tag_names = [t.strip().lstrip("#").lower() for t in (tags.split(",") if tags else [])]
     if tag:
-        where.append("c.id IN (SELECT ct.cut_id FROM cut_tags ct JOIN tags t ON t.id=ct.tag_id WHERE t.name = ?)")
-        params.append(tag.strip().lstrip("#").lower())
+        tag_names.append(tag.strip().lstrip("#").lower())
+    tag_names = [t for t in tag_names if t]
+    if tag_names:
+        where.append(f"""c.id IN (SELECT ct.cut_id FROM cut_tags ct
+            JOIN tags t ON t.id=ct.tag_id
+            WHERE t.name IN ({','.join('?' * len(tag_names))}))""")
+        params.extend(tag_names)
+
     if q.strip():
         safe = '"' + q.strip().replace('"', '""') + '"*'
         where.append("""(c.title LIKE '%' || ? || '%' OR c.id IN (
@@ -402,22 +492,12 @@ def delete_cut(cut_id: int):
 # ------------------------------------------------------- segment search
 
 @app.get("/api/search/segments")
-def search_segments(q: str, media_id: int | None = None, limit: int = 60):
-    db = get_db()
-    if not q.strip():
-        return []
-    safe = '"' + q.strip().replace('"', '""') + '"*'
-    sql = """SELECT s.*, m.title AS media_title, m.type AS media_type
-             FROM segments_fts f JOIN segments s ON s.id = f.rowid
-             JOIN media m ON m.id = s.media_id
-             WHERE segments_fts MATCH ?"""
-    params: list = [safe]
-    if media_id is not None:
-        sql += " AND s.media_id = ?"
-        params.append(media_id)
-    sql += " ORDER BY rank LIMIT ?"
-    params.append(min(limit, 200))
-    return rows_to_dicts(db.execute(sql, params))
+def search_segments(q: str, media_id: int | None = None, limit: int = 60,
+                    fuzzy: int = 1):
+    """Exact (FTS5) + fuzzy (trigram-index + word-similarity re-rank) search.
+    Results carry match='exact'|'fuzzy' and a 0–1 score."""
+    return search.search_segments(q, media_id=media_id, limit=limit,
+                                  fuzzy=bool(fuzzy))
 
 
 # ------------------------------------------------------ recompositions

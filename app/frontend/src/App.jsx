@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "./api";
 import Library from "./components/Library";
 import MediaView from "./components/MediaView";
-import CutBrowser from "./components/CutBrowser";
+import { CutsPage } from "./components/CutBrowser";
 import Studio from "./components/Studio";
 
 const COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6", "#06b6d4"];
@@ -62,7 +62,8 @@ export default function App() {
     try { return JSON.parse(localStorage.getItem("recomposer_user")); }
     catch { return null; }
   });
-  const [view, setView] = useState({ tab: "library" }); // {tab, mediaId?, recompId?}
+  const [view, setView] = useState({ tab: "library" }); // {tab, mediaId?, seg?}
+  const openMedia = (id, seg = null) => setView({ tab: "media", mediaId: id, seg });
 
   const login = (u) => {
     localStorage.setItem("recomposer_user", JSON.stringify(u));
@@ -95,13 +96,13 @@ export default function App() {
       </header>
       <main className="flex-1 min-h-0">
         {view.tab === "library" && (
-          <Library user={user} openMedia={(id) => setView({ tab: "media", mediaId: id })} />
+          <Library user={user} openMedia={openMedia} />
         )}
         {view.tab === "media" && (
-          <MediaView user={user} mediaId={view.mediaId}
+          <MediaView user={user} mediaId={view.mediaId} initialSeg={view.seg}
             back={() => setView({ tab: "library" })} />
         )}
-        {view.tab === "cuts" && <CutBrowser user={user} />}
+        {view.tab === "cuts" && <CutsPage user={user} openMedia={openMedia} />}
         {view.tab === "studio" && <Studio user={user} />}
       </main>
     </div>

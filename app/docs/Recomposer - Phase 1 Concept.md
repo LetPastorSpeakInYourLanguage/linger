@@ -120,10 +120,10 @@ Searchable subtitle text is just SQLite FTS5 full-text index over `segments.text
 FastAPI + SQLite + React shell, name-login, upload media with `.srt`, parse segments, Library + Media view with seek-on-click. *Milestone: you can watch your media and click around the transcript over WiFi from two laptops.*
 
 **Phase 1 — The core loop (this document)**
-Transcription jobs (faster-whisper), FTS search, Cuts with tags/folders, Cut browser, Recomposition studio with sequenced preview. *Milestone: you build a real romance-scenes recomposition from 3 movies and your brother watches it from his laptop.*
+Transcription jobs (faster-whisper), FTS search, Cuts with tags/folders, Cut browser, Recomposition studio with sequenced preview. Three intake paths: browser upload, local-path import (file read in place, fastest), and YouTube/public-link import via yt-dlp (pulled forward from Phase 2) — all converging on a background prepare→transcribe pipeline with terminal + UI progress. *Milestone: you build a real romance-scenes recomposition from 3 movies and your brother watches it from his laptop.*
 
 **Phase 2 — Make it real media**
-FFmpeg export job: recomposition → single `.mp4`/`.wav` (concat of cut ranges). Then audio smoothing at joins (silence-point trimming + crossfade), optional bg-audio layer with length-matching. YouTube import via yt-dlp.
+FFmpeg export job: recomposition → single `.mp4`/`.wav` (concat of cut ranges). Then audio smoothing at joins (silence-point trimming + crossfade), optional bg-audio layer with length-matching. (YouTube import via yt-dlp moved into Phase 1 — done.)
 
 **Phase 3 — Language**
 Canonical sentence table, machine translation loading, the Proofreader (TanStack table) and in-context Cut translation, TTS fallback. This is where the central sentence/aggregate repo from your notes gets built — on top of a proven core.

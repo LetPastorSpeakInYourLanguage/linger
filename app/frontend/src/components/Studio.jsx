@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { api, fmtTime, streamUrl } from "../api";
-import { inputCls, btnCls, btnGhost } from "./ui";
-import CutBrowser from "./CutBrowser";
+import { inputCls, btnCls, btnGhost, modalOpen, useResizable, DragBar, ContextMenu } from "./ui";
+import CutBrowser, { EMPTY_FILTERS } from "./CutBrowser";
 
-/* Sequenced playback across multiple source media files. */
+/* Sequenced playback across multiple source media files, with per-cut loop. */
 function useSequencePlayer(cuts) {
   const playerRef = useRef();
   const [playingIdx, setPlayingIdx] = useState(-1);
-  const stateRef = useRef({ idx: -1, cuts: [] });
+  const [loop, setLoop] = useState(false);
+  const stateRef = useRef({ idx: -1, cuts: [], loop: false });
   stateRef.current.cuts = cuts;
+  stateRef.current.loop = loop;
 
   const playFrom = (idx) => {
     const cut = stateRef.current.cuts[idx];
@@ -30,11 +32,12 @@ function useSequencePlayer(cuts) {
   };
 
   const onTime = () => {
-    const { idx, cuts } = stateRef.current;
+    const { idx, cuts, loop } = stateRef.current;
     const p = playerRef.current;
     if (idx < 0 || !p || !cuts[idx]) return;
     if (p.currentTime >= cuts[idx].end_s) {
-      if (idx + 1 < cuts.length) playFrom(idx + 1);
+      if (loop) p.currentTime = cuts[idx].start_s;        // immerse mode
+      else if (idx + 1 < cuts.length) playFrom(idx + 1);
       else { p.pause(); stateRef.current.idx = -1; setPlayingIdx(-1); }
     }
   };
@@ -45,16 +48,21 @@ function useSequencePlayer(cuts) {
     setPlayingIdx(-1);
   };
 
-  return { playerRef, playingIdx, playFrom, onTime, stop };
+  return { playerRef, playingIdx, playFrom, onTime, stop, loop, setLoop };
 }
 
 function RecompEditor({ user, recompId, back }) {
   const [recomp, setRecomp] = useState(null);
   const [dragIdx, setDragIdx] = useState(null);
-  const { playerRef, playingIdx, playFrom, onTime, stop } = useSequencePlayer(recomp?.cuts ?? []);
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [folders, setFolders] = useState([]);
+  const [menu, setMenu] = useState(null); // {x, y, cut}
+  const wasPlayingRef = useRef(false);
+  const { playerRef, playingIdx, playFrom, onTime, stop, loop, setLoop } =
+    useSequencePlayer(recomp?.cuts ?? []);
 
   const load = () => api.get(`/api/recompositions/${recompId}`).then(setRecomp);
-  useEffect(() => { load(); }, [recompId]);
+  useEffect(() => { load(); api.get("/api/folders").then(setFolders).catch(() => {}); }, [recompId]);
 
   const saveOrder = async (cutIds) => {
     setRecomp(await api.put(`/api/recompositions/${recompId}/cuts`, { cut_ids: cutIds }));
@@ -76,24 +84,124 @@ function RecompEditor({ user, recompId, back }) {
 
   const addCut = (cut) => saveOrder([...recomp.cuts.map((c) => c.id), cut.id]);
 
+  /* Cut-preview popup opened from the browser: pause, then resume on close. */
+  const onPreviewChange = (cut) => {
+    const p = playerRef.current;
+    if (cut) {
+      wasPlayingRef.current = !!p && !p.paused;
+      p?.pause();
+    } else if (wasPlayingRef.current) {
+      p?.play().catch(() => {});
+      wasPlayingRef.current = false;
+    }
+  };
+
+  /* Right-click a sequence item → drive the cut browser's filters from it. */
+  const menuItems = (cut) => {
+    const folderName = folders.find((f) => f.id === cut.folder_id)?.name;
+    const items = [
+      { header: "Filter the cut browser by…" },
+      {
+        label: `🎬 Same media: ${cut.media_title}`,
+        onClick: () => setFilters((f) => ({
+          ...f,
+          media: f.media.some((m) => m.id === cut.media_id) ? f.media
+            : [...f.media, { id: cut.media_id, title: cut.media_title }],
+        })),
+      },
+    ];
+    if (folderName) {
+      items.push({
+        label: `📁 Folder: ${folderName}`,
+        onClick: () => setFilters((f) => ({
+          ...f,
+          folders: f.folders.some((x) => x.id === cut.folder_id) ? f.folders
+            : [...f.folders, { id: cut.folder_id, name: folderName }],
+        })),
+      });
+    }
+    for (const t of cut.tags) {
+      items.push({
+        label: `# Tag: ${t}`,
+        onClick: () => setFilters((f) => ({
+          ...f, tags: f.tags.includes(t) ? f.tags : [...f.tags, t],
+        })),
+      });
+    }
+    items.push({ divider: true });
+    if (cut.tags.length || folderName) {
+      items.push({
+        label: "✚ Add all of this cut's filters",
+        onClick: () => setFilters((f) => ({
+          q: f.q,
+          media: f.media.some((m) => m.id === cut.media_id) ? f.media
+            : [...f.media, { id: cut.media_id, title: cut.media_title }],
+          folders: folderName && !f.folders.some((x) => x.id === cut.folder_id)
+            ? [...f.folders, { id: cut.folder_id, name: folderName }] : f.folders,
+          tags: [...new Set([...f.tags, ...cut.tags])],
+        })),
+      });
+    }
+    items.push({ label: "✕ Clear all filters", onClick: () => setFilters({ ...EMPTY_FILTERS }) });
+    return items;
+  };
+
+  /* Studio keyboard shortcuts — work no matter what has focus. */
+  useEffect(() => {
+    const onKey = (e) => {
+      if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
+      if (modalOpen()) return;
+      const p = playerRef.current;
+      const n = recomp?.cuts?.length ?? 0;
+      if (e.code === "Space") {
+        e.preventDefault();
+        if (!p) return;
+        if (p.paused && playingIdx < 0 && n) playFrom(0);
+        else p.paused ? p.play() : p.pause();
+      } else if (e.key === "ArrowRight") { e.preventDefault(); if (p) p.currentTime += 5; }
+      else if (e.key === "ArrowLeft") { e.preventDefault(); if (p) p.currentTime -= 5; }
+      else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        if (n) playFrom(Math.min(playingIdx < 0 ? 0 : playingIdx + 1, n - 1));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        if (n) playFrom(Math.max(playingIdx < 0 ? 0 : playingIdx - 1, 0));
+      } else if (e.key === "l" || e.key === "L") {
+        setLoop((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [playingIdx, recomp, setLoop]);
+
+  const [leftW, dragLeft] = useResizable("studio_left_w", 420, 300, 760);
+
   if (!recomp) return null;
   const total = recomp.cuts.reduce((acc, c) => acc + (c.end_s - c.start_s), 0);
   const hasVideo = recomp.cuts.some((c) => c.media_type === "video");
 
   return (
     <div className="h-full flex min-h-0">
-      {/* left: cut search */}
-      <div className="w-[420px] shrink-0 border-r border-zinc-800 min-h-0">
-        <CutBrowser user={user} embedded onAdd={addCut} />
+      {/* left: cut search (resizable) */}
+      <div style={{ width: leftW }} className="shrink-0 min-h-0 flex flex-col">
+        <CutBrowser user={user} embedded onAdd={addCut}
+          filters={filters} setFilters={setFilters}
+          onPreviewChange={onPreviewChange} />
       </div>
+      <DragBar onMouseDown={dragLeft} />
 
       {/* right: sequence + player */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 border-l border-zinc-800">
         <div className="flex items-center gap-3 px-4 py-2 border-b border-zinc-800 shrink-0">
           <button onClick={back} className="text-zinc-400 hover:text-white text-sm">← Studio</button>
           <h1 className="font-semibold truncate">{recomp.title}</h1>
-          <span className="text-xs text-zinc-500">{recomp.cuts.length} cuts · {fmtTime(total)}</span>
-          <div className="ml-auto flex gap-2">
+          <span className="text-xs text-zinc-500 whitespace-nowrap">{recomp.cuts.length} cuts · {fmtTime(total)}</span>
+          <div className="ml-auto flex gap-2 items-center">
+            <button title="Loop the playing cut (L)"
+              className={`${btnGhost} ${loop ? "border-amber-500 text-amber-400" : ""}`}
+              onClick={() => setLoop(!loop)}>
+              🔁 Loop {loop ? "on" : "off"}
+            </button>
             <button className={btnCls} disabled={!recomp.cuts.length}
               onClick={() => playFrom(0)}>▶ Play all</button>
             <button className={btnGhost} onClick={stop}>Stop</button>
@@ -109,6 +217,10 @@ function RecompEditor({ user, recompId, back }) {
           )}
         </div>
 
+        <p className="px-4 py-1 text-[11px] text-zinc-600 border-b border-zinc-800/60 shrink-0">
+          space play/pause · ←/→ seek 5s · ↑/↓ previous/next cut · L loop current cut · right-click a cut for filters
+        </p>
+
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {recomp.cuts.length === 0 && (
             <p className="text-zinc-500 text-sm text-center mt-10">
@@ -120,15 +232,24 @@ function RecompEditor({ user, recompId, back }) {
               onDragStart={() => setDragIdx(i)}
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => { if (dragIdx != null && dragIdx !== i) move(dragIdx, i); setDragIdx(null); }}
+              onContextMenu={(e) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY, cut: c }); }}
               className={`rounded-lg border p-3 flex items-center gap-3 cursor-grab ${
                 playingIdx === i ? "border-amber-500 bg-amber-500/10" : "border-zinc-800 bg-zinc-900"}`}>
               <span className="text-zinc-600 text-sm w-6 text-right">{i + 1}.</span>
               <button onClick={() => playFrom(i)} title="Play from here"
                 className="text-indigo-400 hover:text-indigo-300">▶</button>
+              <button onClick={() => { playFrom(i); setLoop(true); }} title="Play this cut on loop"
+                className={`text-sm ${loop && playingIdx === i ? "text-amber-400" : "text-zinc-500 hover:text-amber-400"}`}>
+                🔁
+              </button>
               <div className="min-w-0 flex-1">
-                <p className="font-medium truncate">{c.title}</p>
+                <p className="font-medium truncate">
+                  {c.title}
+                  {loop && playingIdx === i && <span className="text-amber-400 text-xs ml-2">looping</span>}
+                </p>
                 <p className="text-xs text-zinc-500 truncate">
                   {c.media_title} · {fmtTime(c.start_s)}–{fmtTime(c.end_s)} ({fmtTime(c.end_s - c.start_s)})
+                  {c.tags.length > 0 && <> · {c.tags.map((t) => `#${t}`).join(" ")}</>}
                 </p>
               </div>
               <div className="flex flex-col">
@@ -140,6 +261,11 @@ function RecompEditor({ user, recompId, back }) {
           ))}
         </div>
       </div>
+
+      {menu && (
+        <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu.cut)}
+          onClose={() => setMenu(null)} />
+      )}
     </div>
   );
 }

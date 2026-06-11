@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     media_id INTEGER REFERENCES media(id) ON DELETE CASCADE,
     status TEXT NOT NULL DEFAULT 'queued',
     detail TEXT DEFAULT '',
+    payload TEXT DEFAULT '{}',
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
 );
@@ -115,6 +116,26 @@ CREATE TRIGGER IF NOT EXISTS segments_au AFTER UPDATE ON segments BEGIN
 END;
 """
 
+# Trigram index for fuzzy (typo-tolerant) search. Needs SQLite >= 3.34;
+# created separately so older builds degrade gracefully to exact-only search.
+TRI_SCHEMA = """
+CREATE VIRTUAL TABLE IF NOT EXISTS segments_tri USING fts5(
+    text, content='segments', content_rowid='id', tokenize='trigram'
+);
+CREATE TRIGGER IF NOT EXISTS segments_tri_ai AFTER INSERT ON segments BEGIN
+    INSERT INTO segments_tri(rowid, text) VALUES (new.id, new.text);
+END;
+CREATE TRIGGER IF NOT EXISTS segments_tri_ad AFTER DELETE ON segments BEGIN
+    INSERT INTO segments_tri(segments_tri, rowid, text) VALUES('delete', old.id, old.text);
+END;
+CREATE TRIGGER IF NOT EXISTS segments_tri_au AFTER UPDATE ON segments BEGIN
+    INSERT INTO segments_tri(segments_tri, rowid, text) VALUES('delete', old.id, old.text);
+    INSERT INTO segments_tri(rowid, text) VALUES (new.id, new.text);
+END;
+"""
+
+HAS_TRIGRAM = False
+
 
 def get_db() -> sqlite3.Connection:
     conn = getattr(_local, "conn", None)
@@ -131,8 +152,23 @@ def get_db() -> sqlite3.Connection:
 
 
 def init_db():
+    global HAS_TRIGRAM
     conn = get_db()
+    tri_existed = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE name='segments_tri'").fetchone() is not None
     conn.executescript(SCHEMA)
+    # migrations for databases created by older versions
+    try:
+        conn.execute("ALTER TABLE jobs ADD COLUMN payload TEXT DEFAULT '{}'")
+    except sqlite3.OperationalError:
+        pass  # column already exists
+    try:
+        conn.executescript(TRI_SCHEMA)
+        if not tri_existed:  # index pre-existing segments once
+            conn.execute("INSERT INTO segments_tri(segments_tri) VALUES('rebuild')")
+        HAS_TRIGRAM = True
+    except sqlite3.OperationalError:
+        HAS_TRIGRAM = False  # old SQLite without trigram tokenizer: exact-only search
     conn.commit()
 
 

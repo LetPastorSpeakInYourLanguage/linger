@@ -1,4 +1,4 @@
-"""ffmpeg/ffprobe helpers: probe, remux to seek-friendly mp4, audio extraction."""
+"""ffmpeg/ffprobe helpers: probe, remux to seek-friendly mp4 with progress, audio extraction."""
 import json
 import os
 import shutil
@@ -12,7 +12,6 @@ MEDIA_ROOT = Path(os.environ.get(
 MEDIA_ROOT.mkdir(exist_ok=True)
 
 BROWSER_VIDEO = {"h264"}
-BROWSER_AUDIO = {"aac", "mp3", "opus", "vorbis", "flac"}
 
 
 def safe_unlink(path: Path):
@@ -59,51 +58,87 @@ def media_dir(media_id: int) -> Path:
     return d
 
 
-def prepare_for_streaming(src: Path, media_id: int):
-    """Remux/transcode the upload into a browser-seekable file.
+def _run_ffmpeg_with_progress(cmd, duration, on_progress):
+    """Run ffmpeg with -progress on stdout; call on_progress(percent) as it goes."""
+    full = cmd[:1] + ["-nostats", "-loglevel", "error",
+                      "-progress", "pipe:1"] + cmd[1:]
+    proc = subprocess.Popen(full, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, text=True)
+    last = -10
+    for line in proc.stdout:
+        line = line.strip()
+        if line.startswith("out_time_ms=") and duration:
+            try:
+                pct = min(99, int(line.split("=")[1]) / 1_000_000 / duration * 100)
+            except ValueError:
+                continue
+            if pct - last >= 2 and on_progress:
+                last = pct
+                on_progress(pct)
+    proc.wait()
+    if proc.returncode != 0:
+        err = proc.stderr.read()[-400:] if proc.stderr else ""
+        raise RuntimeError(f"ffmpeg failed: {err}")
 
-    Returns (final_path, media_type, duration) — final file lives in media_dir.
+
+def prepare_for_streaming(src: Path, media_id: int, *, keep_src: bool = False,
+                          on_progress=None):
+    """Remux (fast) or re-encode (slow, shows progress) into a browser-seekable file.
+
+    keep_src=True when src is the user's own file (local-path import) — never delete it.
+    Returns (final_path, media_type, duration, mode) where mode is 'copy'/'remux'/'reencode'.
     """
-    info = probe(src) if have_ffmpeg() else None
     dest_dir = media_dir(media_id)
+    info = probe(src) if have_ffmpeg() else None
 
     if info is None:
         # no ffmpeg: trust the extension, copy as-is
         final = dest_dir / ("source" + src.suffix.lower())
-        shutil.move(str(src), final)
+        if keep_src:
+            shutil.copy2(str(src), final)
+        else:
+            shutil.move(str(src), final)
         mtype = "video" if src.suffix.lower() in (".mp4", ".webm", ".mov", ".mkv") else "audio"
-        return final, mtype, None
+        return final, mtype, None, "copy"
 
     duration, has_video, vcodec, acodec = info
 
     if has_video:
         final = dest_dir / "source.mp4"
         if vcodec in BROWSER_VIDEO and acodec in (None, "aac", "mp3"):
+            mode = "remux"  # stream copy: runs at disk speed
             cmd = ["ffmpeg", "-y", "-i", str(src), "-c", "copy",
                    "-movflags", "+faststart", str(final)]
-        else:  # re-encode anything browser-hostile (hevc, vp9-in-mkv with weird audio, ...)
+        else:
+            mode = "reencode"  # h264 conversion: slow, but only needed once
             cmd = ["ffmpeg", "-y", "-i", str(src),
                    "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
                    "-c:a", "aac", "-b:a", "160k",
                    "-movflags", "+faststart", str(final)]
-        subprocess.run(cmd, capture_output=True, timeout=7200, check=True)
-        safe_unlink(src)
-        return final, "video", duration
+        _run_ffmpeg_with_progress(cmd, duration, on_progress)
+        if not keep_src:
+            safe_unlink(src)
+        return final, "video", duration, mode
 
     # audio-only
-    final = dest_dir / "source.m4a"
-    if acodec == "aac" and src.suffix.lower() in (".m4a", ".mp4", ".aac"):
-        cmd = ["ffmpeg", "-y", "-i", str(src), "-c", "copy",
-               "-movflags", "+faststart", str(final)]
-    elif acodec == "mp3":
+    if acodec == "mp3":
         final = dest_dir / "source.mp3"
+        mode = "remux"
         cmd = ["ffmpeg", "-y", "-i", str(src), "-c", "copy", str(final)]
-    else:
-        cmd = ["ffmpeg", "-y", "-i", str(src), "-c:a", "aac", "-b:a", "160k",
+    elif acodec == "aac":
+        final = dest_dir / "source.m4a"
+        mode = "remux"
+        cmd = ["ffmpeg", "-y", "-i", str(src), "-vn", "-c", "copy",
                "-movflags", "+faststart", str(final)]
-    subprocess.run(cmd, capture_output=True, timeout=7200, check=True)
-    safe_unlink(src)
-    return final, "audio", duration
+    else:
+        final = dest_dir / "source.m4a"
+        mode = "reencode"
+        cmd = ["ffmpeg", "-y", "-i", str(src), "-vn", "-c:a", "aac", "-b:a", "160k",
+               "-movflags", "+faststart", str(final)]
+    _run_ffmpeg_with_progress(cmd, duration, on_progress)
+    if not keep_src:
+        safe_unlink(src)
+    return final, "audio", duration, mode
 
 
 def extract_wav_for_transcription(media_id: int, source: Path) -> Path:

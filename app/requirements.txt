@@ -3,3 +3,5 @@ uvicorn[standard]>=0.29
 python-multipart>=0.0.9
 # optional — only needed for auto-transcription of media without subtitles:
 # faster-whisper>=1.0
+# optional — only needed for "From link" imports (YouTube etc.):
+# yt-dlp
