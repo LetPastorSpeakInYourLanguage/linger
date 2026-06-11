@@ -183,12 +183,47 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
   const scrollToIdx = (i) =>
     segEls.current[i]?.scrollIntoView({ block: "center", behavior: "smooth" });
 
-  const clickSeg = (i, e) => {
-    if (e.shiftKey && anchor != null) setExtent(i);
-    else { setAnchor(i); setExtent(null); }
+  /* Mouse selection: click = one line; drag across lines = a sequence;
+     shift-click = extend from the anchor. Playback starts on release. */
+  const draggingRef = useRef(false);
+  const didDragRef = useRef(false);
+
+  const segMouseDown = (i, e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
     stopAtRef.current = null;
-    seekTo(segments[i]);
+    if (e.shiftKey && anchor != null) { setExtent(i); return; }
+    setAnchor(i); setExtent(null);
+    draggingRef.current = true;
+    didDragRef.current = false;
   };
+
+  const segMouseEnter = (i) => {
+    if (!draggingRef.current) return;
+    didDragRef.current = true;
+    setExtent(i);
+  };
+
+  const selRef = useRef({ anchor: null, extent: null });
+  useEffect(() => { selRef.current = { anchor, extent }; }, [anchor, extent]);
+
+  useEffect(() => {
+    const up = () => {
+      if (!draggingRef.current) return;
+      draggingRef.current = false;
+      const { anchor: a, extent: ex } = selRef.current;
+      if (a == null || !segments.length) return;
+      if (didDragRef.current && ex != null && ex !== a) {
+        const lo = Math.min(a, ex), hi = Math.max(a, ex);
+        stopAtRef.current = segments[hi]?.end_s ?? null; // play the dragged range
+        seekTo(segments[lo]);
+      } else {
+        seekTo(segments[a]); // simple click: play that line
+      }
+    };
+    window.addEventListener("mouseup", up);
+    return () => window.removeEventListener("mouseup", up);
+  }, [segments]);
 
   /* Grow/shrink the selection by whole lines — "also include the next two". */
   const extendSel = (dir) => {
@@ -310,7 +345,7 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
               </>
             ) : (
               <span className="text-zinc-500">
-                Click a line to play it · shift-click or shift-↓ to extend the selection across lines
+                Click a line to play it · <b className="text-zinc-300">drag across lines</b> to select a sequence · shift-click / shift-↓ also extends
               </span>
             )}
             {savedFlash && <span className="ml-auto text-emerald-400">Cut saved ✓</span>}
@@ -328,7 +363,8 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
                   className={`seg ${i === activeIdx ? "active" : ""} ${selected ? "selected" : ""} ${
                     matched.has(s.id) ? "underline decoration-amber-400 decoration-2" : ""}`}
                   title={`#${s.idx} · ${fmtTime(s.start_s)} → ${fmtTime(s.end_s)}`}
-                  onClick={(e) => clickSeg(i, e)}>
+                  onMouseDown={(e) => segMouseDown(i, e)}
+                  onMouseEnter={() => segMouseEnter(i)}>
                   {s.text}{" "}
                 </span>
               );
