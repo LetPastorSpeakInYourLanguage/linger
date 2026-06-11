@@ -31,15 +31,25 @@ CREATE TABLE IF NOT EXISTS media (
     created_at TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS tracks (
+    id INTEGER PRIMARY KEY,
+    media_id INTEGER NOT NULL REFERENCES media(id) ON DELETE CASCADE,
+    name TEXT NOT NULL DEFAULT 'Subtitles',
+    created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_tracks_media ON tracks(media_id);
+
 CREATE TABLE IF NOT EXISTS segments (
     id INTEGER PRIMARY KEY,
     media_id INTEGER NOT NULL REFERENCES media(id) ON DELETE CASCADE,
+    track_id INTEGER REFERENCES tracks(id) ON DELETE CASCADE,
     idx INTEGER NOT NULL,
     start_s REAL NOT NULL,
     end_s REAL NOT NULL,
     text TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_segments_media ON segments(media_id, idx);
+-- idx_segments_track is created in init_db, after the track_id migration
 
 CREATE TABLE IF NOT EXISTS folders (
     id INTEGER PRIMARY KEY,
@@ -162,6 +172,19 @@ def init_db():
         conn.execute("ALTER TABLE jobs ADD COLUMN payload TEXT DEFAULT '{}'")
     except sqlite3.OperationalError:
         pass  # column already exists
+    try:
+        conn.execute("ALTER TABLE segments ADD COLUMN track_id INTEGER "
+                     "REFERENCES tracks(id) ON DELETE CASCADE")
+    except sqlite3.OperationalError:
+        pass  # column already exists
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_segments_track ON segments(track_id, idx)")
+    # adopt pre-tracks segments into one 'Original' track per media
+    for row in conn.execute(
+            "SELECT DISTINCT media_id FROM segments WHERE track_id IS NULL").fetchall():
+        cur = conn.execute("INSERT INTO tracks (media_id, name) VALUES (?, 'Original')",
+                           (row[0],))
+        conn.execute("UPDATE segments SET track_id=? WHERE media_id=? AND track_id IS NULL",
+                     (cur.lastrowid, row[0]))
     try:
         conn.executescript(TRI_SCHEMA)
         if not tri_existed:  # index pre-existing segments once

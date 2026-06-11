@@ -23,3 +23,23 @@ On Studio Window
 4. this means you need to advance the filtering capability (it should first be a reset and add fitler tag, folder, source media type engine) -I can clear filter, or add tag items, add media items, add folders from whom segments to search from are going to be comming
 
 and on both the Cuts and Studio pages, I would really love it if the panels of the windows can be resizable
+
+
+
+----------------------------------------
+There is this silent error I want to fix - in recomposition when cuts in sequence, when the previous and next are from different media the video player kind of jumps when loading the video (if there is anyway to smooth that out it would be perfect)
+```bash
+Exception in callback _ProactorBasePipeTransport._call_connection_lost(None)
+handle: <Handle _ProactorBasePipeTransport._call_connection_lost(None)>
+Traceback (most recent call last):
+  File "C:\Users\pc\AppData\Local\Programs\Python\Python312\Lib\asyncio\events.py", line 84, in _run
+    self._context.run(self._callback, *self._args)
+  File "C:\Users\pc\AppData\Local\Programs\Python\Python312\Lib\asyncio\proactor_events.py", line 165, in _call_connection_lost
+    self._sock.shutdown(socket.SHUT_RDWR)
+ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
+```
+
+also is there any way that we can enable multiple subtitles per media file, so that I can have multiple subtitles but they still link to the same source media, and the cuts created from them also play portions from that media,
+then I also want to have a subtitle editor part where I can edit or create subtitles for the media files - this needs to be very meticoulusly thought about - it is so that I can fix subtitle errors in timing, add missing subtitles segments or remove non desired subtitle segments. I should also be cappable of doing batch operations with regex selection (you can ingore this one if it is too complex)
+
+- then lets now try and push the faster-whisper transcription engine and yt-dlp uploads - add them to requirements and setup the required configurations, I will install them and make sure they are working

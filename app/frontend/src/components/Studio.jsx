@@ -3,27 +3,73 @@ import { api, fmtTime, streamUrl } from "../api";
 import { inputCls, btnCls, btnGhost, modalOpen, useResizable, DragBar, ContextMenu } from "./ui";
 import CutBrowser, { EMPTY_FILTERS } from "./CutBrowser";
 
-/* Sequenced playback across multiple source media files, with per-cut loop. */
+/* Sequenced playback across multiple source media files, with per-cut loop.
+
+   Double-buffered: two stacked <video> elements. While cut N plays, cut N+1's
+   media is already loaded & seeked in the hidden element; at the boundary we
+   just swap which one is visible — no "black flash" while a new file loads. */
 function useSequencePlayer(cuts) {
-  const playerRef = useRef();
+  const refA = useRef();
+  const refB = useRef();
   const [playingIdx, setPlayingIdx] = useState(-1);
+  const [activeEl, setActiveEl] = useState(0); // 0 → refA visible, 1 → refB
   const [loop, setLoop] = useState(false);
-  const stateRef = useRef({ idx: -1, cuts: [], loop: false });
+  const stateRef = useRef({ idx: -1, cuts: [], loop: false, active: 0 });
   stateRef.current.cuts = cuts;
   stateRef.current.loop = loop;
 
+  const els = () => [refA.current, refB.current];
+  const getPlayer = () => els()[stateRef.current.active];
+  const srcMatch = (el, src) => !!el && !!el.src && el.src.endsWith(src);
+
+  /* warm up the standby element with the NEXT cut's media, paused & pre-seeked */
+  const preloadNext = (idx) => {
+    const st = stateRef.current;
+    const next = st.cuts[idx + 1];
+    if (!next) return;
+    const nsrc = streamUrl(next.media_id);
+    const cur = els()[st.active];
+    const standby = els()[1 - st.active];
+    if (!standby || srcMatch(cur, nsrc)) return; // same file: no swap needed
+    const seekStandby = () => {
+      try { standby.currentTime = next.start_s; } catch { /* not ready */ }
+    };
+    if (!srcMatch(standby, nsrc)) {
+      standby.pause();
+      standby.src = nsrc;
+      standby.preload = "auto";
+      standby.addEventListener("loadedmetadata", seekStandby, { once: true });
+    } else {
+      seekStandby();
+    }
+  };
+
   const playFrom = (idx) => {
-    const cut = stateRef.current.cuts[idx];
-    const p = playerRef.current;
-    if (!cut || !p) { setPlayingIdx(-1); return; }
-    stateRef.current.idx = idx;
+    const st = stateRef.current;
+    const cut = st.cuts[idx];
+    if (!cut) { setPlayingIdx(-1); return; }
+    st.idx = idx;
     setPlayingIdx(idx);
     const src = streamUrl(cut.media_id);
+    let p = els()[st.active];
+    const standby = els()[1 - st.active];
+
+    // if the standby element already holds this media, swap instead of reloading
+    if (!srcMatch(p, src) && srcMatch(standby, src)) {
+      p?.pause();
+      st.active = 1 - st.active;
+      setActiveEl(st.active);
+      p = standby;
+    }
+    if (!p) return;
+
     const seekAndPlay = () => {
-      p.currentTime = cut.start_s;
+      // pre-seeked within ~0.4s already? don't seek again (avoids a stutter)
+      if (Math.abs(p.currentTime - cut.start_s) > 0.4) p.currentTime = cut.start_s;
       p.play().catch(() => {});
+      preloadNext(idx);
     };
-    if (!p.src.endsWith(src)) {
+    if (!srcMatch(p, src)) {
       p.src = src;
       p.addEventListener("loadedmetadata", seekAndPlay, { once: true });
     } else {
@@ -31,24 +77,26 @@ function useSequencePlayer(cuts) {
     }
   };
 
-  const onTime = () => {
-    const { idx, cuts, loop } = stateRef.current;
-    const p = playerRef.current;
-    if (idx < 0 || !p || !cuts[idx]) return;
-    if (p.currentTime >= cuts[idx].end_s) {
-      if (loop) p.currentTime = cuts[idx].start_s;        // immerse mode
-      else if (idx + 1 < cuts.length) playFrom(idx + 1);
-      else { p.pause(); stateRef.current.idx = -1; setPlayingIdx(-1); }
+  const onTime = (e) => {
+    const st = stateRef.current;
+    if (e.target !== els()[st.active]) return; // ignore the hidden element
+    const p = e.target;
+    const cut = st.cuts[st.idx];
+    if (st.idx < 0 || !cut) return;
+    if (p.currentTime >= cut.end_s) {
+      if (st.loop) p.currentTime = cut.start_s;            // immerse mode
+      else if (st.idx + 1 < st.cuts.length) playFrom(st.idx + 1);
+      else { p.pause(); st.idx = -1; setPlayingIdx(-1); }
     }
   };
 
   const stop = () => {
-    playerRef.current?.pause();
+    els().forEach((p) => p?.pause());
     stateRef.current.idx = -1;
     setPlayingIdx(-1);
   };
 
-  return { playerRef, playingIdx, playFrom, onTime, stop, loop, setLoop };
+  return { refA, refB, activeEl, getPlayer, playingIdx, playFrom, onTime, stop, loop, setLoop };
 }
 
 function RecompEditor({ user, recompId, back }) {
@@ -58,7 +106,7 @@ function RecompEditor({ user, recompId, back }) {
   const [folders, setFolders] = useState([]);
   const [menu, setMenu] = useState(null); // {x, y, cut}
   const wasPlayingRef = useRef(false);
-  const { playerRef, playingIdx, playFrom, onTime, stop, loop, setLoop } =
+  const { refA, refB, activeEl, getPlayer, playingIdx, playFrom, onTime, stop, loop, setLoop } =
     useSequencePlayer(recomp?.cuts ?? []);
 
   const load = () => api.get(`/api/recompositions/${recompId}`).then(setRecomp);
@@ -86,7 +134,7 @@ function RecompEditor({ user, recompId, back }) {
 
   /* Cut-preview popup opened from the browser: pause, then resume on close. */
   const onPreviewChange = (cut) => {
-    const p = playerRef.current;
+    const p = getPlayer();
     if (cut) {
       wasPlayingRef.current = !!p && !p.paused;
       p?.pause();
@@ -151,7 +199,7 @@ function RecompEditor({ user, recompId, back }) {
     const onKey = (e) => {
       if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
       if (modalOpen()) return;
-      const p = playerRef.current;
+      const p = getPlayer();
       const n = recomp?.cuts?.length ?? 0;
       if (e.code === "Space") {
         e.preventDefault();
@@ -208,13 +256,14 @@ function RecompEditor({ user, recompId, back }) {
           </div>
         </div>
 
-        <div className="shrink-0 bg-black flex justify-center">
-          {hasVideo ? (
-            <video ref={playerRef} controls className="max-h-[38vh] w-full object-contain"
-              onTimeUpdate={onTime} />
-          ) : (
-            <audio ref={playerRef} controls className="w-full px-6 py-3" onTimeUpdate={onTime} />
-          )}
+        {/* double-buffered player: hidden element preloads the next cut's media */}
+        <div className="shrink-0 bg-black relative" style={{ height: hasVideo ? "38vh" : "72px" }}>
+          <video ref={refA} controls onTimeUpdate={onTime}
+            className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-150 ${
+              activeEl === 0 ? "opacity-100" : "opacity-0 pointer-events-none"}`} />
+          <video ref={refB} controls onTimeUpdate={onTime}
+            className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-150 ${
+              activeEl === 1 ? "opacity-100" : "opacity-0 pointer-events-none"}`} />
         </div>
 
         <p className="px-4 py-1 text-[11px] text-zinc-600 border-b border-zinc-800/60 shrink-0">

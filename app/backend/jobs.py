@@ -7,6 +7,7 @@ Job kinds:
 Jobs chain: download → prepare → (transcribe if no subtitles were provided).
 """
 import json
+import os
 import queue
 import threading
 import traceback
@@ -180,12 +181,26 @@ def _run_transcription(job_id: int, media_id: int):
             "faster-whisper is not installed. Run: pip install faster-whisper "
             "— or upload a .srt subtitle file instead.")
 
-    model = WhisperModel("small", device="auto", compute_type="auto")
+    # configurable via env: tiny/base/small/medium/large-v3 (bigger = better + slower)
+    model_name = os.environ.get("RECOMPOSER_WHISPER_MODEL", "small")
+    device = os.environ.get("RECOMPOSER_WHISPER_DEVICE", "auto")
+    compute = os.environ.get("RECOMPOSER_WHISPER_COMPUTE", "auto")
+    log(f"whisper model={model_name} device={device}")
+    model = WhisperModel(model_name, device=device, compute_type=compute)
     segments_iter, info = model.transcribe(str(wav), vad_filter=True)
     duration = getattr(info, "duration", None)
 
+    # transcription lives in its own track; re-running replaces only that track
     db = get_db()
-    db.execute("DELETE FROM segments WHERE media_id=?", (media_id,))
+    track_name = f"Whisper ({model_name})"
+    row = db.execute("SELECT id FROM tracks WHERE media_id=? AND name=?",
+                     (media_id, track_name)).fetchone()
+    if row:
+        track_id = row["id"]
+        db.execute("DELETE FROM segments WHERE track_id=?", (track_id,))
+    else:
+        track_id = db.execute("INSERT INTO tracks (media_id, name) VALUES (?,?)",
+                              (media_id, track_name)).lastrowid
     idx = 0
     last = -10.0
     for seg in segments_iter:
@@ -193,8 +208,8 @@ def _run_transcription(job_id: int, media_id: int):
         if not text:
             continue
         db.execute(
-            "INSERT INTO segments (media_id, idx, start_s, end_s, text) VALUES (?,?,?,?,?)",
-            (media_id, idx, round(seg.start, 3), round(seg.end, 3), text))
+            "INSERT INTO segments (media_id, track_id, idx, start_s, end_s, text) VALUES (?,?,?,?,?,?)",
+            (media_id, track_id, idx, round(seg.start, 3), round(seg.end, 3), text))
         idx += 1
         if duration:
             pct = min(99, seg.end / duration * 100)

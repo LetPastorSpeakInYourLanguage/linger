@@ -78,12 +78,15 @@ BASE_SQL = """SELECT s.*, m.title AS media_title, m.type AS media_type
               WHERE {fts} MATCH ?"""
 
 
-def _fts(db, fts_table: str, match: str, media_id, limit: int):
+def _fts(db, fts_table: str, match: str, media_id, limit: int, track_id=None):
     sql = BASE_SQL.format(fts=fts_table)
     params: list = [match]
     if media_id is not None:
         sql += " AND s.media_id = ?"
         params.append(media_id)
+    if track_id is not None:
+        sql += " AND s.track_id = ?"
+        params.append(track_id)
     sql += " ORDER BY rank LIMIT ?"
     params.append(limit)
     try:
@@ -92,7 +95,7 @@ def _fts(db, fts_table: str, match: str, media_id, limit: int):
         return []  # malformed FTS query etc. — never break the endpoint
 
 
-def search_segments(q: str, media_id: int | None = None,
+def search_segments(q: str, media_id: int | None = None, track_id: int | None = None,
                     limit: int = 60, fuzzy: bool = True) -> list[dict]:
     db = get_db()
     q = q.strip()
@@ -113,17 +116,17 @@ def search_segments(q: str, media_id: int | None = None,
             out.append(r)
 
     # 1) exact phrase (with prefix on the last word)
-    take(_fts(db, "segments_fts", _phrase_prefix(q), media_id, limit), "exact")
+    take(_fts(db, "segments_fts", _phrase_prefix(q), media_id, limit, track_id), "exact")
 
     # 2) all words present (any order)
     if len(out) < limit and len(qwords) > 1:
-        take(_fts(db, "segments_fts", _and_words(qwords), media_id, limit), "exact")
+        take(_fts(db, "segments_fts", _and_words(qwords), media_id, limit, track_id), "exact")
 
     # 3) fuzzy via trigram candidates + word-level re-rank
     if fuzzy and len(out) < limit and getattr(dbmod, "HAS_TRIGRAM", False):
         tq = _trigram_query(q)
         if tq:
-            cands = _fts(db, "segments_tri", tq, media_id, FUZZY_CANDIDATES)
+            cands = _fts(db, "segments_tri", tq, media_id, FUZZY_CANDIDATES, track_id)
             scored = []
             for r in cands:
                 if r["id"] in seen:

@@ -6,10 +6,18 @@ Local studio for turning movies, podcasts and lectures into searchable subtitle 
 
 - Python 3.10+
 - ffmpeg on your PATH (`ffmpeg -version` should work) — https://ffmpeg.org/download.html
-- Optional, for auto-transcribing media that has no subtitles:
-  `pip install faster-whisper` (first transcription downloads the model, ~500 MB)
-- Optional, for importing public video links (YouTube etc.):
-  `pip install yt-dlp`
+- `pip install -r requirements.txt` now includes **faster-whisper** (auto-transcription;
+  the first transcription downloads the model, ~500 MB) and **yt-dlp** (link imports).
+
+### Whisper configuration (optional, via environment variables)
+
+| variable | default | values |
+|---|---|---|
+| `RECOMPOSER_WHISPER_MODEL` | `small` | `tiny`, `base`, `small`, `medium`, `large-v3` — bigger is more accurate but slower |
+| `RECOMPOSER_WHISPER_DEVICE` | `auto` | `cpu`, `cuda` (NVIDIA GPU) |
+| `RECOMPOSER_WHISPER_COMPUTE` | `auto` | e.g. `int8` (fast CPU), `float16` (GPU) |
+
+Example (PowerShell): `$env:RECOMPOSER_WHISPER_MODEL="medium"; python run.py`
 
 ## Run it
 
@@ -38,6 +46,10 @@ The frontend is pre-built (`frontend/dist`), so nothing else is needed. If you e
    - **From link** — paste a YouTube/public video URL (needs `pip install yt-dlp`).
 
    Attach a `.srt`/`.vtt` if you have one; otherwise the file is queued for Whisper transcription. Every import is converted once in the background into an instantly-seekable file: h264 video is a fast remux (disk speed), anything else is re-encoded with percent progress shown on the media card **and** in the server terminal. Adding media returns immediately — watch the card.
+
+   **Subtitle tracks**: one media can hold several subtitle sets (e.g. an uploaded `.srt` *and* a Whisper transcription, or two languages). Switch tracks with the dropdown in the media view, add more with **＋ subtitle** (upload or host path). Cuts remember their segments and always play from the same source media, whatever track they came from. Whisper writes into its own track (`Whisper (model)`), so re-transcribing never touches your edited subtitles.
+
+   **Subtitle editor** (`✎ edit` in the media view): click any line to fix its text or timing — the **⏱** buttons grab the player's current position, so you can scrub to the right moment and stamp it. Insert lines (＋), delete lines (✕ — warns if cuts use them), and run **regex batch operations** on the whole track: *Preview* highlights matches, *Replace* rewrites text (an empty result deletes the line), *Delete matched* drops every matching line. E.g. pattern `\[.*?\]` removes bracketed sound effects.
 2. Open a ready media → the **cut maker**: video + flowing transcript on the left, a resizable tabbed panel on the right.
    - *Selecting lines*: click a line to play it; extend across lines with shift-click, **shift-↓/↑**, or the **⊕ prev / ⊕ next** buttons. *Play selection* to check it, then **Save as Cut** (`s`).
    - *🔍 Search tab*: searches this transcript — **fuzzy by default**, so typos still find the line. Hits are underlined in the transcript; clicking one scrolls to it and seeks the player.

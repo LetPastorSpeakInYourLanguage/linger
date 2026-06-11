@@ -64,17 +64,47 @@ def list_media():
     return rows_to_dicts(rows)
 
 
-def _insert_subtitles(db, media_id: int, raw: str) -> bool:
-    """Parse and store subtitle text. Returns True if segments were created."""
+def _insert_subtitles(db, media_id: int, raw: str, track_name: str = "Subtitles") -> bool:
+    """Parse subtitle text into a NEW track. Returns True if segments were created."""
     segs = parse_subtitles(raw)
     if not segs:
         return False
-    db.execute("DELETE FROM segments WHERE media_id=?", (media_id,))
+    cur = db.execute("INSERT INTO tracks (media_id, name) VALUES (?,?)",
+                     (media_id, track_name))
+    track_id = cur.lastrowid
     for i, s in enumerate(segs):
         db.execute(
-            "INSERT INTO segments (media_id, idx, start_s, end_s, text) VALUES (?,?,?,?,?)",
-            (media_id, i, s["start_s"], s["end_s"], s["text"]))
+            "INSERT INTO segments (media_id, track_id, idx, start_s, end_s, text) "
+            "VALUES (?,?,?,?,?,?)",
+            (media_id, track_id, i, s["start_s"], s["end_s"], s["text"]))
     return True
+
+
+def _reindex_track(db, track_id: int):
+    """Renumber idx by start time after inserts/deletes/timing edits."""
+    rows = db.execute(
+        "SELECT id FROM segments WHERE track_id=? ORDER BY start_s, id",
+        (track_id,)).fetchall()
+    for i, r in enumerate(rows):
+        db.execute("UPDATE segments SET idx=? WHERE id=? AND idx<>?", (i, r["id"], i))
+
+
+def _drop_empty_cuts(db) -> int:
+    """Delete cuts whose segments were all removed. Returns how many."""
+    rows = db.execute("""SELECT id FROM cuts WHERE id NOT IN
+                         (SELECT DISTINCT cut_id FROM cut_segments)""").fetchall()
+    for r in rows:
+        db.execute("DELETE FROM cuts WHERE id=?", (r["id"],))
+    return len(rows)
+
+
+def _cuts_using_segments(db, seg_ids: list[int]) -> int:
+    if not seg_ids:
+        return 0
+    return db.execute(
+        f"SELECT COUNT(DISTINCT cut_id) AS n FROM cut_segments "
+        f"WHERE segment_id IN ({','.join('?' * len(seg_ids))})",
+        seg_ids).fetchone()["n"]
 
 
 @app.post("/api/media")
@@ -107,7 +137,8 @@ async def upload_media(
     has_subs = False
     if subtitle is not None and subtitle.filename:
         text = (await subtitle.read()).decode("utf-8", errors="replace")
-        has_subs = _insert_subtitles(db, media_id, text)
+        has_subs = _insert_subtitles(db, media_id, text,
+                                     Path(subtitle.filename).stem or "Subtitles")
         if not has_subs:
             db.execute("UPDATE media SET status_detail=? WHERE id=?",
                        ("subtitle file could not be parsed — will auto-transcribe", media_id))
@@ -147,7 +178,9 @@ def import_path(body: PathImport):
             db.execute("DELETE FROM media WHERE id=?", (media_id,))
             db.commit()
             raise HTTPException(400, f"subtitle file not found: {sub}")
-        has_subs = _insert_subtitles(db, media_id, sub.read_text(encoding="utf-8", errors="replace"))
+        has_subs = _insert_subtitles(db, media_id,
+                                     sub.read_text(encoding="utf-8", errors="replace"),
+                                     sub.stem or "Subtitles")
     db.commit()
 
     jobs.enqueue("prepare", media_id,
@@ -214,10 +247,85 @@ def retranscribe(media_id: int):
 
 
 @app.get("/api/media/{media_id}/segments")
-def media_segments(media_id: int):
-    rows = get_db().execute(
-        "SELECT * FROM segments WHERE media_id=? ORDER BY idx", (media_id,))
+def media_segments(media_id: int, track_id: int | None = None):
+    db = get_db()
+    if track_id is None:
+        row = db.execute(
+            "SELECT id FROM tracks WHERE media_id=? ORDER BY id LIMIT 1",
+            (media_id,)).fetchone()
+        if not row:
+            return []
+        track_id = row["id"]
+    rows = db.execute(
+        "SELECT * FROM segments WHERE media_id=? AND track_id=? ORDER BY idx",
+        (media_id, track_id))
     return rows_to_dicts(rows)
+
+
+# ------------------------------------------------------ subtitle tracks
+
+@app.get("/api/media/{media_id}/tracks")
+def media_tracks(media_id: int):
+    return rows_to_dicts(get_db().execute("""
+        SELECT t.*, (SELECT COUNT(*) FROM segments s WHERE s.track_id=t.id) AS segment_count
+        FROM tracks t WHERE t.media_id=? ORDER BY t.id""", (media_id,)))
+
+
+@app.post("/api/media/{media_id}/subtitles")
+async def add_subtitle_track(media_id: int,
+                             file: UploadFile | None = File(None),
+                             path: str = Form(""),
+                             name: str = Form("")):
+    """Attach another subtitle file (upload or host path) as a NEW track."""
+    db = get_db()
+    if not db.execute("SELECT 1 FROM media WHERE id=?", (media_id,)).fetchone():
+        raise HTTPException(404)
+    if file is not None and file.filename:
+        raw = (await file.read()).decode("utf-8", errors="replace")
+        default_name = Path(file.filename).stem
+    elif path.strip():
+        p = Path(path.strip().strip('"'))
+        if not p.is_file():
+            raise HTTPException(400, f"subtitle file not found on the host: {p}")
+        raw = p.read_text(encoding="utf-8", errors="replace")
+        default_name = p.stem
+    else:
+        raise HTTPException(400, "provide a subtitle file or a path")
+    if not _insert_subtitles(db, media_id, raw, name.strip() or default_name or "Subtitles"):
+        raise HTTPException(400, "subtitle file could not be parsed")
+    db.commit()
+    return media_tracks(media_id)
+
+
+class TrackUpdate(BaseModel):
+    name: str
+
+
+@app.patch("/api/tracks/{track_id}")
+def rename_track(track_id: int, u: TrackUpdate):
+    db = get_db()
+    db.execute("UPDATE tracks SET name=? WHERE id=?", (u.name.strip() or "Subtitles", track_id))
+    db.commit()
+    return {"ok": True}
+
+
+@app.delete("/api/tracks/{track_id}")
+def delete_track(track_id: int, force: int = 0):
+    db = get_db()
+    row = db.execute("SELECT * FROM tracks WHERE id=?", (track_id,)).fetchone()
+    if not row:
+        raise HTTPException(404)
+    seg_ids = [r["id"] for r in db.execute(
+        "SELECT id FROM segments WHERE track_id=?", (track_id,))]
+    n_cuts = _cuts_using_segments(db, seg_ids)
+    if n_cuts and not force:
+        raise HTTPException(409,
+            f"{n_cuts} cut(s) were made from this track and would be deleted with it")
+    db.execute("DELETE FROM segments WHERE track_id=?", (track_id,))
+    db.execute("DELETE FROM tracks WHERE id=?", (track_id,))
+    dropped = _drop_empty_cuts(db)
+    db.commit()
+    return {"ok": True, "cuts_deleted": dropped}
 
 
 # ------------------------------------------------------- media streaming
@@ -372,12 +480,14 @@ def create_cut(c: CutIn):
     db = get_db()
     if not c.segment_ids:
         raise HTTPException(400, "a cut needs at least one segment")
-    # validate segments belong to the media and are contiguous
+    # validate segments belong to the media, to ONE track, and are contiguous
     rows = db.execute(
-        f"SELECT id, idx FROM segments WHERE media_id=? AND id IN ({','.join('?'*len(c.segment_ids))}) ORDER BY idx",
+        f"SELECT id, idx, track_id FROM segments WHERE media_id=? AND id IN ({','.join('?'*len(c.segment_ids))}) ORDER BY idx",
         (c.media_id, *c.segment_ids)).fetchall()
     if len(rows) != len(c.segment_ids):
         raise HTTPException(400, "segments not found in this media")
+    if len({r["track_id"] for r in rows}) > 1:
+        raise HTTPException(400, "cut segments must come from one subtitle track")
     idxs = [r["idx"] for r in rows]
     if idxs != list(range(idxs[0], idxs[0] + len(idxs))):
         raise HTTPException(400, "cut segments must be consecutive")
@@ -489,15 +599,139 @@ def delete_cut(cut_id: int):
     return {"ok": True}
 
 
+# ----------------------------------------------------- segment editing
+
+class SegmentUpdate(BaseModel):
+    text: str | None = None
+    start_s: float | None = None
+    end_s: float | None = None
+
+
+class SegmentIn(BaseModel):
+    track_id: int
+    start_s: float
+    end_s: float
+    text: str = ""
+
+
+@app.patch("/api/segments/{seg_id}")
+def update_segment(seg_id: int, u: SegmentUpdate):
+    db = get_db()
+    row = db.execute("SELECT * FROM segments WHERE id=?", (seg_id,)).fetchone()
+    if not row:
+        raise HTTPException(404)
+    text = u.text if u.text is not None else row["text"]
+    start = u.start_s if u.start_s is not None else row["start_s"]
+    end = u.end_s if u.end_s is not None else row["end_s"]
+    if end <= start:
+        raise HTTPException(400, "end time must be after start time")
+    db.execute("UPDATE segments SET text=?, start_s=?, end_s=? WHERE id=?",
+               (text.strip(), round(start, 3), round(end, 3), seg_id))
+    if u.start_s is not None:  # order may have changed
+        _reindex_track(db, row["track_id"])
+    db.commit()
+    return dict(db.execute("SELECT * FROM segments WHERE id=?", (seg_id,)).fetchone())
+
+
+@app.post("/api/segments")
+def create_segment(s: SegmentIn):
+    db = get_db()
+    track = db.execute("SELECT * FROM tracks WHERE id=?", (s.track_id,)).fetchone()
+    if not track:
+        raise HTTPException(404, "track not found")
+    if s.end_s <= s.start_s:
+        raise HTTPException(400, "end time must be after start time")
+    cur = db.execute(
+        "INSERT INTO segments (media_id, track_id, idx, start_s, end_s, text) "
+        "VALUES (?,?,?,?,?,?)",
+        (track["media_id"], s.track_id, -1, round(s.start_s, 3), round(s.end_s, 3),
+         s.text.strip() or "…"))
+    _reindex_track(db, s.track_id)
+    db.commit()
+    return dict(db.execute("SELECT * FROM segments WHERE id=?", (cur.lastrowid,)).fetchone())
+
+
+@app.delete("/api/segments/{seg_id}")
+def delete_segment(seg_id: int, force: int = 0):
+    db = get_db()
+    row = db.execute("SELECT * FROM segments WHERE id=?", (seg_id,)).fetchone()
+    if not row:
+        raise HTTPException(404)
+    n_cuts = _cuts_using_segments(db, [seg_id])
+    if n_cuts and not force:
+        raise HTTPException(409, f"this line is part of {n_cuts} cut(s)")
+    db.execute("DELETE FROM segments WHERE id=?", (seg_id,))
+    dropped = _drop_empty_cuts(db)
+    _reindex_track(db, row["track_id"])
+    db.commit()
+    return {"ok": True, "cuts_deleted": dropped}
+
+
+class BatchOp(BaseModel):
+    pattern: str
+    action: str = "preview"   # preview | replace | delete
+    replacement: str = ""
+    case_sensitive: bool = False
+
+
+@app.post("/api/tracks/{track_id}/batch")
+def batch_segments(track_id: int, b: BatchOp):
+    """Regex batch operations over one track: preview matches, regex-replace
+    text (empty result deletes the line), or delete every matching line."""
+    db = get_db()
+    if not db.execute("SELECT 1 FROM tracks WHERE id=?", (track_id,)).fetchone():
+        raise HTTPException(404)
+    try:
+        rx = re.compile(b.pattern, 0 if b.case_sensitive else re.IGNORECASE)
+    except re.error as e:
+        raise HTTPException(400, f"bad regex: {e}")
+
+    rows = db.execute("SELECT * FROM segments WHERE track_id=? ORDER BY idx",
+                      (track_id,)).fetchall()
+    matched = [r for r in rows if rx.search(r["text"])]
+    seg_ids = [r["id"] for r in matched]
+    n_cuts = _cuts_using_segments(db, seg_ids)
+
+    if b.action == "preview":
+        return {"count": len(matched), "cuts_affected": n_cuts,
+                "matches": rows_to_dicts(matched[:300])}
+
+    deleted = changed = 0
+    if b.action == "delete":
+        for r in matched:
+            db.execute("DELETE FROM segments WHERE id=?", (r["id"],))
+            deleted += 1
+    elif b.action == "replace":
+        for r in matched:
+            new = rx.sub(b.replacement, r["text"]).strip()
+            if new == r["text"]:
+                continue
+            if new:
+                db.execute("UPDATE segments SET text=? WHERE id=?", (new, r["id"]))
+                changed += 1
+            else:  # replacement emptied the line: remove it
+                db.execute("DELETE FROM segments WHERE id=?", (r["id"],))
+                deleted += 1
+    else:
+        raise HTTPException(400, "action must be preview, replace or delete")
+
+    dropped = _drop_empty_cuts(db)
+    if deleted:
+        _reindex_track(db, track_id)
+    db.commit()
+    return {"count": len(matched), "changed": changed, "deleted": deleted,
+            "cuts_deleted": dropped}
+
+
 # ------------------------------------------------------- segment search
 
 @app.get("/api/search/segments")
-def search_segments(q: str, media_id: int | None = None, limit: int = 60,
-                    fuzzy: int = 1):
+def search_segments(q: str, media_id: int | None = None, track_id: int | None = None,
+                    limit: int = 60, fuzzy: int = 1):
     """Exact (FTS5) + fuzzy (trigram-index + word-similarity re-rank) search.
     Results carry match='exact'|'fuzzy' and a 0–1 score."""
-    return search.search_segments(q, media_id=media_id, limit=limit,
-                                  fuzzy=bool(fuzzy))
+    return search.search_segments(q, media_id=media_id, track_id=track_id,
+                                  limit=limit, fuzzy=bool(fuzzy))
 
 
 # ------------------------------------------------------ recompositions

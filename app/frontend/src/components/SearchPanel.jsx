@@ -48,7 +48,7 @@ function Highlight({ text, q }) {
  *  - global mode (no mediaId): searches EVERY transcript in the database;
  *    each result can be previewed in place or opened in its media.
  */
-export default function SearchPanel({ mediaId = null, onPick = null,
+export default function SearchPanel({ mediaId = null, trackId = null, onPick = null,
                                       onOpenMedia = null, onResults = null,
                                       placeholder }) {
   const [q, setQ] = useState("");
@@ -71,13 +71,14 @@ export default function SearchPanel({ mediaId = null, onPick = null,
       try {
         const params = new URLSearchParams({ q: q.trim(), fuzzy: fuzzy ? "1" : "0", limit: "80" });
         if (mediaId != null) params.set("media_id", mediaId);
+        if (mediaId != null && trackId != null) params.set("track_id", trackId);
         const rs = await api.get(`/api/search/segments?${params}`);
         if (mine === seq.current) { setResults(rs); onResults?.(rs); }
       } catch { /* ignore */ }
       if (mine === seq.current) setBusy(false);
     }, 250);
     return () => clearTimeout(debounce.current);
-  }, [q, fuzzy, mediaId]);
+  }, [q, fuzzy, mediaId, trackId]);
 
   return (
     <div className="h-full flex flex-col min-h-0">

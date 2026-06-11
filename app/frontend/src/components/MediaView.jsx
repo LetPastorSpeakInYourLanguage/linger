@@ -3,6 +3,67 @@ import { api, fmtTime, streamUrl } from "../api";
 import { Modal, inputCls, btnCls, btnGhost, Tag, modalOpen, useResizable, DragBar } from "./ui";
 import SearchPanel from "./SearchPanel";
 import { EditCutModal } from "./CutBrowser";
+import SubtitleEditor from "./SubtitleEditor";
+
+/* Attach another subtitle file (upload or host path) as a new track. */
+function AddTrackModal({ mediaId, onClose, onDone }) {
+  const [mode, setMode] = useState("upload");
+  const [file, setFile] = useState(null);
+  const [path, setPath] = useState("");
+  const [name, setName] = useState("");
+  const [err, setErr] = useState("");
+
+  const submit = async () => {
+    setErr("");
+    const fd = new FormData();
+    if (mode === "upload") {
+      if (!file) return;
+      fd.append("file", file);
+    } else {
+      if (!path.trim()) return;
+      fd.append("path", path);
+    }
+    fd.append("name", name);
+    try {
+      await api.upload(`/api/media/${mediaId}/subtitles`, fd);
+      onDone(); onClose();
+    } catch (e) { setErr(e.message); }
+  };
+
+  return (
+    <Modal title="Add subtitle track" onClose={onClose}>
+      <div className="space-y-3">
+        <div className="flex gap-2">
+          {["upload", "path"].map((m) => (
+            <button key={m} onClick={() => setMode(m)}
+              className={`px-3 py-1.5 rounded-lg text-sm ${
+                mode === m ? "bg-indigo-600 text-white" : "bg-zinc-950 text-zinc-400 hover:text-white"}`}>
+              {m === "upload" ? "Upload file" : "From this PC"}
+            </button>
+          ))}
+        </div>
+        {mode === "upload" ? (
+          <input type="file" accept=".srt,.vtt" className="block text-sm"
+            onChange={(e) => setFile(e.target.files[0])} />
+        ) : (
+          <input className={inputCls} placeholder={"D:\\movies\\notebook.en.srt"}
+            value={path} onChange={(e) => setPath(e.target.value)} />
+        )}
+        <input className={inputCls} placeholder="Track name (e.g. English, Director's notes) — optional"
+          value={name} onChange={(e) => setName(e.target.value)} />
+        <p className="text-xs text-zinc-500">
+          Tracks are alternative subtitle sets for the same video — cuts always
+          play from the source media, whichever track they were made from.
+        </p>
+        {err && <p className="text-sm text-red-400">{err}</p>}
+        <div className="flex justify-end gap-2">
+          <button className={btnGhost} onClick={onClose}>Cancel</button>
+          <button className={btnCls} onClick={submit}>Add track</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
 
 function SaveCutModal({ user, media, segments, onClose, onSaved }) {
   const [title, setTitle] = useState("");
@@ -112,6 +173,10 @@ function MediaCuts({ cuts, folders, onPlay, onShow, onEdit, onDelete }) {
 export default function MediaView({ user, mediaId, back, initialSeg = null }) {
   const [media, setMedia] = useState(null);
   const [segments, setSegments] = useState([]);
+  const [tracks, setTracks] = useState([]);
+  const [trackId, setTrackId] = useState(null);
+  const [editMode, setEditMode] = useState(false);
+  const [showAddTrack, setShowAddTrack] = useState(false);
   const [anchor, setAnchor] = useState(null);   // segment array index
   const [extent, setExtent] = useState(null);
   const [activeIdx, setActiveIdx] = useState(-1);
@@ -130,12 +195,45 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
   const refreshCuts = () =>
     api.get(`/api/cuts?media_id=${mediaId}`).then(setCuts).catch(() => {});
 
+  const refreshTracks = () =>
+    api.get(`/api/media/${mediaId}/tracks`).then((ts) => {
+      setTracks(ts);
+      setTrackId((cur) =>
+        ts.some((t) => t.id === cur) ? cur
+          : (initialSeg?.track_id && ts.some((t) => t.id === initialSeg.track_id))
+            ? initialSeg.track_id
+            : ts[0]?.id ?? null);
+    }).catch(() => {});
+
+  const refreshSegments = () => {
+    if (trackId == null) { setSegments([]); return; }
+    api.get(`/api/media/${mediaId}/segments?track_id=${trackId}`).then(setSegments);
+  };
+
   useEffect(() => {
     api.get(`/api/media/${mediaId}`).then(setMedia);
-    api.get(`/api/media/${mediaId}/segments`).then(setSegments);
     api.get("/api/folders").then(setFolders).catch(() => {});
+    refreshTracks();
     refreshCuts();
   }, [mediaId]);
+
+  useEffect(() => {
+    setAnchor(null); setExtent(null);
+    refreshSegments();
+  }, [trackId]);
+
+  const removeTrack = async () => {
+    const t = tracks.find((x) => x.id === trackId);
+    if (!t || !confirm(`Delete subtitle track "${t.name}" (${t.segment_count} lines)?`)) return;
+    try {
+      await api.del(`/api/tracks/${t.id}`);
+    } catch (e) {
+      if (!confirm(`${e.message}. Delete anyway?`)) return;
+      await api.del(`/api/tracks/${t.id}?force=1`);
+    }
+    setTrackId(null);
+    refreshTracks(); refreshCuts();
+  };
 
   // arriving from a global search hit: select + scroll + seek (paused)
   useEffect(() => {
@@ -286,12 +384,12 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
       else if (e.key === "ArrowLeft" && !e.shiftKey) { e.preventDefault(); if (p) p.currentTime -= 5; }
       else if (e.key === "ArrowDown" && e.shiftKey) { e.preventDefault(); extendSel(1); }
       else if (e.key === "ArrowUp" && e.shiftKey) { e.preventDefault(); extendSel(-1); }
-      else if (e.key === "s" && selectedSegments.length) setShowSave(true);
+      else if (e.key === "s" && !editMode && selectedSegments.length) setShowSave(true);
       else if (e.key === "Escape") { setAnchor(null); setExtent(null); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selectedSegments, anchor, extent, activeIdx, segments]);
+  }, [selectedSegments, anchor, extent, activeIdx, segments, editMode]);
 
   if (!media) return null;
 
@@ -305,11 +403,38 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center gap-3 px-4 py-2 border-b border-zinc-800 shrink-0">
+      <div className="flex items-center gap-3 px-4 py-2 border-b border-zinc-800 shrink-0 flex-wrap">
         <button onClick={back} className="text-zinc-400 hover:text-white text-sm">← Library</button>
         <h1 className="font-semibold truncate">{media.title}</h1>
-        <span className="ml-auto text-xs text-zinc-600 hidden md:block">
-          space play/pause · ←/→ seek · shift-click / shift-↑↓ extend · s save cut
+
+        <div className="flex items-center gap-1.5 ml-2">
+          {tracks.length > 0 && (
+            <select value={trackId ?? ""} onChange={(e) => setTrackId(Number(e.target.value))}
+              className="bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs outline-none focus:border-indigo-500 max-w-[180px]"
+              title="Subtitle track">
+              {tracks.map((t) => (
+                <option key={t.id} value={t.id}>{t.name} ({t.segment_count})</option>
+              ))}
+            </select>
+          )}
+          <button className={`${btnGhost} !px-2 !py-1 text-xs`} title="Add another subtitle track"
+            onClick={() => setShowAddTrack(true)}>＋ subtitle</button>
+          {trackId != null && (
+            <>
+              <button title={editMode ? "Back to the cut maker" : "Edit this track: timings, text, add/remove lines"}
+                className={`!px-2 !py-1 text-xs rounded-lg border ${
+                  editMode ? "border-amber-500 text-amber-400" : "border-zinc-700 hover:border-zinc-500"}`}
+                onClick={() => setEditMode(!editMode)}>
+                ✎ {editMode ? "editing" : "edit"}
+              </button>
+              <button className="text-zinc-600 hover:text-red-400 text-xs px-1" title="Delete this track"
+                onClick={removeTrack}>🗑</button>
+            </>
+          )}
+        </div>
+
+        <span className="ml-auto text-xs text-zinc-600 hidden lg:block">
+          space play/pause · ←/→ seek · drag / shift-↑↓ select lines · s save cut
         </span>
       </div>
 
@@ -326,6 +451,7 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
             )}
           </div>
 
+          {!editMode && (
           <div className="flex items-center gap-2 px-4 py-2 border-b border-zinc-800 bg-zinc-900/60 shrink-0 text-sm flex-wrap">
             {selectedSegments.length ? (
               <>
@@ -350,7 +476,20 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
             )}
             {savedFlash && <span className="ml-auto text-emerald-400">Cut saved ✓</span>}
           </div>
+          )}
 
+          {editMode && trackId != null ? (
+            <SubtitleEditor trackId={trackId} segments={segments}
+              getTime={() => playerRef.current?.currentTime ?? 0}
+              playRange={(s, e) => {
+                const p = playerRef.current;
+                if (!p) return;
+                stopAtRef.current = e;
+                p.currentTime = s;
+                p.play().catch(() => {});
+              }}
+              onChanged={() => { refreshSegments(); refreshCuts(); refreshTracks(); }} />
+          ) : (
           <div className="flex-1 overflow-y-auto px-6 py-4 leading-8 text-[15px]">
             {segments.length === 0 && (
               <p className="text-zinc-500 text-center mt-12">No transcript segments.</p>
@@ -370,6 +509,7 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
               );
             })}
           </div>
+          )}
         </div>
 
         <DragBar onMouseDown={dragPanel} />
@@ -381,7 +521,7 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
             {tabBtn("cuts", `✂ Cuts (${cuts.length})`)}
           </div>
           {panelTab === "search" ? (
-            <SearchPanel mediaId={media.id} onPick={jumpToSearchHit}
+            <SearchPanel mediaId={media.id} trackId={trackId} onPick={jumpToSearchHit}
               onResults={(rs) => setMatched(new Set(rs.map((r) => r.id)))} />
           ) : (
             <MediaCuts cuts={cuts} folders={folders}
@@ -403,6 +543,10 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
       {editing && (
         <EditCutModal cut={editing} folders={folders}
           onClose={() => setEditing(null)} onSaved={refreshCuts} />
+      )}
+      {showAddTrack && (
+        <AddTrackModal mediaId={mediaId} onClose={() => setShowAddTrack(false)}
+          onDone={() => { refreshTracks(); }} />
       )}
     </div>
   );
