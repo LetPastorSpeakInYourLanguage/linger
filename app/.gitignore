@@ -1,0 +1,5 @@
+__pycache__/
+recomposer.db*
+media_store/
+frontend/node_modules/
+*.log
