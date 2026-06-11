@@ -15,42 +15,60 @@ function AddTrackModal({ mediaId, onClose, onDone }) {
 
   const submit = async () => {
     setErr("");
-    const fd = new FormData();
-    if (mode === "upload") {
-      if (!file) return;
-      fd.append("file", file);
-    } else {
-      if (!path.trim()) return;
-      fd.append("path", path);
-    }
-    fd.append("name", name);
     try {
-      await api.upload(`/api/media/${mediaId}/subtitles`, fd);
+      if (mode === "whisper") {
+        await api.post(`/api/media/${mediaId}/transcribe`);
+      } else {
+        const fd = new FormData();
+        if (mode === "upload") {
+          if (!file) return;
+          fd.append("file", file);
+        } else {
+          if (!path.trim()) return;
+          fd.append("path", path);
+        }
+        fd.append("name", name);
+        await api.upload(`/api/media/${mediaId}/subtitles`, fd);
+      }
       onDone(); onClose();
     } catch (e) { setErr(e.message); }
   };
+
+  const tab = (m, label) => (
+    <button key={m} onClick={() => setMode(m)}
+      className={`px-3 py-1.5 rounded-lg text-sm ${
+        mode === m ? "bg-indigo-600 text-white" : "bg-zinc-950 text-zinc-400 hover:text-white"}`}>
+      {label}
+    </button>
+  );
 
   return (
     <Modal title="Add subtitle track" onClose={onClose}>
       <div className="space-y-3">
         <div className="flex gap-2">
-          {["upload", "path"].map((m) => (
-            <button key={m} onClick={() => setMode(m)}
-              className={`px-3 py-1.5 rounded-lg text-sm ${
-                mode === m ? "bg-indigo-600 text-white" : "bg-zinc-950 text-zinc-400 hover:text-white"}`}>
-              {m === "upload" ? "Upload file" : "From this PC"}
-            </button>
-          ))}
+          {tab("upload", "Upload file")}{tab("path", "From this PC")}{tab("whisper", "🎙 Generate (Whisper)")}
         </div>
-        {mode === "upload" ? (
+        {mode === "upload" && (
           <input type="file" accept=".srt,.vtt" className="block text-sm"
             onChange={(e) => setFile(e.target.files[0])} />
-        ) : (
+        )}
+        {mode === "path" && (
           <input className={inputCls} placeholder={"D:\\movies\\notebook.en.srt"}
             value={path} onChange={(e) => setPath(e.target.value)} />
         )}
-        <input className={inputCls} placeholder="Track name (e.g. English, Director's notes) — optional"
-          value={name} onChange={(e) => setName(e.target.value)} />
+        {mode === "whisper" && (
+          <p className="text-xs text-zinc-400 bg-zinc-950 rounded-lg p-3">
+            Transcribes the audio in the background into its own track
+            (named after the engine + model). Uses <b>WhisperX</b> for accurate
+            word timestamps if installed, else faster-whisper. Progress shows in
+            the server terminal and on the Library card — the track appears here
+            when it's done.
+          </p>
+        )}
+        {mode !== "whisper" && (
+          <input className={inputCls} placeholder="Track name (e.g. English, Director's notes) — optional"
+            value={name} onChange={(e) => setName(e.target.value)} />
+        )}
         <p className="text-xs text-zinc-500">
           Tracks are alternative subtitle sets for the same video — cuts always
           play from the source media, whichever track they were made from.
@@ -58,7 +76,9 @@ function AddTrackModal({ mediaId, onClose, onDone }) {
         {err && <p className="text-sm text-red-400">{err}</p>}
         <div className="flex justify-end gap-2">
           <button className={btnGhost} onClick={onClose}>Cancel</button>
-          <button className={btnCls} onClick={submit}>Add track</button>
+          <button className={btnCls} onClick={submit}>
+            {mode === "whisper" ? "Start transcription" : "Add track"}
+          </button>
         </div>
       </div>
     </Modal>
@@ -222,17 +242,26 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
     refreshSegments();
   }, [trackId]);
 
+  // while a transcription runs in the background, poll for the new track
+  useEffect(() => {
+    if (!media || media.status === "ready") return;
+    const t = setInterval(() => {
+      api.get(`/api/media/${mediaId}`).then(setMedia).catch(() => {});
+      refreshTracks();
+    }, 3000);
+    return () => clearInterval(t);
+  }, [media?.status, mediaId]);
+
   const removeTrack = async () => {
     const t = tracks.find((x) => x.id === trackId);
     if (!t || !confirm(`Delete subtitle track "${t.name}" (${t.segment_count} lines)?`)) return;
     try {
       await api.del(`/api/tracks/${t.id}`);
+      setTrackId(null);
+      refreshTracks(); refreshCuts();
     } catch (e) {
-      if (!confirm(`${e.message}. Delete anyway?`)) return;
-      await api.del(`/api/tracks/${t.id}?force=1`);
+      alert(`Can't delete: ${e.message}`);
     }
-    setTrackId(null);
-    refreshTracks(); refreshCuts();
   };
 
   // arriving from a global search hit: select + scroll + seek (paused)
@@ -433,6 +462,11 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
           )}
         </div>
 
+        {media.status !== "ready" && (
+          <span className="text-xs text-amber-400 animate-pulse">
+            ⏳ {media.status_detail || media.status}
+          </span>
+        )}
         <span className="ml-auto text-xs text-zinc-600 hidden lg:block">
           space play/pause · ←/→ seek · drag / shift-↑↓ select lines · s save cut
         </span>

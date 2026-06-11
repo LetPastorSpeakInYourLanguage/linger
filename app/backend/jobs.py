@@ -160,47 +160,122 @@ def _run_prepare(job_id: int, media_id: int, payload: dict):
 
 # ----------------------------------------------------------- transcribe
 
+def _replace_track(db, media_id: int, track_name: str) -> int:
+    """Transcriptions live in their own track; re-running replaces only it."""
+    row = db.execute("SELECT id FROM tracks WHERE media_id=? AND name=?",
+                     (media_id, track_name)).fetchone()
+    if row:
+        db.execute("DELETE FROM segments WHERE track_id=?", (row["id"],))
+        return row["id"]
+    return db.execute("INSERT INTO tracks (media_id, name) VALUES (?,?)",
+                      (media_id, track_name)).lastrowid
+
+
+def _whisper_settings():
+    """Env config: RECOMPOSER_WHISPER_MODEL / _DEVICE / _COMPUTE."""
+    return (os.environ.get("RECOMPOSER_WHISPER_MODEL", "small"),
+            os.environ.get("RECOMPOSER_WHISPER_DEVICE", "auto"),
+            os.environ.get("RECOMPOSER_WHISPER_COMPUTE", "auto"))
+
+
 def _run_transcription(job_id: int, media_id: int):
     source = _find_source(media_id)
     if source is None:
         raise RuntimeError("source media file not found")
     title = _media_title(media_id)
 
-    _set(job_id, "running", "extracting audio")
-    _set_media(media_id, "transcribing", "extracting audio")
-    log(f"transcribing '{title}': extracting audio")
+    def stage(msg):
+        _set(job_id, "running", msg)
+        _set_media(media_id, "transcribing", msg)
+        log(f"transcribing '{title}': {msg}")
+
+    stage("extracting audio")
     wav = media_ops.extract_wav_for_transcription(media_id, source)
+    model_name, device, compute = _whisper_settings()
 
-    _set(job_id, "running", "loading whisper model")
-    _set_media(media_id, "transcribing", "loading model")
-    log(f"transcribing '{title}': loading whisper model (first run downloads it)")
+    engine = None
     try:
-        from faster_whisper import WhisperModel
+        import whisperx  # noqa: F401
+        engine = "whisperx"
     except ImportError:
-        raise RuntimeError(
-            "faster-whisper is not installed. Run: pip install faster-whisper "
-            "— or upload a .srt subtitle file instead.")
+        try:
+            from faster_whisper import WhisperModel  # noqa: F401
+            engine = "faster-whisper"
+        except ImportError:
+            raise RuntimeError(
+                "no transcription engine installed. Run: pip install whisperx "
+                "(recommended, accurate timestamps) or pip install faster-whisper "
+                "— or upload a .srt subtitle file instead.")
 
-    # configurable via env: tiny/base/small/medium/large-v3 (bigger = better + slower)
-    model_name = os.environ.get("RECOMPOSER_WHISPER_MODEL", "small")
-    device = os.environ.get("RECOMPOSER_WHISPER_DEVICE", "auto")
-    compute = os.environ.get("RECOMPOSER_WHISPER_COMPUTE", "auto")
-    log(f"whisper model={model_name} device={device}")
+    try:
+        if engine == "whisperx":
+            idx = _transcribe_whisperx(job_id, media_id, wav, model_name, device,
+                                       compute, stage)
+        else:
+            idx = _transcribe_faster(job_id, media_id, wav, model_name, device,
+                                     compute, stage, title)
+    finally:
+        media_ops.safe_unlink(wav)
+    if idx == 0:
+        raise RuntimeError("transcription produced no segments")
+    _set_media(media_id, "ready")
+    log(f"'{title}' transcription done ({engine}): {idx} segments")
+
+
+def _transcribe_whisperx(job_id, media_id, wav, model_name, device, compute, stage):
+    """WhisperX: batched whisper + wav2vec2 forced alignment → precise timestamps."""
+    import whisperx
+    import torch
+
+    if device == "auto":
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    if compute == "auto":
+        compute = "float16" if device == "cuda" else "int8"
+
+    stage(f"loading whisperx model '{model_name}' ({device}) — first run downloads it")
+    model = whisperx.load_model(model_name, device, compute_type=compute)
+    audio = whisperx.load_audio(str(wav))
+
+    stage("transcribing (whisperx)…")
+    result = model.transcribe(audio, batch_size=16 if device == "cuda" else 8)
+    segs = result["segments"]
+
+    stage("aligning timestamps (wav2vec2)…")
+    try:
+        align_model, meta = whisperx.load_align_model(
+            language_code=result["language"], device=device)
+        segs = whisperx.align(segs, align_model, meta, audio, device,
+                              return_char_alignments=False)["segments"]
+    except Exception as e:  # no align model for this language etc.
+        log(f"alignment unavailable ({e}); keeping whisper timestamps")
+
+    db = get_db()
+    track_id = _replace_track(db, media_id, f"WhisperX ({model_name})")
+    idx = 0
+    for s in segs:
+        text = (s.get("text") or "").strip()
+        if not text or s.get("start") is None or s.get("end") is None:
+            continue
+        db.execute(
+            "INSERT INTO segments (media_id, track_id, idx, start_s, end_s, text) VALUES (?,?,?,?,?,?)",
+            (media_id, track_id, idx, round(float(s["start"]), 3),
+             round(float(s["end"]), 3), text))
+        idx += 1
+    db.commit()
+    return idx
+
+
+def _transcribe_faster(job_id, media_id, wav, model_name, device, compute, stage, title):
+    """Fallback engine: faster-whisper with streaming progress."""
+    from faster_whisper import WhisperModel
+
+    stage(f"loading whisper model '{model_name}' — first run downloads it")
     model = WhisperModel(model_name, device=device, compute_type=compute)
     segments_iter, info = model.transcribe(str(wav), vad_filter=True)
     duration = getattr(info, "duration", None)
 
-    # transcription lives in its own track; re-running replaces only that track
     db = get_db()
-    track_name = f"Whisper ({model_name})"
-    row = db.execute("SELECT id FROM tracks WHERE media_id=? AND name=?",
-                     (media_id, track_name)).fetchone()
-    if row:
-        track_id = row["id"]
-        db.execute("DELETE FROM segments WHERE track_id=?", (track_id,))
-    else:
-        track_id = db.execute("INSERT INTO tracks (media_id, name) VALUES (?,?)",
-                              (media_id, track_name)).lastrowid
+    track_id = _replace_track(db, media_id, f"Whisper ({model_name})")
     idx = 0
     last = -10.0
     for seg in segments_iter:
@@ -216,19 +291,54 @@ def _run_transcription(job_id: int, media_id: int):
             if pct - last >= 2:
                 last = pct
                 db.commit()
-                msg = f"transcribing {pct:.0f}% ({idx} segments)"
-                _set(job_id, "running", msg)
-                _set_media(media_id, "transcribing", msg)
-                log(f"'{title}' {msg}")
+                stage(f"transcribing {pct:.0f}% ({idx} segments)")
         elif idx % 25 == 0:
             db.commit()
             _set(job_id, "running", f"transcribing — {idx} segments")
     db.commit()
-    media_ops.safe_unlink(wav)
-    if idx == 0:
-        raise RuntimeError("transcription produced no segments")
-    _set_media(media_id, "ready")
-    log(f"'{title}' transcription done: {idx} segments")
+    return idx
+
+
+# --------------------------------------------------------------- export
+
+def _run_export(job_id: int, payload: dict):
+    recomp_id = payload["recomp_id"]
+    db = get_db()
+    recomp = db.execute("SELECT * FROM recompositions WHERE id=?", (recomp_id,)).fetchone()
+    if not recomp:
+        raise RuntimeError("recomposition not found")
+    rows = db.execute("""
+        SELECT c.id AS cut_id, m.id AS media_id, m.filename, m.type,
+               MIN(s.start_s) AS start_s, MAX(s.end_s) AS end_s
+        FROM recomp_cuts rc
+        JOIN cuts c ON c.id = rc.cut_id
+        JOIN media m ON m.id = c.media_id
+        JOIN cut_segments cs ON cs.cut_id = c.id
+        JOIN segments s ON s.id = cs.segment_id
+        WHERE rc.recomp_id=?
+        GROUP BY rc.position, c.id, m.id, m.filename, m.type
+        ORDER BY rc.position""", (recomp_id,)).fetchall()
+    if not rows:
+        raise RuntimeError("this recomposition has no cuts")
+
+    cuts = []
+    for r in rows:
+        src = media_ops.media_dir(r["media_id"]) / r["filename"]
+        if not src.exists():
+            raise RuntimeError(f"source file missing for media {r['media_id']}")
+        cuts.append({"src": str(src), "start_s": r["start_s"], "end_s": r["end_s"],
+                     "is_video": r["type"] == "video"})
+
+    title = recomp["title"]
+    log(f"export '{title}': {len(cuts)} cuts")
+
+    def prog(msg):
+        _set(job_id, "running", msg)
+        log(f"export '{title}': {msg}")
+
+    final = media_ops.export_recomposition(recomp_id, title, cuts, on_progress=prog)
+    log(f"export '{title}' done → {final}")
+    _set(job_id, "running", f"done: {final.name}")
 
 
 # --------------------------------------------------------------- worker
@@ -248,6 +358,8 @@ def _worker():
                 _run_prepare(job_id, job["media_id"], payload)
             elif job["kind"] == "transcribe":
                 _run_transcription(job_id, job["media_id"])
+            elif job["kind"] == "export":
+                _run_export(job_id, payload)
             else:
                 raise RuntimeError(f"unknown job kind {job['kind']}")
             _set(job_id, "done")

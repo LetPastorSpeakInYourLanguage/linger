@@ -6,8 +6,10 @@ Local studio for turning movies, podcasts and lectures into searchable subtitle 
 
 - Python 3.10+
 - ffmpeg on your PATH (`ffmpeg -version` should work) — https://ffmpeg.org/download.html
-- `pip install -r requirements.txt` now includes **faster-whisper** (auto-transcription;
-  the first transcription downloads the model, ~500 MB) and **yt-dlp** (link imports).
+- `pip install -r requirements.txt` now includes **WhisperX** (transcription with
+  accurate word-level timestamps via forced alignment; first run downloads models)
+  and **yt-dlp** (link imports). If WhisperX won't install, `pip install faster-whisper`
+  is a lighter fallback — the app uses whichever it finds (WhisperX preferred).
 
 ### Whisper configuration (optional, via environment variables)
 
@@ -56,7 +58,10 @@ The frontend is pre-built (`frontend/dist`), so nothing else is needed. If you e
    - *✂ Cuts tab*: every cut made from this media — play it in the main player, show it in the transcript, edit or delete it.
    - Shortcuts: `space` play/pause · `←/→` seek 5s · `shift-↑/↓` extend selection · `s` save cut · `esc` clear.
 3. **Cuts** tab → left: all cuts with a filter engine — add any mix of **#tag / 📁 folder / 🎬 media** filters via searchable pickers (chips show what's active, one click removes). The tag/folder/media labels on each cut card are clickable and add that filter. Right (resizable): **transcript search across every media file in the library** — fuzzy, with preview popups and "open media ↗" jumping straight to that line.
-4. **Studio** tab → open a recomposition: cut browser on the left (resizable, same filter engine), sequence on the right. Drag to reorder, **Play all**, **🔁 loop** any cut to immerse. **Right-click a sequence item** to filter the browser by that cut's media, folder or tags. Shortcuts work from anywhere: `space` play/pause · `←/→` seek · `↑/↓` previous/next cut · `L` toggle loop · `esc` closes any popup (playback resumes).
+4. **Studio** tab → open a recomposition: cut browser on the left (resizable, same filter engine), sequence on the right. Drag to reorder, **Play all** (playback is double-buffered — the next cut's file is preloaded so switching media doesn't flash), **🔁 loop** any cut to immerse. **Right-click a sequence item** to filter the browser by that cut's media, folder or tags. Shortcuts work from anywhere: `space` play/pause · `←/→` seek · `↑/↓` previous/next cut · `L` toggle loop · `esc` closes any popup (playback resumes).
+5. **⬇ Export** (in the recomposition editor) renders the whole sequence into one real file — `.mp4` (1280×720, h264+aac) if any cut has video, `.wav` if it's audio-only. Audio-only cuts inside a video export get a black screen; mute video gets silence. Progress shows next to the button and in the terminal; finished files appear as download links and live in `media_store/exports/`.
+
+Track deletion is protected: you can't delete a media's only subtitle track, nor a track that cuts were made from (delete those cuts first).
 
 ## Where things live
 

@@ -43,3 +43,11 @@ also is there any way that we can enable multiple subtitles per media file, so t
 then I also want to have a subtitle editor part where I can edit or create subtitles for the media files - this needs to be very meticoulusly thought about - it is so that I can fix subtitle errors in timing, add missing subtitles segments or remove non desired subtitle segments. I should also be cappable of doing batch operations with regex selection (you can ingore this one if it is too complex)
 
 - then lets now try and push the faster-whisper transcription engine and yt-dlp uploads - add them to requirements and setup the required configurations, I will install them and make sure they are working
+
+-----------------------
+something we missed is that when user deletes a subtitle track, if it is the last one avaialable or if there are cuts created from it, it should be blocked, also on adding a track, I should be able to select generate with whisper transcription, also please I want you to use the whisperX library's implementation (https://github.com/m-bain/whisperx, not just faster-whisper), it is much more accurate in the timestamps, then also add the capability to export I want to see that thing work (before we move to phase 2 or next operations)
+
+
+------------------------
+- model selection thingy
+- 

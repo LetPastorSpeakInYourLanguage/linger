@@ -1,4 +1,5 @@
 __pycache__/
+.venv/
 recomposer.db*
 media_store/
 frontend/node_modules/

@@ -210,7 +210,7 @@ export default function Library({ user, openMedia }) {
           <div className="text-sm text-zinc-300">
             {activeJobs.map((j) => (
               <div key={j.id}>
-                {j.media_title}: {j.detail || `${j.kind} ${j.status}`}
+                {j.media_title || (j.kind === "export" ? "Export" : j.kind)}: {j.detail || j.status}
               </div>
             ))}
           </div>

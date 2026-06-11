@@ -112,6 +112,34 @@ function RecompEditor({ user, recompId, back }) {
   const load = () => api.get(`/api/recompositions/${recompId}`).then(setRecomp);
   useEffect(() => { load(); api.get("/api/folders").then(setFolders).catch(() => {}); }, [recompId]);
 
+  /* ---- export: start job, poll progress, list finished files */
+  const [exports, setExports] = useState([]);
+  const [exportJob, setExportJob] = useState(null);
+
+  const refreshExports = () => {
+    api.get(`/api/recompositions/${recompId}/exports`).then(setExports).catch(() => {});
+    api.get("/api/jobs").then((js) => {
+      const j = js.find((x) => {
+        if (x.kind !== "export" || !["queued", "running"].includes(x.status)) return false;
+        try { return JSON.parse(x.payload || "{}").recomp_id === recompId; }
+        catch { return false; }
+      });
+      setExportJob(j || null);
+    }).catch(() => {});
+  };
+
+  useEffect(() => { refreshExports(); }, [recompId]);
+  useEffect(() => {
+    if (!exportJob) return;
+    const t = setInterval(refreshExports, 2500);
+    return () => clearInterval(t);
+  }, [exportJob?.id]);
+
+  const startExport = async () => {
+    try { await api.post(`/api/recompositions/${recompId}/export`); refreshExports(); }
+    catch (e) { alert(e.message); }
+  };
+
   const saveOrder = async (cutIds) => {
     setRecomp(await api.put(`/api/recompositions/${recompId}/cuts`, { cut_ids: cutIds }));
   };
@@ -245,6 +273,11 @@ function RecompEditor({ user, recompId, back }) {
           <h1 className="font-semibold truncate">{recomp.title}</h1>
           <span className="text-xs text-zinc-500 whitespace-nowrap">{recomp.cuts.length} cuts · {fmtTime(total)}</span>
           <div className="ml-auto flex gap-2 items-center">
+            <button title="Render this recomposition into one real video/audio file"
+              className={btnGhost} disabled={!recomp.cuts.length || !!exportJob}
+              onClick={startExport}>
+              ⬇ Export
+            </button>
             <button title="Loop the playing cut (L)"
               className={`${btnGhost} ${loop ? "border-amber-500 text-amber-400" : ""}`}
               onClick={() => setLoop(!loop)}>
@@ -255,6 +288,22 @@ function RecompEditor({ user, recompId, back }) {
             <button className={btnGhost} onClick={stop}>Stop</button>
           </div>
         </div>
+
+        {(exportJob || exports.length > 0) && (
+          <div className="px-4 py-1.5 border-b border-zinc-800/60 shrink-0 flex items-center gap-4 text-xs flex-wrap">
+            {exportJob && (
+              <span className="text-amber-400 animate-pulse">
+                ⏳ exporting — {exportJob.detail || "queued"}
+              </span>
+            )}
+            {exports.slice(0, 3).map((f) => (
+              <a key={f.filename} href={`/api/exports/${encodeURIComponent(f.filename)}`} download
+                className="text-indigo-400 hover:text-indigo-300">
+                ⬇ {f.filename} <span className="text-zinc-500">({(f.size / 1e6).toFixed(1)} MB)</span>
+              </a>
+            ))}
+          </div>
+        )}
 
         {/* double-buffered player: hidden element preloads the next cut's media */}
         <div className="shrink-0 bg-black relative" style={{ height: hasVideo ? "38vh" : "72px" }}>

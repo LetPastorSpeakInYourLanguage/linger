@@ -141,6 +141,88 @@ def prepare_for_streaming(src: Path, media_id: int, *, keep_src: bool = False,
     return final, "audio", duration, mode
 
 
+# ---------------------------------------------------------------- export
+
+EXPORT_DIR = MEDIA_ROOT / "exports"
+
+# uniform clip parameters so the final concat is a lossless stream-copy
+EXPORT_W, EXPORT_H, EXPORT_FPS = 1280, 720, 30
+VIDEO_FILTER = (f"scale={EXPORT_W}:{EXPORT_H}:force_original_aspect_ratio=decrease,"
+                f"pad={EXPORT_W}:{EXPORT_H}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps={EXPORT_FPS}")
+V_ARGS = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p"]
+A_ARGS = ["-c:a", "aac", "-b:a", "160k", "-ar", "44100", "-ac", "2"]
+
+
+def _run_ffmpeg(cmd):
+    out = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
+    if out.returncode != 0:
+        raise RuntimeError(f"ffmpeg failed: {out.stderr[-400:]}")
+
+
+def _clip_cmd(src: Path, start: float, dur: float, out: Path,
+              has_video: bool, src_is_video: bool, src_has_audio: bool):
+    """One uniformly-encoded clip. Edge cases get synthetic streams:
+    audio-only source in a video export → black video; mute video → silence."""
+    base = ["ffmpeg", "-y", "-ss", f"{start:.3f}", "-t", f"{dur:.3f}", "-i", str(src)]
+    if not has_video:  # pure-audio export → wav clips
+        return base + ["-vn", "-ar", "44100", "-ac", "2", "-c:a", "pcm_s16le", str(out)]
+    if not src_is_video:
+        return base + ["-f", "lavfi", "-i",
+                       f"color=c=black:s={EXPORT_W}x{EXPORT_H}:r={EXPORT_FPS}",
+                       "-map", "1:v", "-map", "0:a", "-shortest",
+                       *V_ARGS, *A_ARGS, str(out)]
+    if not src_has_audio:
+        return base + ["-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
+                       "-map", "0:v", "-map", "1:a", "-shortest",
+                       "-vf", VIDEO_FILTER, *V_ARGS, *A_ARGS, str(out)]
+    return base + ["-map", "0:v:0", "-map", "0:a:0", "-vf", VIDEO_FILTER,
+                   *V_ARGS, *A_ARGS, str(out)]
+
+
+def export_recomposition(recomp_id: int, title: str, cuts: list[dict],
+                         on_progress=None) -> Path:
+    """cuts: [{src, start_s, end_s, is_video}] in playback order.
+    Re-encodes every cut to identical parameters, then concat-copies them
+    into one file. Returns the final path under media_store/exports/."""
+    if not have_ffmpeg():
+        raise RuntimeError("ffmpeg is required for export")
+    EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+    has_video = any(c["is_video"] for c in cuts)
+    ext = "mp4" if has_video else "wav"
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    safe_title = "".join(ch if ch.isalnum() or ch in " -_" else "_" for ch in title).strip() or "recomposition"
+    final = EXPORT_DIR / f"recomp{recomp_id}_{safe_title[:40]}_{stamp}.{ext}"
+    tmp = EXPORT_DIR / f"tmp_{recomp_id}_{stamp}"
+    tmp.mkdir(parents=True, exist_ok=True)
+
+    try:
+        clips = []
+        for i, c in enumerate(cuts):
+            if on_progress:
+                on_progress(f"rendering cut {i + 1}/{len(cuts)}")
+            src = Path(c["src"])
+            info = probe(src)
+            src_has_audio = bool(info and info[3])
+            dur = max(0.05, c["end_s"] - c["start_s"])
+            out = tmp / f"{i:04d}.{ext}"
+            _run_ffmpeg(_clip_cmd(src, c["start_s"], dur, out,
+                                  has_video, c["is_video"], src_has_audio))
+            clips.append(out)
+
+        if on_progress:
+            on_progress("joining clips")
+        listfile = tmp / "list.txt"
+        listfile.write_text(
+            "\n".join(f"file '{p.as_posix()}'" for p in clips), encoding="utf-8")
+        _run_ffmpeg(["ffmpeg", "-y", "-f", "concat", "-safe", "0",
+                     "-i", str(listfile), "-c", "copy",
+                     *(["-movflags", "+faststart"] if has_video else []),
+                     str(final)])
+        return final
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def extract_wav_for_transcription(media_id: int, source: Path) -> Path:
     """16 kHz mono wav — what whisper wants."""
     wav = media_dir(media_id) / "transcribe.wav"

@@ -310,22 +310,28 @@ def rename_track(track_id: int, u: TrackUpdate):
 
 
 @app.delete("/api/tracks/{track_id}")
-def delete_track(track_id: int, force: int = 0):
+def delete_track(track_id: int):
+    """Deletion is BLOCKED if this is the media's only track, or if any cut
+    was made from it — delete those cuts (or add another track) first."""
     db = get_db()
     row = db.execute("SELECT * FROM tracks WHERE id=?", (track_id,)).fetchone()
     if not row:
         raise HTTPException(404)
+    n_tracks = db.execute("SELECT COUNT(*) AS n FROM tracks WHERE media_id=?",
+                          (row["media_id"],)).fetchone()["n"]
+    if n_tracks <= 1:
+        raise HTTPException(409,
+            "this is the only subtitle track of this media — add another track before deleting it")
     seg_ids = [r["id"] for r in db.execute(
         "SELECT id FROM segments WHERE track_id=?", (track_id,))]
     n_cuts = _cuts_using_segments(db, seg_ids)
-    if n_cuts and not force:
+    if n_cuts:
         raise HTTPException(409,
-            f"{n_cuts} cut(s) were made from this track and would be deleted with it")
+            f"{n_cuts} cut(s) were made from this track — delete those cuts first")
     db.execute("DELETE FROM segments WHERE track_id=?", (track_id,))
     db.execute("DELETE FROM tracks WHERE id=?", (track_id,))
-    dropped = _drop_empty_cuts(db)
     db.commit()
-    return {"ok": True, "cuts_deleted": dropped}
+    return {"ok": True}
 
 
 # ------------------------------------------------------- media streaming
@@ -817,6 +823,51 @@ def delete_recomp(recomp_id: int):
     db.execute("DELETE FROM recompositions WHERE id=?", (recomp_id,))
     db.commit()
     return {"ok": True}
+
+
+# ------------------------------------------------------------- export
+
+@app.post("/api/recompositions/{recomp_id}/export")
+def export_recomp(recomp_id: int):
+    """Render the recomposition into one real .mp4 (or .wav if audio-only)."""
+    db = get_db()
+    if not db.execute("SELECT 1 FROM recompositions WHERE id=?", (recomp_id,)).fetchone():
+        raise HTTPException(404)
+    n = db.execute("SELECT COUNT(*) AS n FROM recomp_cuts WHERE recomp_id=?",
+                   (recomp_id,)).fetchone()["n"]
+    if not n:
+        raise HTTPException(400, "add some cuts before exporting")
+    import json as _json
+    running = db.execute("""SELECT 1 FROM jobs WHERE kind='export'
+        AND status IN ('queued','running') AND payload = ?""",
+        (_json.dumps({"recomp_id": recomp_id}),)).fetchone()
+    if running:
+        raise HTTPException(409, "an export of this recomposition is already running")
+    return {"job_id": jobs.enqueue("export", None, {"recomp_id": recomp_id})}
+
+
+@app.get("/api/recompositions/{recomp_id}/exports")
+def list_exports(recomp_id: int):
+    d = media_ops.EXPORT_DIR
+    if not d.exists():
+        return []
+    out = []
+    for f in sorted(d.glob(f"recomp{recomp_id}_*"), reverse=True):
+        if f.is_file():
+            st = f.stat()
+            out.append({"filename": f.name, "size": st.st_size, "mtime": st.st_mtime})
+    return out
+
+
+@app.get("/api/exports/{filename}")
+def download_export(filename: str):
+    if "/" in filename or "\\" in filename or ".." in filename:
+        raise HTTPException(400)
+    path = media_ops.EXPORT_DIR / filename
+    if not path.is_file():
+        raise HTTPException(404)
+    return FileResponse(path, filename=filename,
+                        media_type=mimetypes.guess_type(filename)[0] or "application/octet-stream")
 
 
 # ------------------------------------------------------------ frontend

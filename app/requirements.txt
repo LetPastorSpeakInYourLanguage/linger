@@ -1,7 +1,9 @@
 fastapi>=0.110
 uvicorn[standard]>=0.29
 python-multipart>=0.0.9
-# auto-transcription of media without subtitles (first run downloads the model):
-faster-whisper>=1.0
+# transcription — WhisperX: batched whisper + forced alignment = accurate timestamps.
+# (Installs torch; if it fails on your machine, `pip install faster-whisper` works
+#  as a lighter fallback — the app auto-detects whichever is available.)
+whisperx
 # "From link" imports (YouTube etc.):
 yt-dlp
