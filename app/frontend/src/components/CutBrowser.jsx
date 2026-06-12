@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api, fmtTime } from "../api";
 import { Modal, inputCls, btnCls, btnGhost, Tag, Picker, useResizable, DragBar } from "./ui";
 import SearchPanel, { RangePreview } from "./SearchPanel";
+import TranslationPanel from "./TranslationPanel";
 
 /* ------------------------------------------------------------ filters */
 
@@ -167,7 +168,7 @@ function AddToRecompModal({ cutIds, onClose, onDone, user }) {
  */
 export default function CutBrowser({ user, embedded = false, onAdd,
                                      filters: extFilters, setFilters: setExtFilters,
-                                     onPreviewChange }) {
+                                     onPreviewChange, onCutChanged }) {
   const [intFilters, setIntFilters] = useState(EMPTY_FILTERS);
   const filters = extFilters ?? intFilters;
   const setFilters = setExtFilters ?? setIntFilters;
@@ -178,6 +179,7 @@ export default function CutBrowser({ user, embedded = false, onAdd,
   const [media, setMedia] = useState([]);
   const [preview, setPreview] = useState(null);
   const [editing, setEditing] = useState(null);
+  const [translating, setTranslating] = useState(null);
   const [selected, setSelected] = useState(new Set());
   const [showAddTo, setShowAddTo] = useState(false);
   const debounce = useRef();
@@ -265,9 +267,16 @@ export default function CutBrowser({ user, embedded = false, onAdd,
                 <button className={`${btnCls} py-0.5`} onClick={() => onAdd(c)}>+ Add</button>
               ) : (
                 <span className="opacity-0 group-hover:opacity-100 flex gap-2 text-xs">
+                  <button className="text-zinc-400 hover:text-white" onClick={() => setTranslating(c)}>translate/dub</button>
                   <button className="text-zinc-400 hover:text-white" onClick={() => setEditing(c)}>edit</button>
                   <button className="text-zinc-400 hover:text-red-400" onClick={() => removeCut(c)}>delete</button>
                 </span>
+              )}
+              {embedded && (
+                <button className="text-xs text-zinc-400 hover:text-white"
+                  onClick={() => setTranslating(c)}>
+                  dub
+                </button>
               )}
             </div>
             <p className="text-sm text-zinc-400 mt-1 line-clamp-2">“{c.text}”</p>
@@ -295,6 +304,11 @@ export default function CutBrowser({ user, embedded = false, onAdd,
       {editing && (
         <EditCutModal cut={editing} folders={folders}
           onClose={() => setEditing(null)} onSaved={refresh} />
+      )}
+      {translating && (
+        <TranslationPanel cut={translating}
+          onClose={() => setTranslating(null)}
+          onChanged={() => { refresh(); onCutChanged?.(); }} />
       )}
       {showAddTo && (
         <AddToRecompModal cutIds={[...selected]} user={user}

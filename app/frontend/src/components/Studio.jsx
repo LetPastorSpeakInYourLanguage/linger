@@ -131,12 +131,145 @@ function useSequencePlayer(cuts) {
   return { refA, refB, activeEl, getPlayer, playingIdx, playFrom, stop, loop, setLoop };
 }
 
+function ExportModal({ recomp, exportJob, translationJob, onClose, onExport, onTranslate }) {
+  const [languages, setLanguages] = useState([]);
+  const [targetLang, setTargetLang] = useState("");
+  const [audioMode, setAudioMode] = useState("original");
+  const [quality, setQuality] = useState("720p");
+  const [overwrite, setOverwrite] = useState(false);
+  const [busy, setBusy] = useState("");
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    api.get("/api/languages").then((rows) => {
+      setLanguages(rows);
+      setTargetLang((cur) =>
+        cur || rows.find((l) => l.dub_capable && l.code !== "en")?.code || rows[0]?.code || "");
+    }).catch(() => {});
+  }, []);
+
+  const runTranslate = async () => {
+    if (!targetLang.trim()) return;
+    setBusy("translate"); setErr("");
+    try {
+      await onTranslate({ target_lang: targetLang.trim(), overwrite });
+    } catch (e) { setErr(e.message); }
+    setBusy("");
+  };
+
+  const runExport = async () => {
+    setBusy("export"); setErr("");
+    try {
+      await onExport({
+        audio_mode: audioMode,
+        target_lang: targetLang.trim(),
+        quality,
+      });
+      onClose();
+    } catch (e) { setErr(e.message); }
+    setBusy("");
+  };
+  const translationRunning = translationJob &&
+    ["queued", "running"].includes(translationJob.status);
+
+  return (
+    <div data-modal className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+          <h2 className="font-semibold">Export {recomp.title}</h2>
+          <button onClick={onClose} className="text-zinc-400 hover:text-white text-xl leading-none">×</button>
+        </div>
+        <div className="p-4 space-y-4 overflow-y-auto">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-zinc-400">Target language</label>
+              <select className={inputCls} value={targetLang}
+                onChange={(e) => setTargetLang(e.target.value)}>
+                {languages.map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.name} ({l.code}){l.dub_capable ? "" : " · no voice"}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-zinc-400">Video quality</label>
+              <select className={inputCls} value={quality}
+                onChange={(e) => setQuality(e.target.value)}>
+                <option value="480p">480p</option>
+                <option value="720p">720p</option>
+                <option value="1080p">1080p</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs text-zinc-400">Export audio</label>
+            <select className={inputCls} value={audioMode}
+              onChange={(e) => setAudioMode(e.target.value)}>
+              <option value="original">Original audio</option>
+              <option value="target_dub">Ready dub for target language</option>
+              <option value="sequence">Saved sequence choices</option>
+            </select>
+          </div>
+
+          <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">Cut translations</p>
+                <p className="text-xs text-zinc-500">
+                  {recomp.cuts.length} cuts in this recomposition
+                </p>
+              </div>
+              <button className={btnGhost} disabled={!targetLang || busy === "translate" || translationRunning}
+                onClick={runTranslate}>
+                {busy === "translate" ? "Starting…" : "Translate cuts"}
+              </button>
+            </div>
+            <label className="flex items-center gap-2 text-xs text-zinc-400">
+              <input type="checkbox" checked={overwrite}
+                onChange={(e) => setOverwrite(e.target.checked)} />
+              Replace existing translations in this language
+            </label>
+            {translationJob && (
+              <p className={`text-xs ${
+                translationJob.status === "failed" ? "text-red-400" : "text-amber-400"
+              }`}>
+                translation {translationJob.status}
+                {translationJob.progress != null ? ` ${Math.round(translationJob.progress)}%` : ""} · {translationJob.detail || "queued"}
+              </p>
+            )}
+          </div>
+
+          {exportJob && (
+            <p className="text-sm text-amber-400">
+              export {exportJob.status}
+              {exportJob.progress != null ? ` ${Math.round(exportJob.progress)}%` : ""} · {exportJob.detail || "queued"}
+            </p>
+          )}
+          {err && <p className="text-sm text-red-400">{err}</p>}
+
+          <div className="flex justify-end gap-2">
+            <button className={btnGhost} onClick={onClose}>Cancel</button>
+            <button className={btnCls} disabled={busy === "export" || !!exportJob || !recomp.cuts.length}
+              onClick={runExport}>
+              {busy === "export" ? "Starting…" : "Start export"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RecompEditor({ user, recompId, back }) {
   const [recomp, setRecomp] = useState(null);
   const [dragIdx, setDragIdx] = useState(null);
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [folders, setFolders] = useState([]);
   const [menu, setMenu] = useState(null); // {x, y, cut}
+  const [showExport, setShowExport] = useState(false);
   const wasPlayingRef = useRef(false);
   const { refA, refB, activeEl, getPlayer, playingIdx, playFrom, stop, loop, setLoop } =
     useSequencePlayer(recomp?.cuts ?? []);
@@ -147,6 +280,7 @@ function RecompEditor({ user, recompId, back }) {
   /* ---- export: start job, poll progress, list finished files */
   const [exports, setExports] = useState([]);
   const [exportJob, setExportJob] = useState(null);
+  const [translationJob, setTranslationJob] = useState(null);
 
   const refreshExports = () => {
     api.get(`/api/recompositions/${recompId}/exports`).then(setExports).catch(() => {});
@@ -155,19 +289,30 @@ function RecompEditor({ user, recompId, back }) {
         x.kind === "export" && ["queued", "running"].includes(x.status) &&
         x.target_kind === "recomposition" && x.target_id === recompId);
       setExportJob(j || null);
+      const runningTranslation = js.find((x) =>
+        x.kind === "translate_recomposition" && ["queued", "running"].includes(x.status) &&
+        x.target_kind === "recomposition" && x.target_id === recompId);
+      if (runningTranslation) setTranslationJob(runningTranslation);
+      else if (translationJob?.id) {
+        const latest = js.find((x) => x.id === translationJob.id);
+        setTranslationJob(["done", "failed", "cancelled"].includes(latest?.status)
+          ? latest : null);
+      }
     }).catch(() => {});
   };
 
   useEffect(() => { refreshExports(); }, [recompId]);
   useEffect(() => {
-    if (!exportJob) return;
+    const translationRunning = translationJob &&
+      ["queued", "running"].includes(translationJob.status);
+    if (!exportJob && !translationRunning) return;
     const t = setInterval(refreshExports, 2500);
     return () => clearInterval(t);
-  }, [exportJob?.id]);
+  }, [exportJob?.id, translationJob?.id]);
 
-  const startExport = async () => {
-    try { await api.post(`/api/recompositions/${recompId}/export`); refreshExports(); }
-    catch (e) { alert(e.message); }
+  const startExport = async (options) => {
+    await api.post(`/api/recompositions/${recompId}/export`, options);
+    refreshExports();
   };
 
   const saveOrder = async (cutIds) => {
@@ -189,6 +334,16 @@ function RecompEditor({ user, recompId, back }) {
   };
 
   const addCut = (cut) => saveOrder([...recomp.cuts.map((c) => c.id), cut.id]);
+
+  const translateRecomp = async (options) => {
+    const res = await api.post(`/api/recompositions/${recompId}/translations`, {
+      lang_code: options.target_lang,
+      user_id: user.id,
+      overwrite: options.overwrite,
+    });
+    setTranslationJob({ id: res.job_id, status: "queued" });
+    refreshExports();
+  };
 
   /* Cut-preview popup opened from the browser: pause, then resume on close. */
   const onPreviewChange = (cut) => {
@@ -292,7 +447,8 @@ function RecompEditor({ user, recompId, back }) {
       <div style={{ width: leftW }} className="shrink-0 min-h-0 flex flex-col">
         <CutBrowser user={user} embedded onAdd={addCut}
           filters={filters} setFilters={setFilters}
-          onPreviewChange={onPreviewChange} />
+          onPreviewChange={onPreviewChange}
+          onCutChanged={load} />
       </div>
       <DragBar onMouseDown={dragLeft} />
 
@@ -305,7 +461,7 @@ function RecompEditor({ user, recompId, back }) {
           <div className="ml-auto flex gap-2 items-center">
             <button title="Render this recomposition into one real video/audio file"
               className={btnGhost} disabled={!recomp.cuts.length || !!exportJob}
-              onClick={startExport}>
+              onClick={() => setShowExport(true)}>
               ⬇ Export
             </button>
             <button title="Loop the playing cut (L)"
@@ -327,10 +483,20 @@ function RecompEditor({ user, recompId, back }) {
               </span>
             )}
             {exports.slice(0, 3).map((f) => (
-              <a key={f.filename} href={`/api/exports/${encodeURIComponent(f.filename)}`} download
-                className="text-indigo-400 hover:text-indigo-300">
-                ⬇ {f.filename} <span className="text-zinc-500">({(f.size / 1e6).toFixed(1)} MB)</span>
-              </a>
+              <span key={f.filename} className="inline-flex items-center gap-2">
+                <a href={`/api/exports/${encodeURIComponent(f.filename)}`} download
+                  className="text-indigo-400 hover:text-indigo-300">
+                  ⬇ {f.filename} <span className="text-zinc-500">({(f.size / 1e6).toFixed(1)} MB)</span>
+                </a>
+                <button className="text-zinc-500 hover:text-red-400"
+                  onClick={async () => {
+                    if (!confirm(`Delete export "${f.filename}"?`)) return;
+                    await api.del(`/api/exports/${encodeURIComponent(f.filename)}`);
+                    refreshExports();
+                  }}>
+                  delete
+                </button>
+              </span>
             ))}
           </div>
         )}
@@ -393,6 +559,12 @@ function RecompEditor({ user, recompId, back }) {
       {menu && (
         <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu.cut)}
           onClose={() => setMenu(null)} />
+      )}
+      {showExport && (
+        <ExportModal recomp={recomp} exportJob={exportJob} translationJob={translationJob}
+          onClose={() => setShowExport(false)}
+          onExport={startExport}
+          onTranslate={translateRecomp} />
       )}
     </div>
   );

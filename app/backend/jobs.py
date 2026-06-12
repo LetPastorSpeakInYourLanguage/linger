@@ -10,7 +10,9 @@ Job kinds:
   download    {"url", "then_transcribe", "whisper"?}              — yt-dlp fetch
   prepare     {"src", "keep_src", "then_transcribe", "whisper"?}  — ffmpeg remux/re-encode
   transcribe  {"model"?, "language"?, "device"?, "compute"?}      — whisperx / faster-whisper
-  separate    {"cut_id", "padding_s"?}                             — Demucs vocals/accompaniment stems
+  separate    {"cut_id", "padding_s"?}                            — vocals/accompaniment stems
+  translate_track {"track_id", "target_lang", ...}                — subtitle track translation
+  translate_recomposition {"recomp_id", "lang_code", ...}         — cut translations
   export      {"recomp_id"}                                       — render recomposition
 Jobs chain: download → prepare → (transcribe if no subtitles were provided);
 the optional "whisper" dict ({"model": ...}) rides along the chain.
@@ -22,9 +24,9 @@ import threading
 import traceback
 from pathlib import Path
 
-from . import media_ops
+from . import media_ops, translation_ops
 from .db import get_db
-from .engines import separation
+from .engines import separation, tts
 
 _wake = threading.Event()
 _started = False
@@ -166,30 +168,10 @@ def cut_stem_cache(cut_id: int, padding_s: float = 3.0) -> dict:
     }
 
 
-def _restore_media_after_stop(media_id: int):
-    """After a cancel: the media is fine if it's already playable, otherwise
-    it never got a streamable file and is effectively dead."""
-    db = get_db()
-    row = db.execute("SELECT filename FROM media WHERE id=?", (media_id,)).fetchone()
-    if row is None:
-        return
-    if row["filename"]:
-        _set_media(media_id, "ready", "")
-    else:
-        _set_media(media_id, "error", "cancelled before the file was ready")
-
-
-# ------------------------------------------------------------- separate
-
-@handler("separate")
-def _run_separate(ctx: JobContext, payload: dict):
-    """Windowed Demucs separation for one cut, cached by media/time range."""
-    cut_id = int(payload["cut_id"])
-    padding_s = float(payload.get("padding_s", 3.0))
+def _ensure_cut_stems(ctx: JobContext, cut_id: int, padding_s: float = 3.0) -> dict:
     cache = cut_stem_cache(cut_id, padding_s)
     if cache["exists"]:
-        ctx.report("cached stems ready", progress=100)
-        return
+        return cache
     if not media_ops.have_ffmpeg():
         raise RuntimeError("ffmpeg is required for source separation")
     src = media_ops.media_dir(cache["media_id"]) / cache["filename"]
@@ -204,7 +186,7 @@ def _run_separate(ctx: JobContext, payload: dict):
     media_ops.extract_audio_window(src, cache["start_s"], cache["end_s"],
                                    input_wav, check_cancel=ctx.check_cancel)
 
-    ctx.report("separating vocals/accompaniment", progress=35)
+    ctx.report("separating vocals/accompaniment", progress=25)
     result = separation.get_separation_engine().separate_vocals(
         input_wav, cache_dir, check_cancel=ctx.check_cancel)
     if not result.vocals.exists() or not result.accompaniment.exists():
@@ -225,7 +207,169 @@ def _run_separate(ctx: JobContext, payload: dict):
     (cache_dir / "manifest.json").write_text(json.dumps(manifest, indent=2),
                                              encoding="utf-8")
     media_ops.safe_unlink(input_wav)
-    ctx.report("stems ready", progress=100)
+    return cut_stem_cache(cut_id, padding_s)
+
+
+def _restore_media_after_stop(media_id: int):
+    """After a cancel: the media is fine if it's already playable, otherwise
+    it never got a streamable file and is effectively dead."""
+    db = get_db()
+    row = db.execute("SELECT filename FROM media WHERE id=?", (media_id,)).fetchone()
+    if row is None:
+        return
+    if row["filename"]:
+        _set_media(media_id, "ready", "")
+    else:
+        _set_media(media_id, "error", "cancelled before the file was ready")
+
+
+# ------------------------------------------------------------- separate
+
+@handler("separate")
+def _run_separate(ctx: JobContext, payload: dict):
+    """Windowed Demucs separation for one cut, cached by media/time range."""
+    cut_id = int(payload["cut_id"])
+    padding_s = float(payload.get("padding_s", 3.0))
+    cache = _ensure_cut_stems(ctx, cut_id, padding_s)
+    if cache["exists"]:
+        ctx.report("cached stems ready", progress=100)
+        return
+
+
+# ---------------------------------------------------------------- dub
+
+def _dub_dir(dub_id: int) -> Path:
+    d = media_ops.MEDIA_ROOT / "dubs" / str(dub_id)
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _boundary_payload(boundary, segment_id: int, segment_offset_ms: int) -> dict:
+    return {
+        "segment_id": segment_id,
+        "text": getattr(boundary, "text", ""),
+        "offset_ms": segment_offset_ms + int(getattr(boundary, "offset_ms", 0) or 0),
+        "duration_ms": int(getattr(boundary, "duration_ms", 0) or 0),
+    }
+
+
+@handler("dub")
+def _run_dub(ctx: JobContext, payload: dict):
+    """Generate translated speech and mix it over the cut's accompaniment stem."""
+    dub_id = int(payload["dub_id"])
+    db = get_db()
+    db.execute("UPDATE dubs SET status='running', detail='starting', "
+               "updated_at=datetime('now') WHERE id=?", (dub_id,))
+    db.commit()
+    try:
+        row = db.execute("""
+            SELECT d.*, ct.cut_id, ct.lang_code, l.tts_engine, l.tts_voice
+            FROM dubs d
+            JOIN cut_translations ct ON ct.id=d.translation_id
+            JOIN languages l ON l.code=ct.lang_code
+            WHERE d.id=?""", (dub_id,)).fetchone()
+        if not row:
+            raise RuntimeError("dub not found")
+        cut_id = int(row["cut_id"])
+        voice = row["voice"] or row["tts_voice"]
+        if not voice:
+            raise RuntimeError(f"language {row['lang_code']} has no TTS voice configured")
+
+        segs = db.execute("""
+            SELECT s.id, s.start_s, s.end_s, ts.text
+            FROM cut_segments cs
+            JOIN segments s ON s.id=cs.segment_id
+            JOIN translation_segments ts
+              ON ts.segment_id=s.id AND ts.translation_id=?
+            WHERE cs.cut_id=?
+            ORDER BY cs.position""", (row["translation_id"], cut_id)).fetchall()
+        if not segs:
+            raise RuntimeError("translation has no segments")
+
+        cut_start = min(float(s["start_s"]) for s in segs)
+        cut_end = max(float(s["end_s"]) for s in segs)
+        cut_duration = max(0.05, cut_end - cut_start)
+
+        ctx.report("preparing accompaniment stem", progress=10)
+        cache = _ensure_cut_stems(ctx, cut_id, 3.0)
+        work = _dub_dir(dub_id)
+        base = work / "accompaniment_cut.wav"
+        stem_offset = max(0.0, cut_start - cache["start_s"])
+        media_ops._run_ffmpeg([
+            "ffmpeg", "-y", "-ss", f"{stem_offset:.3f}", "-t", f"{cut_duration:.3f}",
+            "-i", str(cache["accompaniment"]),
+            "-ar", "44100", "-ac", "2", "-c:a", "pcm_s16le", str(base),
+        ], check_cancel=ctx.check_cancel, timeout=7200)
+
+        boundaries = []
+        speech_files = []
+        engine = tts.get_tts_engine()
+        for i, seg in enumerate(segs):
+            text = (seg["text"] or "").strip()
+            if not text:
+                continue
+            pct = 35 + (i / max(1, len(segs))) * 40
+            ctx.report(f"synthesizing segment {i + 1}/{len(segs)}", progress=pct)
+            raw = work / f"tts_{i:03d}.mp3"
+            result = engine.synthesize(text, voice, raw)
+            for b in result.word_boundaries:
+                boundaries.append(_boundary_payload(
+                    b, int(seg["id"]), int(round((float(seg["start_s"]) - cut_start) * 1000))))
+
+            target = max(0.05, float(seg["end_s"]) - float(seg["start_s"]))
+            raw_duration = media_ops.duration(result.audio_path) or target
+            atempo = max(0.66, min(1.5, raw_duration / target))
+            stretched = work / f"speech_{i:03d}.wav"
+            media_ops._run_ffmpeg([
+                "ffmpeg", "-y", "-i", str(result.audio_path),
+                "-af", f"atempo={atempo:.4f}",
+                "-ar", "44100", "-ac", "2", "-c:a", "pcm_s16le", str(stretched),
+            ], check_cancel=ctx.check_cancel, timeout=7200)
+            speech_files.append({
+                "path": stretched,
+                "delay_ms": int(round((float(seg["start_s"]) - cut_start) * 1000)),
+            })
+
+        final = work / f"dub_{dub_id}.m4a"
+        ctx.report("mixing dub with accompaniment", progress=85)
+        if speech_files:
+            cmd = ["ffmpeg", "-y", "-i", str(base)]
+            for s in speech_files:
+                cmd += ["-i", str(s["path"])]
+            filters = []
+            for i, s in enumerate(speech_files, start=1):
+                filters.append(f"[{i}:a]adelay={s['delay_ms']}|{s['delay_ms']}[a{i}]")
+            mix_inputs = "[0:a]" + "".join(f"[a{i}]" for i in range(1, len(speech_files) + 1))
+            filters.append(
+                f"{mix_inputs}amix=inputs={len(speech_files) + 1}:duration=first:"
+                f"dropout_transition=0,atrim=0:{cut_duration:.3f},asetpts=N/SR/TB[aout]")
+            cmd += ["-filter_complex", ";".join(filters), "-map", "[aout]",
+                    "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(final)]
+        else:
+            cmd = ["ffmpeg", "-y", "-t", f"{cut_duration:.3f}", "-i", str(base),
+                   "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(final)]
+        media_ops._run_ffmpeg(cmd, check_cancel=ctx.check_cancel, timeout=7200)
+
+        dur = media_ops.duration(final) or cut_duration
+        db.execute("""
+            UPDATE dubs SET status='done', filename=?, duration_s=?,
+                word_boundaries_json=?, detail='ready', updated_at=datetime('now')
+            WHERE id=?""",
+            (str(final.relative_to(media_ops.MEDIA_ROOT)), dur,
+             json.dumps(boundaries), dub_id))
+        db.commit()
+        ctx.report("dub ready", progress=100)
+    except JobCancelled:
+        db.execute("UPDATE dubs SET status='cancelled', detail='cancelled by user', "
+                   "updated_at=datetime('now') WHERE id=?", (dub_id,))
+        db.commit()
+        raise
+    except Exception as e:
+        db.execute("UPDATE dubs SET status='failed', detail=?, "
+                   "updated_at=datetime('now') WHERE id=?",
+                   (str(e)[:500], dub_id))
+        db.commit()
+        raise
 
 
 # ------------------------------------------------------------- download
@@ -333,15 +477,17 @@ def _run_prepare(ctx: JobContext, payload: dict):
 
 # ----------------------------------------------------------- transcribe
 
-def _replace_track(db, media_id: int, track_name: str) -> int:
+def _replace_track(db, media_id: int, track_name: str, lang_code: str = "") -> int:
     """Transcriptions live in their own track; re-running replaces only it."""
     row = db.execute("SELECT id FROM tracks WHERE media_id=? AND name=?",
                      (media_id, track_name)).fetchone()
     if row:
         db.execute("DELETE FROM segments WHERE track_id=?", (row["id"],))
+        if lang_code:
+            db.execute("UPDATE tracks SET lang_code=? WHERE id=?", (lang_code, row["id"]))
         return row["id"]
-    return db.execute("INSERT INTO tracks (media_id, name) VALUES (?,?)",
-                      (media_id, track_name)).lastrowid
+    return db.execute("INSERT INTO tracks (media_id, name, lang_code) VALUES (?,?,?)",
+                      (media_id, track_name, lang_code)).lastrowid
 
 
 def _whisper_settings():
@@ -438,7 +584,8 @@ def _transcribe_whisperx(ctx, media_id, wav, model_name, device, compute,
 
     stage("saving segments", 95)
     db = get_db()
-    track_id = _replace_track(db, media_id, f"WhisperX ({model_name})")
+    track_id = _replace_track(db, media_id, f"WhisperX ({model_name})",
+                              result.get("language") or language or "")
     idx = 0
     for s in segs:
         text = (s.get("text") or "").strip()
@@ -465,7 +612,7 @@ def _transcribe_faster(ctx, media_id, wav, model_name, device, compute,
     duration = getattr(info, "duration", None)
 
     db = get_db()
-    track_id = _replace_track(db, media_id, f"Whisper ({model_name})")
+    track_id = _replace_track(db, media_id, f"Whisper ({model_name})", language or "")
     idx = 0
     last = -10.0
     for seg in segments_iter:
@@ -490,25 +637,68 @@ def _transcribe_faster(ctx, media_id, wav, model_name, device, compute,
     return idx
 
 
+# -------------------------------------------------------- translation jobs
+
+@handler("translate_track")
+def _run_translate_track(ctx: JobContext, payload: dict):
+    track_id = int(payload["track_id"])
+    target_lang = (payload["target_lang"] or "").strip()
+    if not target_lang:
+        raise RuntimeError("target language is required")
+    db = get_db()
+    new_track_id = translation_ops.translate_track_to_new_track(
+        db, track_id, target_lang,
+        source_language=payload.get("source_language") or "auto",
+        name=payload.get("name") or "",
+        report=ctx.report)
+    db.commit()
+    ctx.report(f"created translated track {new_track_id}", progress=100)
+
+
+@handler("translate_recomposition")
+def _run_translate_recomposition(ctx: JobContext, payload: dict):
+    recomp_id = int(payload["recomp_id"])
+    lang_code = (payload["lang_code"] or "").strip()
+    if not lang_code:
+        raise RuntimeError("target language is required")
+    db = get_db()
+    rows = translation_ops.translate_recomposition_cuts(
+        db, recomp_id, lang_code,
+        source_language=payload.get("source_language") or "auto",
+        created_by=payload.get("user_id"),
+        overwrite=bool(payload.get("overwrite")),
+        report=ctx.report)
+    db.commit()
+    created = sum(1 for r in rows if r["created"])
+    ctx.report(f"ready: {created} new translation(s), {len(rows) - created} reused",
+               progress=100)
+
+
 # --------------------------------------------------------------- export
 
 @handler("export")
 def _run_export(ctx: JobContext, payload: dict):
     recomp_id = payload["recomp_id"]
+    audio_mode = (payload.get("audio_mode") or "sequence").strip()
+    target_lang = (payload.get("target_lang") or "").strip()
+    quality = (payload.get("quality") or "720p").strip()
     db = get_db()
     recomp = db.execute("SELECT * FROM recompositions WHERE id=?", (recomp_id,)).fetchone()
     if not recomp:
         raise RuntimeError("recomposition not found")
     rows = db.execute("""
         SELECT c.id AS cut_id, m.id AS media_id, m.filename, m.type,
+               rc.audio_mode, rc.dub_id, d.filename AS dub_filename,
                MIN(s.start_s) AS start_s, MAX(s.end_s) AS end_s
         FROM recomp_cuts rc
         JOIN cuts c ON c.id = rc.cut_id
         JOIN media m ON m.id = c.media_id
+        LEFT JOIN dubs d ON d.id = rc.dub_id
         JOIN cut_segments cs ON cs.cut_id = c.id
         JOIN segments s ON s.id = cs.segment_id
         WHERE rc.recomp_id=?
-        GROUP BY rc.position, c.id, m.id, m.filename, m.type
+        GROUP BY rc.position, c.id, m.id, m.filename, m.type,
+                 rc.audio_mode, rc.dub_id, d.filename
         ORDER BY rc.position""", (recomp_id,)).fetchall()
     if not rows:
         raise RuntimeError("this recomposition has no cuts")
@@ -518,18 +708,47 @@ def _run_export(ctx: JobContext, payload: dict):
         src = media_ops.media_dir(r["media_id"]) / r["filename"]
         if not src.exists():
             raise RuntimeError(f"source file missing for media {r['media_id']}")
+        audio_src = None
+        if audio_mode == "target_dub":
+            if not target_lang:
+                raise RuntimeError("target language is required for translated dub export")
+            dub = db.execute("""
+                SELECT d.*
+                FROM dubs d
+                JOIN cut_translations ct ON ct.id=d.translation_id
+                WHERE ct.cut_id=? AND ct.lang_code=? AND d.status='done'
+                      AND d.filename<>''
+                ORDER BY d.id DESC LIMIT 1""",
+                (r["cut_id"], target_lang)).fetchone()
+            if not dub:
+                raise RuntimeError(
+                    f"no ready {target_lang} dub for cut {r['cut_id']}; "
+                    "generate dubs before exporting")
+            audio_src = media_ops.MEDIA_ROOT / dub["filename"]
+            if not audio_src.exists():
+                raise RuntimeError(f"ready dub file missing for cut {r['cut_id']}")
+        elif audio_mode == "sequence" and r["audio_mode"] == "dub":
+            if not r["dub_filename"]:
+                raise RuntimeError(f"selected dub missing for cut {r['cut_id']}")
+            audio_src = media_ops.MEDIA_ROOT / r["dub_filename"]
+            if not audio_src.exists():
+                raise RuntimeError(f"selected dub file missing for cut {r['cut_id']}")
+        elif audio_mode not in ("sequence", "original", "target_dub"):
+            raise RuntimeError("audio_mode must be sequence, original, or target_dub")
         cuts.append({"src": str(src), "start_s": r["start_s"], "end_s": r["end_s"],
-                     "is_video": r["type"] == "video"})
+                     "is_video": r["type"] == "video",
+                     "audio_src": str(audio_src) if audio_src else None})
 
     title = recomp["title"]
-    log(f"export '{title}': {len(cuts)} cuts")
+    log(f"export '{title}': {len(cuts)} cuts ({quality}, {audio_mode})")
 
     def prog(msg, pct=None):
         ctx.report(msg, progress=pct)
         log(f"export '{title}': {msg}")
 
     final = media_ops.export_recomposition(recomp_id, title, cuts, on_progress=prog,
-                                           check_cancel=ctx.check_cancel)
+                                           check_cancel=ctx.check_cancel,
+                                           quality=quality)
     log(f"export '{title}' done → {final}")
     ctx.report(f"done: {final.name}", progress=100)
 

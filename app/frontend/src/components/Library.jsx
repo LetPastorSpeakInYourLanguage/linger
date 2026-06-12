@@ -40,6 +40,7 @@ function AddMediaModal({ user, onClose, onDone }) {
   const [mode, setMode] = useState("upload"); // upload | path | link
   const [file, setFile] = useState(null);
   const [srt, setSrt] = useState(null);
+  const [subtitleLanguage, setSubtitleLanguage] = useState("");
   const [path, setPath] = useState("");
   const [srtPath, setSrtPath] = useState("");
   const [url, setUrl] = useState("");
@@ -71,12 +72,14 @@ function AddMediaModal({ user, onClose, onDone }) {
         fd.append("title", title);
         fd.append("user_id", user.id);
         fd.append("whisper_model", whisperModel);
+        fd.append("subtitle_language", subtitleLanguage);
         await xhrUpload("/api/media", fd, setPct);
       } else if (mode === "path") {
         if (!path.trim()) return setBusy(false);
         await api.post("/api/media/import-path", {
           path, subtitle_path: srtPath.trim() || null, title, user_id: user.id,
           whisper_model: whisperModel,
+          subtitle_language: subtitleLanguage,
         });
       } else {
         if (!url.trim()) return setBusy(false);
@@ -117,6 +120,11 @@ function AddMediaModal({ user, onClose, onDone }) {
               <input type="file" accept=".srt,.vtt" className="block mt-1 text-sm"
                 onChange={(e) => setSrt(e.target.files[0])} />
             </div>
+            <div>
+              <label className="text-sm text-zinc-400">Subtitle language code — optional</label>
+              <input className={inputCls} placeholder="en, es, am…"
+                value={subtitleLanguage} onChange={(e) => setSubtitleLanguage(e.target.value)} />
+            </div>
             <p className="text-xs text-zinc-500">
               Tip: if the file is already on the computer running the server,
               “From this PC” is much faster (no upload copy).
@@ -137,6 +145,11 @@ function AddMediaModal({ user, onClose, onDone }) {
               <label className="text-sm text-zinc-400">Path of the .srt — optional</label>
               <input className={inputCls} placeholder={"D:\\movies\\notebook.srt"}
                 value={srtPath} onChange={(e) => setSrtPath(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm text-zinc-400">Subtitle language code — optional</label>
+              <input className={inputCls} placeholder="en, es, am…"
+                value={subtitleLanguage} onChange={(e) => setSubtitleLanguage(e.target.value)} />
             </div>
             <p className="text-xs text-zinc-500">
               The original file is read in place and never modified or deleted.

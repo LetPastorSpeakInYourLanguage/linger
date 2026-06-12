@@ -52,6 +52,11 @@ def probe(path: Path):
     return duration, vcodec is not None, vcodec, acodec
 
 
+def duration(path: Path) -> float | None:
+    info = probe(path)
+    return info[0] if info else None
+
+
 def media_dir(media_id: int) -> Path:
     d = MEDIA_ROOT / str(media_id)
     d.mkdir(parents=True, exist_ok=True)
@@ -160,10 +165,21 @@ EXPORT_DIR = MEDIA_ROOT / "exports"
 
 # uniform clip parameters so the final concat is a lossless stream-copy
 EXPORT_W, EXPORT_H, EXPORT_FPS = 1280, 720, 30
-VIDEO_FILTER = (f"scale={EXPORT_W}:{EXPORT_H}:force_original_aspect_ratio=decrease,"
-                f"pad={EXPORT_W}:{EXPORT_H}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps={EXPORT_FPS}")
-V_ARGS = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p"]
+EXPORT_PRESETS = {
+    "480p": (854, 480, 30, "23"),
+    "720p": (1280, 720, 30, "20"),
+    "1080p": (1920, 1080, 30, "22"),
+}
 A_ARGS = ["-c:a", "aac", "-b:a", "160k", "-ar", "44100", "-ac", "2"]
+
+
+def _video_settings(quality: str):
+    w, h, fps, crf = EXPORT_PRESETS.get(quality, EXPORT_PRESETS["720p"])
+    vf = (f"scale={w}:{h}:force_original_aspect_ratio=decrease,"
+          f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps={fps}")
+    v_args = ["-c:v", "libx264", "-preset", "veryfast", "-crf", crf,
+              "-pix_fmt", "yuv420p"]
+    return w, h, fps, vf, v_args
 
 
 def _run_ffmpeg(cmd, check_cancel=None, timeout=3600):
@@ -186,27 +202,49 @@ def _run_ffmpeg(cmd, check_cancel=None, timeout=3600):
 
 
 def _clip_cmd(src: Path, start: float, dur: float, out: Path,
-              has_video: bool, src_is_video: bool, src_has_audio: bool):
+              has_video: bool, src_is_video: bool, src_has_audio: bool,
+              audio_src: Path | None = None, quality: str = "720p"):
     """One uniformly-encoded clip. Edge cases get synthetic streams:
     audio-only source in a video export → black video; mute video → silence."""
+    export_w, export_h, export_fps, video_filter, v_args = _video_settings(quality)
+    if audio_src is not None and not audio_src.exists():
+        raise RuntimeError(f"audio source missing: {audio_src}")
+    if audio_src is not None:
+        if not has_video:
+            return ["ffmpeg", "-y", "-t", f"{dur:.3f}", "-i", str(audio_src),
+                    "-vn", "-ar", "44100", "-ac", "2", "-c:a", "pcm_s16le", str(out)]
+        if not src_is_video:
+            return ["ffmpeg", "-y",
+                    "-t", f"{dur:.3f}", "-i", str(audio_src),
+                    "-f", "lavfi", "-i",
+                    f"color=c=black:s={export_w}x{export_h}:r={export_fps}",
+                    "-map", "1:v", "-map", "0:a", "-shortest",
+                    *v_args, *A_ARGS, str(out)]
+        return ["ffmpeg", "-y",
+                "-ss", f"{start:.3f}", "-t", f"{dur:.3f}", "-i", str(src),
+                "-t", f"{dur:.3f}", "-i", str(audio_src),
+                "-map", "0:v:0", "-map", "1:a:0", "-shortest",
+                "-vf", video_filter, *v_args, *A_ARGS, str(out)]
+
     base = ["ffmpeg", "-y", "-ss", f"{start:.3f}", "-t", f"{dur:.3f}", "-i", str(src)]
     if not has_video:  # pure-audio export → wav clips
         return base + ["-vn", "-ar", "44100", "-ac", "2", "-c:a", "pcm_s16le", str(out)]
     if not src_is_video:
         return base + ["-f", "lavfi", "-i",
-                       f"color=c=black:s={EXPORT_W}x{EXPORT_H}:r={EXPORT_FPS}",
+                       f"color=c=black:s={export_w}x{export_h}:r={export_fps}",
                        "-map", "1:v", "-map", "0:a", "-shortest",
-                       *V_ARGS, *A_ARGS, str(out)]
+                       *v_args, *A_ARGS, str(out)]
     if not src_has_audio:
         return base + ["-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
                        "-map", "0:v", "-map", "1:a", "-shortest",
-                       "-vf", VIDEO_FILTER, *V_ARGS, *A_ARGS, str(out)]
-    return base + ["-map", "0:v:0", "-map", "0:a:0", "-vf", VIDEO_FILTER,
-                   *V_ARGS, *A_ARGS, str(out)]
+                       "-vf", video_filter, *v_args, *A_ARGS, str(out)]
+    return base + ["-map", "0:v:0", "-map", "0:a:0", "-vf", video_filter,
+                   *v_args, *A_ARGS, str(out)]
 
 
 def export_recomposition(recomp_id: int, title: str, cuts: list[dict],
-                         on_progress=None, check_cancel=None) -> Path:
+                         on_progress=None, check_cancel=None,
+                         quality: str = "720p") -> Path:
     """cuts: [{src, start_s, end_s, is_video}] in playback order.
     Re-encodes every cut to identical parameters, then concat-copies them
     into one file. on_progress(msg, percent) as it goes.
@@ -232,8 +270,10 @@ def export_recomposition(recomp_id: int, title: str, cuts: list[dict],
             src_has_audio = bool(info and info[3])
             dur = max(0.05, c["end_s"] - c["start_s"])
             out = tmp / f"{i:04d}.{ext}"
+            audio_src = Path(c["audio_src"]) if c.get("audio_src") else None
             _run_ffmpeg(_clip_cmd(src, c["start_s"], dur, out,
-                                  has_video, c["is_video"], src_has_audio),
+                                  has_video, c["is_video"], src_has_audio,
+                                  audio_src=audio_src, quality=quality),
                         check_cancel)
             clips.append(out)
 

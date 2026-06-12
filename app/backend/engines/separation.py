@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import time
+import importlib.util
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Protocol
@@ -98,13 +99,37 @@ class DemucsEngine:
         return SeparationResult(vocals=vocals, accompaniment=accompaniment)
 
 
+class OriginalAudioEngine:
+    """Fallback separation: keep the original audio as accompaniment.
+
+    This keeps dubbing functional on machines without Demucs. The original
+    dialogue will remain underneath the generated voice, but the export still
+    renders and users can install Demucs later for cleaner stems.
+    """
+
+    name = "original-audio"
+
+    def separate_vocals(self, input_audio: Path, out_dir: Path,
+                        check_cancel: CheckCancel = None) -> SeparationResult:
+        if check_cancel:
+            check_cancel()
+        out_dir.mkdir(parents=True, exist_ok=True)
+        vocals = out_dir / "vocals.wav"
+        accompaniment = out_dir / "accompaniment.wav"
+        shutil.copy2(input_audio, vocals)
+        shutil.copy2(input_audio, accompaniment)
+        return SeparationResult(vocals=vocals, accompaniment=accompaniment)
+
+
 _default_engine: SeparationEngine | None = None
 
 
 def get_separation_engine() -> SeparationEngine:
     global _default_engine
     if _default_engine is None:
-        _default_engine = DemucsEngine()
+        _default_engine = (DemucsEngine()
+                           if importlib.util.find_spec("demucs") is not None
+                           else OriginalAudioEngine())
     return _default_engine
 
 

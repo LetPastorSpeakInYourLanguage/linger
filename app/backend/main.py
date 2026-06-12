@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import jobs, media_ops, quiet_logs, search
+from . import jobs, media_ops, quiet_logs, search, translation_ops
 from .db import get_db, init_db, rows_to_dicts
 from .srt_parser import parse_subtitles
 
@@ -68,13 +68,14 @@ def list_media():
     return rows_to_dicts(rows)
 
 
-def _insert_subtitles(db, media_id: int, raw: str, track_name: str = "Subtitles") -> bool:
+def _insert_subtitles(db, media_id: int, raw: str, track_name: str = "Subtitles",
+                      lang_code: str = "") -> bool:
     """Parse subtitle text into a NEW track. Returns True if segments were created."""
     segs = parse_subtitles(raw)
     if not segs:
         return False
-    cur = db.execute("INSERT INTO tracks (media_id, name) VALUES (?,?)",
-                     (media_id, track_name))
+    cur = db.execute("INSERT INTO tracks (media_id, name, lang_code) VALUES (?,?,?)",
+                     (media_id, track_name, lang_code))
     track_id = cur.lastrowid
     for i, s in enumerate(segs):
         db.execute(
@@ -118,6 +119,7 @@ async def upload_media(
     title: str = Form(""),
     user_id: int = Form(...),
     whisper_model: str = Form(""),
+    subtitle_language: str = Form(""),
 ):
     """Browser upload: save the raw bytes, return immediately; ffmpeg runs in background."""
     db = get_db()
@@ -143,7 +145,8 @@ async def upload_media(
     if subtitle is not None and subtitle.filename:
         text = (await subtitle.read()).decode("utf-8", errors="replace")
         has_subs = _insert_subtitles(db, media_id, text,
-                                     Path(subtitle.filename).stem or "Subtitles")
+                                     Path(subtitle.filename).stem or "Subtitles",
+                                     _norm_lang_code_or_empty(subtitle_language))
         if not has_subs:
             db.execute("UPDATE media SET status_detail=? WHERE id=?",
                        ("subtitle file could not be parsed — will auto-transcribe", media_id))
@@ -168,6 +171,7 @@ class PathImport(BaseModel):
     title: str = ""
     user_id: int
     whisper_model: str = ""
+    subtitle_language: str = ""
 
 
 @app.post("/api/media/import-path")
@@ -192,7 +196,8 @@ def import_path(body: PathImport):
             raise HTTPException(400, f"subtitle file not found: {sub}")
         has_subs = _insert_subtitles(db, media_id,
                                      sub.read_text(encoding="utf-8", errors="replace"),
-                                     sub.stem or "Subtitles")
+                                     sub.stem or "Subtitles",
+                                     _norm_lang_code_or_empty(body.subtitle_language))
     db.commit()
 
     jobs.enqueue("prepare", media_id,
@@ -327,6 +332,10 @@ def _norm_lang_code(code: str) -> str:
     return norm
 
 
+def _norm_lang_code_or_empty(code: str | None) -> str:
+    return _norm_lang_code(code) if (code or "").strip() else ""
+
+
 def _language_payload(row) -> dict:
     d = dict(row)
     d["dub_capable"] = bool((d.get("tts_voice") or "").strip())
@@ -431,7 +440,8 @@ def media_tracks(media_id: int):
 async def add_subtitle_track(media_id: int,
                              file: UploadFile | None = File(None),
                              path: str = Form(""),
-                             name: str = Form("")):
+                             name: str = Form(""),
+                             lang_code: str = Form("")):
     """Attach another subtitle file (upload or host path) as a NEW track."""
     db = get_db()
     if not db.execute("SELECT 1 FROM media WHERE id=?", (media_id,)).fetchone():
@@ -447,22 +457,59 @@ async def add_subtitle_track(media_id: int,
         default_name = p.stem
     else:
         raise HTTPException(400, "provide a subtitle file or a path")
-    if not _insert_subtitles(db, media_id, raw, name.strip() or default_name or "Subtitles"):
+    if not _insert_subtitles(db, media_id, raw, name.strip() or default_name or "Subtitles",
+                             _norm_lang_code_or_empty(lang_code)):
         raise HTTPException(400, "subtitle file could not be parsed")
     db.commit()
     return media_tracks(media_id)
 
 
 class TrackUpdate(BaseModel):
-    name: str
+    name: str | None = None
+    lang_code: str | None = None
+
+
+class TrackTranslateIn(BaseModel):
+    target_lang: str
+    source_language: str = ""
+    name: str = ""
 
 
 @app.patch("/api/tracks/{track_id}")
 def rename_track(track_id: int, u: TrackUpdate):
     db = get_db()
-    db.execute("UPDATE tracks SET name=? WHERE id=?", (u.name.strip() or "Subtitles", track_id))
+    if u.name is not None:
+        db.execute("UPDATE tracks SET name=? WHERE id=?",
+                   (u.name.strip() or "Subtitles", track_id))
+    if u.lang_code is not None:
+        db.execute("UPDATE tracks SET lang_code=? WHERE id=?",
+                   (_norm_lang_code_or_empty(u.lang_code), track_id))
     db.commit()
     return {"ok": True}
+
+
+@app.post("/api/tracks/{track_id}/translate")
+def translate_track(track_id: int, body: TrackTranslateIn):
+    db = get_db()
+    track = db.execute("SELECT * FROM tracks WHERE id=?", (track_id,)).fetchone()
+    if not track:
+        raise HTTPException(404)
+    target_lang = _norm_lang_code(body.target_lang)
+    source_language = (body.source_language or "").strip()
+    if source_language and source_language != "auto":
+        source_language = _norm_lang_code(source_language)
+    running = db.execute("""SELECT 1 FROM jobs WHERE kind='translate_track'
+        AND status IN ('queued','running')
+        AND target_kind='track' AND target_id=?""", (track_id,)).fetchone()
+    if running:
+        raise HTTPException(409, "this track is already being translated")
+    job_id = jobs.enqueue("translate_track", track["media_id"], {
+        "track_id": track_id,
+        "target_lang": target_lang,
+        "source_language": source_language or track["lang_code"] or "auto",
+        "name": body.name.strip(),
+    }, target_kind="track", target_id=track_id, max_attempts=1)
+    return {"job_id": job_id, "status": "queued"}
 
 
 @app.delete("/api/tracks/{track_id}")
@@ -641,6 +688,23 @@ def _tag_ids(db, names: list[str]) -> list[int]:
     return ids
 
 
+def _cut_dubs(db, cut_id: int, done_only: bool = False) -> list[dict]:
+    where = "WHERE ct.cut_id=?"
+    if done_only:
+        where += " AND d.status='done'"
+    rows = db.execute(f"""
+        SELECT d.*, ct.cut_id, ct.lang_code, ct.source, l.name AS language_name
+        FROM dubs d
+        JOIN cut_translations ct ON ct.id=d.translation_id
+        LEFT JOIN languages l ON l.code=ct.lang_code
+        {where}
+        ORDER BY d.id DESC""", (cut_id,)).fetchall()
+    out = rows_to_dicts(rows)
+    for d in out:
+        d["audio_url"] = f"/api/dubs/{d['id']}/audio" if d["status"] == "done" else None
+    return out
+
+
 def _cut_payload(db, cut_row) -> dict:
     cut = dict(cut_row)
     segs = db.execute("""
@@ -653,6 +717,7 @@ def _cut_payload(db, cut_row) -> dict:
     cut["tags"] = [r["name"] for r in db.execute("""
         SELECT t.name FROM cut_tags ct JOIN tags t ON t.id = ct.tag_id
         WHERE ct.cut_id=? ORDER BY t.name""", (cut["id"],))]
+    cut["dubs"] = _cut_dubs(db, cut["id"], done_only=True)
     return cut
 
 
@@ -830,6 +895,171 @@ def separate_cut(cut_id: int, padding_s: float = 3.0):
         "status": "queued", "cached": False}
 
 
+# ------------------------------------------------ translations & dubs
+
+class TranslationCreate(BaseModel):
+    lang_code: str
+    source: str = "manual"  # manual | auto
+    source_language: str = "auto"
+    user_id: int | None = None
+    segments: dict[int, str] = {}
+
+
+class TranslationSegmentUpdate(BaseModel):
+    text: str
+
+
+def _cut_segment_rows(db, cut_id: int):
+    return db.execute("""
+        SELECT s.*
+        FROM cut_segments cs JOIN segments s ON s.id=cs.segment_id
+        WHERE cs.cut_id=?
+        ORDER BY cs.position""", (cut_id,)).fetchall()
+
+
+def _translation_payload(db, translation_id: int) -> dict:
+    row = db.execute("""
+        SELECT ct.*, l.name AS language_name, l.tts_engine, l.tts_voice
+        FROM cut_translations ct
+        LEFT JOIN languages l ON l.code=ct.lang_code
+        WHERE ct.id=?""", (translation_id,)).fetchone()
+    if not row:
+        raise HTTPException(404)
+    out = dict(row)
+    segs = db.execute("""
+        SELECT s.id AS segment_id, s.idx, s.start_s, s.end_s,
+               s.text AS source_text, ts.text
+        FROM cut_segments cs
+        JOIN segments s ON s.id=cs.segment_id
+        LEFT JOIN translation_segments ts
+          ON ts.segment_id=s.id AND ts.translation_id=?
+        WHERE cs.cut_id=?
+        ORDER BY cs.position""", (translation_id, row["cut_id"])).fetchall()
+    out["segments"] = rows_to_dicts(segs)
+    out["dubs"] = rows_to_dicts(db.execute("""
+        SELECT * FROM dubs WHERE translation_id=? ORDER BY id DESC""",
+        (translation_id,)).fetchall())
+    for d in out["dubs"]:
+        d["audio_url"] = f"/api/dubs/{d['id']}/audio" if d["status"] == "done" else None
+    out["dub_capable"] = bool((row["tts_voice"] or "").strip())
+    return out
+
+
+@app.get("/api/cuts/{cut_id}/translations")
+def list_cut_translations(cut_id: int):
+    db = get_db()
+    cut = db.execute("SELECT * FROM cuts WHERE id=?", (cut_id,)).fetchone()
+    if not cut:
+        raise HTTPException(404)
+    source_segments = rows_to_dicts(_cut_segment_rows(db, cut_id))
+    ids = [r["id"] for r in db.execute(
+        "SELECT id FROM cut_translations WHERE cut_id=? ORDER BY id DESC",
+        (cut_id,)).fetchall()]
+    return {
+        "cut": _cut_payload(db, cut),
+        "source_segments": source_segments,
+        "translations": [_translation_payload(db, tid) for tid in ids],
+    }
+
+
+@app.post("/api/cuts/{cut_id}/translations")
+def create_translation(cut_id: int, body: TranslationCreate):
+    db = get_db()
+    if not db.execute("SELECT 1 FROM cuts WHERE id=?", (cut_id,)).fetchone():
+        raise HTTPException(404)
+    lang_code = _norm_lang_code(body.lang_code)
+    if not db.execute("SELECT 1 FROM languages WHERE code=?", (lang_code,)).fetchone():
+        raise HTTPException(404, f"language {lang_code} is not configured")
+    segs = _cut_segment_rows(db, cut_id)
+    if not segs:
+        raise HTTPException(400, "cut has no segments")
+
+    try:
+        tid, _ = translation_ops.create_cut_translation(
+            db, cut_id, lang_code, source=body.source,
+            source_language=body.source_language or "auto",
+            created_by=body.user_id, segments=body.segments)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except RuntimeError as e:
+        raise HTTPException(503, str(e))
+    db.commit()
+    return _translation_payload(db, tid)
+
+
+@app.patch("/api/translations/{translation_id}/segments/{segment_id}")
+def update_translation_segment(translation_id: int, segment_id: int,
+                               body: TranslationSegmentUpdate):
+    db = get_db()
+    row = db.execute("SELECT * FROM cut_translations WHERE id=?",
+                     (translation_id,)).fetchone()
+    if not row:
+        raise HTTPException(404)
+    if not db.execute("""
+        SELECT 1 FROM cut_segments
+        WHERE cut_id=? AND segment_id=?""", (row["cut_id"], segment_id)).fetchone():
+        raise HTTPException(400, "segment is not part of this cut")
+    db.execute("""
+        INSERT INTO translation_segments (translation_id, segment_id, text)
+        VALUES (?,?,?)
+        ON CONFLICT(translation_id, segment_id) DO UPDATE SET text=excluded.text""",
+        (translation_id, segment_id, body.text.strip()))
+    db.commit()
+    return _translation_payload(db, translation_id)
+
+
+@app.delete("/api/translations/{translation_id}")
+def delete_translation(translation_id: int):
+    db = get_db()
+    cur = db.execute("DELETE FROM cut_translations WHERE id=?", (translation_id,))
+    db.commit()
+    if not cur.rowcount:
+        raise HTTPException(404)
+    return {"ok": True}
+
+
+@app.post("/api/translations/{translation_id}/dub")
+def create_dub(translation_id: int):
+    db = get_db()
+    row = db.execute("""
+        SELECT ct.*, l.tts_engine, l.tts_voice
+        FROM cut_translations ct JOIN languages l ON l.code=ct.lang_code
+        WHERE ct.id=?""", (translation_id,)).fetchone()
+    if not row:
+        raise HTTPException(404)
+    if not (row["tts_voice"] or "").strip():
+        raise HTTPException(400, f"language {row['lang_code']} has no TTS voice configured")
+    running = db.execute("""
+        SELECT * FROM dubs WHERE translation_id=? AND status IN ('queued','running')
+        ORDER BY id DESC LIMIT 1""", (translation_id,)).fetchone()
+    if running:
+        return {"dub": dict(running), "job_id": None, "status": running["status"]}
+    cur = db.execute(
+        "INSERT INTO dubs (translation_id, engine, voice, status, detail) "
+        "VALUES (?,?,?,?,?)",
+        (translation_id, row["tts_engine"] or "edge", row["tts_voice"], "queued", "queued"))
+    dub_id = cur.lastrowid
+    db.commit()
+    job_id = jobs.enqueue("dub", None, {"dub_id": dub_id},
+                          target_kind="dub", target_id=dub_id, max_attempts=1)
+    dub = dict(db.execute("SELECT * FROM dubs WHERE id=?", (dub_id,)).fetchone())
+    return {"dub": dub, "job_id": job_id, "status": "queued"}
+
+
+@app.get("/api/dubs/{dub_id}/audio")
+def dub_audio(dub_id: int):
+    db = get_db()
+    row = db.execute("SELECT * FROM dubs WHERE id=?", (dub_id,)).fetchone()
+    if not row:
+        raise HTTPException(404)
+    if row["status"] != "done" or not row["filename"]:
+        raise HTTPException(409, "dub audio is not ready")
+    path = media_ops.MEDIA_ROOT / row["filename"]
+    if not path.is_file():
+        raise HTTPException(404)
+    return FileResponse(path, media_type="audio/mp4", filename=path.name)
+
+
 # ----------------------------------------------------- segment editing
 
 class SegmentUpdate(BaseModel):
@@ -972,8 +1202,15 @@ class RecompIn(BaseModel):
     user_id: int
 
 
+class RecompCutItem(BaseModel):
+    cut_id: int
+    audio_mode: str = "original"
+    dub_id: int | None = None
+
+
 class RecompCuts(BaseModel):
-    cut_ids: list[int]
+    cut_ids: list[int] | None = None
+    items: list[RecompCutItem] | None = None
 
 
 @app.get("/api/recompositions")
@@ -1005,7 +1242,8 @@ def get_recomp(recomp_id: int):
     recomp = dict(row)
     cuts = []
     for rc in db.execute("""
-            SELECT c.*, m.title AS media_title, m.type AS media_type
+            SELECT c.*, rc.audio_mode, rc.dub_id,
+                   m.title AS media_title, m.type AS media_type
             FROM recomp_cuts rc JOIN cuts c ON c.id = rc.cut_id
             JOIN media m ON m.id = c.media_id
             WHERE rc.recomp_id=? ORDER BY rc.position""", (recomp_id,)):
@@ -1022,16 +1260,66 @@ def set_recomp_cuts(recomp_id: int, body: RecompCuts):
     db = get_db()
     if not db.execute("SELECT 1 FROM recompositions WHERE id=?", (recomp_id,)).fetchone():
         raise HTTPException(404)
+    existing = rows_to_dicts(db.execute("""
+        SELECT position, cut_id, audio_mode, dub_id FROM recomp_cuts
+        WHERE recomp_id=? ORDER BY position""", (recomp_id,)).fetchall())
+
+    if body.items is not None:
+        items = [i.model_dump() for i in body.items]
+    elif body.cut_ids is not None:
+        buckets: dict[int, list[dict]] = {}
+        for r in existing:
+            buckets.setdefault(r["cut_id"], []).append(r)
+        items = []
+        for cid in body.cut_ids:
+            prev = buckets.get(cid, [])
+            kept = prev.pop(0) if prev else {}
+            items.append({
+                "cut_id": cid,
+                "audio_mode": kept.get("audio_mode") or "original",
+                "dub_id": kept.get("dub_id"),
+            })
+    else:
+        raise HTTPException(400, "provide cut_ids or items")
+
+    for item in items:
+        mode = item.get("audio_mode") or "original"
+        dub_id = item.get("dub_id")
+        if mode not in ("original", "dub"):
+            raise HTTPException(400, "audio_mode must be original or dub")
+        if mode == "dub":
+            if not dub_id:
+                raise HTTPException(400, "dub_id is required for audio_mode=dub")
+            ok = db.execute("""
+                SELECT 1 FROM dubs d
+                JOIN cut_translations ct ON ct.id=d.translation_id
+                WHERE d.id=? AND d.status='done' AND ct.cut_id=?""",
+                (dub_id, item["cut_id"])).fetchone()
+            if not ok:
+                raise HTTPException(400, "dub must be ready and belong to this cut")
+        else:
+            item["dub_id"] = None
+
     db.execute("DELETE FROM recomp_cuts WHERE recomp_id=?", (recomp_id,))
-    for pos, cid in enumerate(body.cut_ids):
-        db.execute("INSERT INTO recomp_cuts (recomp_id, cut_id, position) VALUES (?,?,?)",
-                   (recomp_id, cid, pos))
+    for pos, item in enumerate(items):
+        db.execute("""
+            INSERT INTO recomp_cuts (recomp_id, cut_id, position, audio_mode, dub_id)
+            VALUES (?,?,?,?,?)""",
+            (recomp_id, item["cut_id"], pos,
+             item.get("audio_mode") or "original", item.get("dub_id")))
     db.commit()
     return get_recomp(recomp_id)
 
 
 class RecompUpdate(BaseModel):
     title: str
+
+
+class RecompTranslateIn(BaseModel):
+    lang_code: str
+    source_language: str = "auto"
+    user_id: int | None = None
+    overwrite: bool = False
 
 
 @app.patch("/api/recompositions/{recomp_id}")
@@ -1050,10 +1338,43 @@ def delete_recomp(recomp_id: int):
     return {"ok": True}
 
 
+@app.post("/api/recompositions/{recomp_id}/translations")
+def translate_recomp(recomp_id: int, body: RecompTranslateIn):
+    db = get_db()
+    if not db.execute("SELECT 1 FROM recompositions WHERE id=?", (recomp_id,)).fetchone():
+        raise HTTPException(404)
+    lang_code = _norm_lang_code(body.lang_code)
+    if not db.execute("SELECT 1 FROM languages WHERE code=?", (lang_code,)).fetchone():
+        raise HTTPException(404, f"language {lang_code} is not configured")
+    source_language = (body.source_language or "").strip()
+    if source_language and source_language != "auto":
+        source_language = _norm_lang_code(source_language)
+    running = db.execute("""SELECT 1 FROM jobs WHERE kind='translate_recomposition'
+        AND status IN ('queued','running')
+        AND target_kind='recomposition' AND target_id=?""",
+        (recomp_id,)).fetchone()
+    if running:
+        raise HTTPException(409, "this recomposition is already being translated")
+    job_id = jobs.enqueue("translate_recomposition", None, {
+        "recomp_id": recomp_id,
+        "lang_code": lang_code,
+        "source_language": source_language or "auto",
+        "user_id": body.user_id,
+        "overwrite": body.overwrite,
+    }, target_kind="recomposition", target_id=recomp_id, max_attempts=1)
+    return {"job_id": job_id, "status": "queued"}
+
+
 # ------------------------------------------------------------- export
 
+class ExportIn(BaseModel):
+    audio_mode: str = "sequence"  # sequence | original | target_dub
+    target_lang: str = ""
+    quality: str = "720p"
+
+
 @app.post("/api/recompositions/{recomp_id}/export")
-def export_recomp(recomp_id: int):
+def export_recomp(recomp_id: int, body: ExportIn | None = None):
     """Render the recomposition into one real .mp4 (or .wav if audio-only)."""
     db = get_db()
     if not db.execute("SELECT 1 FROM recompositions WHERE id=?", (recomp_id,)).fetchone():
@@ -1068,7 +1389,22 @@ def export_recomp(recomp_id: int):
         (recomp_id,)).fetchone()
     if running:
         raise HTTPException(409, "an export of this recomposition is already running")
-    return {"job_id": jobs.enqueue("export", None, {"recomp_id": recomp_id},
+    body = body or ExportIn()
+    audio_mode = (body.audio_mode or "sequence").strip()
+    if audio_mode not in ("sequence", "original", "target_dub"):
+        raise HTTPException(400, "audio_mode must be sequence, original, or target_dub")
+    quality = (body.quality or "720p").strip()
+    if quality not in media_ops.EXPORT_PRESETS:
+        raise HTTPException(400, "quality must be 480p, 720p, or 1080p")
+    target_lang = _norm_lang_code_or_empty(body.target_lang)
+    if audio_mode == "target_dub" and not target_lang:
+        raise HTTPException(400, "target_lang is required for translated dub export")
+    return {"job_id": jobs.enqueue("export", None, {
+        "recomp_id": recomp_id,
+        "audio_mode": audio_mode,
+        "target_lang": target_lang,
+        "quality": quality,
+    },
                                    target_kind="recomposition", target_id=recomp_id)}
 
 
@@ -1094,6 +1430,17 @@ def download_export(filename: str):
         raise HTTPException(404)
     return FileResponse(path, filename=filename,
                         media_type=mimetypes.guess_type(filename)[0] or "application/octet-stream")
+
+
+@app.delete("/api/exports/{filename}")
+def delete_export(filename: str):
+    if "/" in filename or "\\" in filename or ".." in filename:
+        raise HTTPException(400)
+    path = media_ops.EXPORT_DIR / filename
+    if not path.is_file():
+        raise HTTPException(404)
+    media_ops.safe_unlink(path)
+    return {"ok": True}
 
 
 # ------------------------------------------------------------ frontend

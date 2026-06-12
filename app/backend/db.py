@@ -207,11 +207,55 @@ def _m2_languages(conn):
             (code, name, engine, voice))
 
 
+def _m3_translations_dubs(conn):
+    """Cut translations, generated dub artifacts, and recomposition audio mode."""
+    _add_columns(conn, "tracks", [
+        "lang_code TEXT NOT NULL DEFAULT ''",
+    ])
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS cut_translations (
+            id INTEGER PRIMARY KEY,
+            cut_id INTEGER NOT NULL REFERENCES cuts(id) ON DELETE CASCADE,
+            lang_code TEXT NOT NULL REFERENCES languages(code) ON DELETE RESTRICT,
+            source TEXT NOT NULL DEFAULT 'manual',
+            created_by INTEGER REFERENCES users(id),
+            created_at TEXT DEFAULT (datetime('now'))
+        )""")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS translation_segments (
+            translation_id INTEGER NOT NULL REFERENCES cut_translations(id) ON DELETE CASCADE,
+            segment_id INTEGER NOT NULL REFERENCES segments(id) ON DELETE CASCADE,
+            text TEXT NOT NULL DEFAULT '',
+            PRIMARY KEY (translation_id, segment_id)
+        )""")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS dubs (
+            id INTEGER PRIMARY KEY,
+            translation_id INTEGER NOT NULL REFERENCES cut_translations(id) ON DELETE CASCADE,
+            engine TEXT NOT NULL,
+            voice TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'queued',
+            filename TEXT NOT NULL DEFAULT '',
+            duration_s REAL,
+            word_boundaries_json TEXT DEFAULT '[]',
+            detail TEXT DEFAULT '',
+            created_at TEXT DEFAULT (datetime('now')),
+            updated_at TEXT DEFAULT (datetime('now'))
+        )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_cut_translations_cut ON cut_translations(cut_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_dubs_translation ON dubs(translation_id)")
+    _add_columns(conn, "recomp_cuts", [
+        "audio_mode TEXT NOT NULL DEFAULT 'original'",
+        "dub_id INTEGER",
+    ])
+
+
 # Ordered, run-once migrations tracked via PRAGMA user_version. Append only —
 # never reorder or edit a shipped migration.
 MIGRATIONS = [
     _m1_jobs_queue,
     _m2_languages,
+    _m3_translations_dubs,
 ]
 
 

@@ -11,3 +11,4 @@ yt-dlp
 demucs
 edge-tts
 deep-translator
+mtranslate

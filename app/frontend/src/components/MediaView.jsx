@@ -4,32 +4,54 @@ import { Modal, inputCls, btnCls, btnGhost, Tag, modalOpen, useResizable, DragBa
 import SearchPanel from "./SearchPanel";
 import { EditCutModal } from "./CutBrowser";
 import SubtitleEditor from "./SubtitleEditor";
+import TranslationPanel from "./TranslationPanel";
 
-/* Attach another subtitle file (upload or host path) as a new track. */
-function AddTrackModal({ mediaId, onClose, onDone }) {
+/* Attach another subtitle file (upload/path), transcribe, or translate a track. */
+function AddTrackModal({ mediaId, tracks, onClose, onDone }) {
   const [mode, setMode] = useState("upload");
   const [file, setFile] = useState(null);
   const [path, setPath] = useState("");
   const [name, setName] = useState("");
+  const [langCode, setLangCode] = useState("");
   const [err, setErr] = useState("");
   const [opts, setOpts] = useState(null); // /api/transcribe/options
   const [model, setModel] = useState(() => localStorage.getItem("whisper_model") || "");
   const [language, setLanguage] = useState(() => localStorage.getItem("whisper_language") || "");
+  const [languages, setLanguages] = useState([]);
+  const [sourceTrackId, setSourceTrackId] = useState("");
+  const [targetLang, setTargetLang] = useState("");
+  const [sourceLang, setSourceLang] = useState("");
 
   useEffect(() => {
     api.get("/api/transcribe/options").then((o) => {
       setOpts(o);
       setModel((m) => m || o.default_model);
     }).catch(() => {});
+    api.get("/api/languages").then((rows) => {
+      setLanguages(rows);
+      setTargetLang((cur) => cur || rows.find((r) => r.code !== "en")?.code || rows[0]?.code || "");
+    }).catch(() => {});
   }, []);
+
+  const activeSourceTrackId =
+    sourceTrackId && tracks.some((t) => String(t.id) === String(sourceTrackId))
+      ? sourceTrackId : tracks[0]?.id ?? "";
 
   const submit = async () => {
     setErr("");
     try {
+      let result = null;
       if (mode === "whisper") {
         localStorage.setItem("whisper_model", model);
         localStorage.setItem("whisper_language", language);
-        await api.post(`/api/media/${mediaId}/transcribe`, { model, language });
+        result = await api.post(`/api/media/${mediaId}/transcribe`, { model, language });
+      } else if (mode === "translate") {
+        if (!activeSourceTrackId || !targetLang.trim()) return;
+        result = await api.post(`/api/tracks/${activeSourceTrackId}/translate`, {
+          target_lang: targetLang.trim(),
+          source_language: sourceLang.trim() || "auto",
+          name,
+        });
       } else {
         const fd = new FormData();
         if (mode === "upload") {
@@ -40,9 +62,10 @@ function AddTrackModal({ mediaId, onClose, onDone }) {
           fd.append("path", path);
         }
         fd.append("name", name);
-        await api.upload(`/api/media/${mediaId}/subtitles`, fd);
+        fd.append("lang_code", langCode);
+        result = await api.upload(`/api/media/${mediaId}/subtitles`, fd);
       }
-      onDone(); onClose();
+      onDone({ ...(result || {}), mode }); onClose();
     } catch (e) { setErr(e.message); }
   };
 
@@ -58,7 +81,8 @@ function AddTrackModal({ mediaId, onClose, onDone }) {
     <Modal title="Add subtitle track" onClose={onClose}>
       <div className="space-y-3">
         <div className="flex gap-2">
-          {tab("upload", "Upload file")}{tab("path", "From this PC")}{tab("whisper", "🎙 Generate (Whisper)")}
+          {tab("upload", "Upload file")}{tab("path", "From this PC")}
+          {tab("whisper", "Generate (Whisper)")}{tab("translate", "Translate")}
         </div>
         {mode === "upload" && (
           <input type="file" accept=".srt,.vtt" className="block text-sm"
@@ -99,9 +123,44 @@ function AddTrackModal({ mediaId, onClose, onDone }) {
             </p>
           </>
         )}
-        {mode !== "whisper" && (
-          <input className={inputCls} placeholder="Track name (e.g. English, Director's notes) — optional"
-            value={name} onChange={(e) => setName(e.target.value)} />
+        {mode === "translate" && (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-zinc-400">From subtitle track</label>
+                <select className={inputCls} value={activeSourceTrackId}
+                  onChange={(e) => setSourceTrackId(e.target.value)}>
+                  {tracks.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}{t.lang_code ? ` (${t.lang_code})` : ""} · {t.segment_count}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-zinc-400">Target language</label>
+                <input className={inputCls} list="track-translate-langs" placeholder="es, am, pt-BR"
+                  value={targetLang} onChange={(e) => setTargetLang(e.target.value)} />
+                <datalist id="track-translate-langs">
+                  {languages.map((l) => <option key={l.code} value={l.code}>{l.name}</option>)}
+                </datalist>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <input className={inputCls} placeholder="New track name — optional"
+                value={name} onChange={(e) => setName(e.target.value)} />
+              <input className={inputCls} placeholder="Source language — optional"
+                value={sourceLang} onChange={(e) => setSourceLang(e.target.value)} />
+            </div>
+          </>
+        )}
+        {mode !== "whisper" && mode !== "translate" && (
+          <div className="grid grid-cols-2 gap-2">
+            <input className={inputCls} placeholder="Track name — optional"
+              value={name} onChange={(e) => setName(e.target.value)} />
+            <input className={inputCls} placeholder="Language code — optional"
+              value={langCode} onChange={(e) => setLangCode(e.target.value)} />
+          </div>
         )}
         <p className="text-xs text-zinc-500">
           Tracks are alternative subtitle sets for the same video — cuts always
@@ -111,7 +170,8 @@ function AddTrackModal({ mediaId, onClose, onDone }) {
         <div className="flex justify-end gap-2">
           <button className={btnGhost} onClick={onClose}>Cancel</button>
           <button className={btnCls} onClick={submit}>
-            {mode === "whisper" ? "Start transcription" : "Add track"}
+            {mode === "whisper" ? "Start transcription"
+              : mode === "translate" ? "Start translation" : "Add track"}
           </button>
         </div>
       </div>
@@ -184,7 +244,7 @@ function SaveCutModal({ user, media, segments, onClose, onSaved }) {
 }
 
 /* The "Cuts" tab of the right panel: every cut made from this media. */
-function MediaCuts({ cuts, folders, onPlay, onShow, onEdit, onDelete }) {
+function MediaCuts({ cuts, folders, onPlay, onShow, onEdit, onDelete, onTranslate }) {
   const folderName = (id) => folders.find((f) => f.id === id)?.name;
   if (!cuts.length) {
     return (
@@ -214,6 +274,7 @@ function MediaCuts({ cuts, folders, onPlay, onShow, onEdit, onDelete }) {
             {c.tags.map((t) => <Tag key={t} name={t} />)}
             <span className="ml-auto flex gap-2 text-xs opacity-0 group-hover:opacity-100">
               <button className="text-zinc-400 hover:text-white" onClick={() => onShow(c)}>show in transcript</button>
+              <button className="text-zinc-400 hover:text-white" onClick={() => onTranslate(c)}>translate/dub</button>
               <button className="text-zinc-400 hover:text-white" onClick={() => onEdit(c)}>edit</button>
               <button className="text-zinc-400 hover:text-red-400" onClick={() => onDelete(c)}>delete</button>
             </span>
@@ -240,6 +301,8 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
   const [cuts, setCuts] = useState([]);
   const [folders, setFolders] = useState([]);
   const [editing, setEditing] = useState(null);
+  const [translating, setTranslating] = useState(null);
+  const [trackTranslateJob, setTrackTranslateJob] = useState(null);
   const [matched, setMatched] = useState(new Set());
   const playerRef = useRef();
   const stopAtRef = useRef(null);
@@ -285,6 +348,24 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
     }, 3000);
     return () => clearInterval(t);
   }, [media?.status, mediaId]);
+
+  useEffect(() => {
+    if (!trackTranslateJob?.id) return;
+    const t = setInterval(() => {
+      api.get("/api/jobs").then((js) => {
+        const j = js.find((x) => x.id === trackTranslateJob.id);
+        if (!j) return;
+        setTrackTranslateJob(j);
+        if (["done", "failed", "cancelled"].includes(j.status)) {
+          refreshTracks();
+          clearInterval(t);
+          if (j.status !== "done") setTimeout(() => setTrackTranslateJob(null), 7000);
+          else setTrackTranslateJob(null);
+        }
+      }).catch(() => {});
+    }, 2500);
+    return () => clearInterval(t);
+  }, [trackTranslateJob?.id]);
 
   const removeTrack = async () => {
     const t = tracks.find((x) => x.id === trackId);
@@ -476,7 +557,9 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
               className="bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs outline-none focus:border-indigo-500 max-w-[180px]"
               title="Subtitle track">
               {tracks.map((t) => (
-                <option key={t.id} value={t.id}>{t.name} ({t.segment_count})</option>
+                <option key={t.id} value={t.id}>
+                  {t.name}{t.lang_code ? ` · ${t.lang_code}` : ""} ({t.segment_count})
+                </option>
               ))}
             </select>
           )}
@@ -499,6 +582,13 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
         {media.status !== "ready" && (
           <span className="text-xs text-amber-400 animate-pulse">
             ⏳ {media.status_detail || media.status}
+          </span>
+        )}
+        {trackTranslateJob && (
+          <span className={`text-xs ${
+            trackTranslateJob.status === "failed" ? "text-red-400" : "text-amber-400 animate-pulse"
+          }`}>
+            translating track{trackTranslateJob.progress != null ? ` ${Math.round(trackTranslateJob.progress)}%` : ""} · {trackTranslateJob.detail || trackTranslateJob.status}
           </span>
         )}
         <span className="ml-auto text-xs text-zinc-600 hidden lg:block">
@@ -594,7 +684,8 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
           ) : (
             <MediaCuts cuts={cuts} folders={folders}
               onPlay={playCut} onShow={showCutInTranscript}
-              onEdit={setEditing} onDelete={deleteCut} />
+              onEdit={setEditing} onDelete={deleteCut}
+              onTranslate={setTranslating} />
           )}
         </div>
       </div>
@@ -612,9 +703,19 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
         <EditCutModal cut={editing} folders={folders}
           onClose={() => setEditing(null)} onSaved={refreshCuts} />
       )}
+      {translating && (
+        <TranslationPanel cut={translating}
+          onClose={() => setTranslating(null)}
+          onChanged={refreshCuts} />
+      )}
       {showAddTrack && (
-        <AddTrackModal mediaId={mediaId} onClose={() => setShowAddTrack(false)}
-          onDone={() => { refreshTracks(); }} />
+        <AddTrackModal mediaId={mediaId} tracks={tracks} onClose={() => setShowAddTrack(false)}
+          onDone={(result) => {
+            if (result?.mode === "translate" && result.job_id) {
+              setTrackTranslateJob({ id: result.job_id, status: "queued" });
+            }
+            refreshTracks();
+          }} />
       )}
     </div>
   );
