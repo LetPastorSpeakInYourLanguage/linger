@@ -4,6 +4,7 @@ import Library from "./components/Library";
 import MediaView from "./components/MediaView";
 import { CutsPage } from "./components/CutBrowser";
 import Studio from "./components/Studio";
+import JobsPanel from "./components/JobsPanel";
 
 const COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6", "#06b6d4"];
 
@@ -63,7 +64,21 @@ export default function App() {
     catch { return null; }
   });
   const [view, setView] = useState({ tab: "library" }); // {tab, mediaId?, seg?}
+  const [showJobs, setShowJobs] = useState(false);
+  const [activeJobs, setActiveJobs] = useState(0);
   const openMedia = (id, seg = null) => setView({ tab: "media", mediaId: id, seg });
+
+  useEffect(() => {
+    if (!user) return;
+    const poll = () =>
+      api.get("/api/jobs")
+        .then((js) => setActiveJobs(
+          js.filter((j) => j.status === "queued" || j.status === "running").length))
+        .catch(() => {});
+    poll();
+    const t = setInterval(poll, 5000);
+    return () => clearInterval(t);
+  }, [user]);
 
   const login = (u) => {
     localStorage.setItem("recomposer_user", JSON.stringify(u));
@@ -89,11 +104,23 @@ export default function App() {
           </button>
         ))}
         <div className="ml-auto flex items-center gap-2 text-sm text-zinc-400">
+          <button onClick={() => setShowJobs((v) => !v)}
+            className={`relative px-2 py-1 rounded-md text-sm ${
+              showJobs ? "bg-zinc-800 text-white" : "hover:text-white"}`}
+            title="Background jobs">
+            ⚙ jobs
+            {activeJobs > 0 && (
+              <span className="absolute -top-1 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-indigo-600 text-white text-[10px] leading-4 text-center">
+                {activeJobs}
+              </span>
+            )}
+          </button>
           <span className="w-2.5 h-2.5 rounded-full" style={{ background: user.color }} />
           {user.name}
           <button onClick={logout} className="ml-2 text-xs hover:text-white">switch</button>
         </div>
       </header>
+      {showJobs && <JobsPanel onClose={() => setShowJobs(false)} />}
       <main className="flex-1 min-h-0">
         {view.tab === "library" && (
           <Library user={user} openMedia={openMedia} />

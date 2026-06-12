@@ -1,27 +1,13 @@
 """Start Recomposer: python run.py  →  prints the URL to share over WiFi."""
-import logging
 import socket
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from backend import quiet_logs  # noqa: E402
 
-class _IgnoreClientDisconnects(logging.Filter):
-    """Browsers abort video range-requests constantly (seeking, switching cuts).
-    On Windows that surfaces as a noisy-but-harmless ConnectionResetError
-    (WinError 10054) from asyncio. Hide it; show everything else."""
-
-    def filter(self, record: logging.LogRecord) -> bool:
-        if record.exc_info and record.exc_info[0] is not None:
-            if issubclass(record.exc_info[0], (ConnectionResetError, ConnectionAbortedError)):
-                return False
-        msg = record.getMessage()
-        return "ConnectionResetError" not in msg and "WinError 10054" not in msg
-
-
-for _name in ("asyncio", "uvicorn.error"):
-    logging.getLogger(_name).addFilter(_IgnoreClientDisconnects())
+quiet_logs.install()
 
 
 def lan_ip() -> str:

@@ -11,7 +11,12 @@ Local studio for turning movies, podcasts and lectures into searchable subtitle 
   and **yt-dlp** (link imports). If WhisperX won't install, `pip install faster-whisper`
   is a lighter fallback — the app uses whichever it finds (WhisperX preferred).
 
-### Whisper configuration (optional, via environment variables)
+### Whisper configuration
+
+**Pick the model in the UI**: every transcription (the *Generate (Whisper)* tab when
+adding a subtitle track, or *advanced* in the add-media dialog) has a model dropdown
+(`tiny` … `large-v3`) and an optional language hint. Your choice is remembered.
+Environment variables only set the *defaults*:
 
 | variable | default | values |
 |---|---|---|
@@ -19,7 +24,12 @@ Local studio for turning movies, podcasts and lectures into searchable subtitle 
 | `RECOMPOSER_WHISPER_DEVICE` | `auto` | `cpu`, `cuda` (NVIDIA GPU) |
 | `RECOMPOSER_WHISPER_COMPUTE` | `auto` | e.g. `int8` (fast CPU), `float16` (GPU) |
 
-Example (PowerShell): `$env:RECOMPOSER_WHISPER_MODEL="medium"; python run.py`
+### Background jobs
+
+Every long operation (download, convert, transcribe, export) is a job with live
+progress. The **⚙ jobs** button in the header opens the jobs panel: cancel
+queued/running jobs, retry failed ones. Jobs survive server restarts — anything
+interrupted is picked up again on the next start.
 
 ## Run it
 
@@ -85,6 +95,14 @@ app/
   media_store/           your media (created on first upload)
 ```
 
-## What's next (per the concept doc)
+## What's next
 
-Phase 2: export a recomposition to a real `.mp4`/`.wav` (ffmpeg concat), crossfade smoothing at joins, background-audio layer. Phase 3: translation + dubbing. Phase 4: community beyond the LAN. (YouTube import via yt-dlp was pulled forward into Phase 1 — done.)
+The full plan to the complete system — translation & dubbing, background audio,
+.ass overlays, community sharing, social push, AI search, Drive/Colab scaling —
+lives in [docs/ROADMAP.md](docs/ROADMAP.md) with per-phase checkbox todos.
+
+## Tests
+
+`pip install pytest httpx`, then from `app/`: `python -m pytest tests/`.
+Job-system and pipeline tests use synthetic ffmpeg media and a fake transcription
+engine, so they run in seconds with no model downloads.

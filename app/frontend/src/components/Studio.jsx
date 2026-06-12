@@ -6,8 +6,11 @@ import CutBrowser, { EMPTY_FILTERS } from "./CutBrowser";
 /* Sequenced playback across multiple source media files, with per-cut loop.
 
    Double-buffered: two stacked <video> elements. While cut N plays, cut N+1's
-   media is already loaded & seeked in the hidden element; at the boundary we
-   just swap which one is visible — no "black flash" while a new file loads. */
+   media is loaded, seeked AND frame-decoded in the hidden element; at the
+   boundary we just swap which one is visible — no flash, no jump. The visible
+   element never gets a .src assigned: new media always comes up on the
+   standby and swaps in. Cut boundaries are watched with requestAnimationFrame
+   (~16 ms) instead of the ~250 ms `timeupdate` event. */
 function useSequencePlayer(cuts) {
   const refA = useRef();
   const refB = useRef();
@@ -22,7 +25,35 @@ function useSequencePlayer(cuts) {
   const getPlayer = () => els()[stateRef.current.active];
   const srcMatch = (el, src) => !!el && !!el.src && el.src.endsWith(src);
 
-  /* warm up the standby element with the NEXT cut's media, paused & pre-seeked */
+  /* Load src into el, seek to t and decode that frame: seeking right after
+     `loadedmetadata` leaves a blank frame, so wait for `seeked`, then a muted
+     play→pause warms the decoder. onReady fires once the frame is showable. */
+  const primeEl = (el, src, t, onReady) => {
+    const afterSeek = () => {
+      const wasMuted = el.muted;
+      el.muted = true;
+      const p = el.play();
+      (p && p.then ? p : Promise.resolve())
+        .then(() => { el.pause(); el.muted = wasMuted; onReady?.(); })
+        .catch(() => { el.muted = wasMuted; onReady?.(); });
+    };
+    const seek = () => {
+      el.addEventListener("seeked", afterSeek, { once: true });
+      try { el.currentTime = t; } catch { el.removeEventListener("seeked", afterSeek); }
+    };
+    if (!srcMatch(el, src)) {
+      el.pause();
+      el.src = src;
+      el.preload = "auto";
+      el.addEventListener("loadedmetadata", seek, { once: true });
+    } else if (Math.abs(el.currentTime - t) > 0.4) {
+      seek();
+    } else {
+      onReady?.();
+    }
+  };
+
+  /* warm up the standby element with the NEXT cut's media, paused & decoded */
   const preloadNext = (idx) => {
     const st = stateRef.current;
     const next = st.cuts[idx + 1];
@@ -31,17 +62,7 @@ function useSequencePlayer(cuts) {
     const cur = els()[st.active];
     const standby = els()[1 - st.active];
     if (!standby || srcMatch(cur, nsrc)) return; // same file: no swap needed
-    const seekStandby = () => {
-      try { standby.currentTime = next.start_s; } catch { /* not ready */ }
-    };
-    if (!srcMatch(standby, nsrc)) {
-      standby.pause();
-      standby.src = nsrc;
-      standby.preload = "auto";
-      standby.addEventListener("loadedmetadata", seekStandby, { once: true });
-    } else {
-      seekStandby();
-    }
+    primeEl(standby, nsrc, next.start_s);
   };
 
   const playFrom = (idx) => {
@@ -51,44 +72,55 @@ function useSequencePlayer(cuts) {
     st.idx = idx;
     setPlayingIdx(idx);
     const src = streamUrl(cut.media_id);
-    let p = els()[st.active];
+    const cur = els()[st.active];
     const standby = els()[1 - st.active];
+    if (!cur && !standby) return;
 
-    // if the standby element already holds this media, swap instead of reloading
-    if (!srcMatch(p, src) && srcMatch(standby, src)) {
-      p?.pause();
-      st.active = 1 - st.active;
-      setActiveEl(st.active);
-      p = standby;
-    }
-    if (!p) return;
-
-    const seekAndPlay = () => {
-      // pre-seeked within ~0.4s already? don't seek again (avoids a stutter)
-      if (Math.abs(p.currentTime - cut.start_s) > 0.4) p.currentTime = cut.start_s;
-      p.play().catch(() => {});
+    const begin = (el) => {
+      if (Math.abs(el.currentTime - cut.start_s) > 0.4) {
+        try { el.currentTime = cut.start_s; } catch { /* not seekable yet */ }
+      }
+      el.play().catch(() => {});
       preloadNext(idx);
     };
-    if (!srcMatch(p, src)) {
-      p.src = src;
-      p.addEventListener("loadedmetadata", seekAndPlay, { once: true });
-    } else {
-      seekAndPlay();
+
+    if (srcMatch(cur, src)) {
+      begin(cur);
+      return;
     }
+    // different media: bring it up on the standby (already primed at the
+    // boundary, instant) and swap — the visible element never loads in view
+    const target = standby || cur;
+    primeEl(target, src, cut.start_s, () => {
+      if (stateRef.current.idx !== idx) return; // user moved on meanwhile
+      cur?.pause();
+      if (target === standby) {
+        st.active = 1 - st.active;
+        setActiveEl(st.active);
+      }
+      begin(target);
+    });
   };
 
-  const onTime = (e) => {
-    const st = stateRef.current;
-    if (e.target !== els()[st.active]) return; // ignore the hidden element
-    const p = e.target;
-    const cut = st.cuts[st.idx];
-    if (st.idx < 0 || !cut) return;
-    if (p.currentTime >= cut.end_s) {
-      if (st.loop) p.currentTime = cut.start_s;            // immerse mode
-      else if (st.idx + 1 < st.cuts.length) playFrom(st.idx + 1);
-      else { p.pause(); st.idx = -1; setPlayingIdx(-1); }
-    }
-  };
+  // boundary watcher — rAF so we react within a frame of crossing end_s
+  useEffect(() => {
+    let raf;
+    const tick = () => {
+      const st = stateRef.current;
+      const p = els()[st.active];
+      const cut = st.cuts[st.idx];
+      if (p && cut && st.idx >= 0 && !p.paused && p.currentTime >= cut.end_s) {
+        if (st.loop) p.currentTime = cut.start_s;            // immerse mode
+        else if (st.idx + 1 < st.cuts.length) playFrom(st.idx + 1);
+        else { p.pause(); st.idx = -1; setPlayingIdx(-1); }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // playFrom only touches refs, so the first closure stays valid
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const stop = () => {
     els().forEach((p) => p?.pause());
@@ -96,7 +128,7 @@ function useSequencePlayer(cuts) {
     setPlayingIdx(-1);
   };
 
-  return { refA, refB, activeEl, getPlayer, playingIdx, playFrom, onTime, stop, loop, setLoop };
+  return { refA, refB, activeEl, getPlayer, playingIdx, playFrom, stop, loop, setLoop };
 }
 
 function RecompEditor({ user, recompId, back }) {
@@ -106,7 +138,7 @@ function RecompEditor({ user, recompId, back }) {
   const [folders, setFolders] = useState([]);
   const [menu, setMenu] = useState(null); // {x, y, cut}
   const wasPlayingRef = useRef(false);
-  const { refA, refB, activeEl, getPlayer, playingIdx, playFrom, onTime, stop, loop, setLoop } =
+  const { refA, refB, activeEl, getPlayer, playingIdx, playFrom, stop, loop, setLoop } =
     useSequencePlayer(recomp?.cuts ?? []);
 
   const load = () => api.get(`/api/recompositions/${recompId}`).then(setRecomp);
@@ -119,11 +151,9 @@ function RecompEditor({ user, recompId, back }) {
   const refreshExports = () => {
     api.get(`/api/recompositions/${recompId}/exports`).then(setExports).catch(() => {});
     api.get("/api/jobs").then((js) => {
-      const j = js.find((x) => {
-        if (x.kind !== "export" || !["queued", "running"].includes(x.status)) return false;
-        try { return JSON.parse(x.payload || "{}").recomp_id === recompId; }
-        catch { return false; }
-      });
+      const j = js.find((x) =>
+        x.kind === "export" && ["queued", "running"].includes(x.status) &&
+        x.target_kind === "recomposition" && x.target_id === recompId);
       setExportJob(j || null);
     }).catch(() => {});
   };
@@ -293,7 +323,7 @@ function RecompEditor({ user, recompId, back }) {
           <div className="px-4 py-1.5 border-b border-zinc-800/60 shrink-0 flex items-center gap-4 text-xs flex-wrap">
             {exportJob && (
               <span className="text-amber-400 animate-pulse">
-                ⏳ exporting — {exportJob.detail || "queued"}
+                ⏳ exporting{exportJob.progress != null ? ` ${Math.round(exportJob.progress)}%` : ""} — {exportJob.detail || "queued"}
               </span>
             )}
             {exports.slice(0, 3).map((f) => (
@@ -307,10 +337,10 @@ function RecompEditor({ user, recompId, back }) {
 
         {/* double-buffered player: hidden element preloads the next cut's media */}
         <div className="shrink-0 bg-black relative" style={{ height: hasVideo ? "38vh" : "72px" }}>
-          <video ref={refA} controls onTimeUpdate={onTime}
+          <video ref={refA} controls
             className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-150 ${
               activeEl === 0 ? "opacity-100" : "opacity-0 pointer-events-none"}`} />
-          <video ref={refB} controls onTimeUpdate={onTime}
+          <video ref={refB} controls
             className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-150 ${
               activeEl === 1 ? "opacity-100" : "opacity-0 pointer-events-none"}`} />
         </div>

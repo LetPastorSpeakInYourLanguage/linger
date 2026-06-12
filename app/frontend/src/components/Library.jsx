@@ -47,9 +47,21 @@ function AddMediaModal({ user, onClose, onDone }) {
   const [busy, setBusy] = useState(false);
   const [pct, setPct] = useState(null);
   const [err, setErr] = useState("");
+  const [advanced, setAdvanced] = useState(false);
+  const [models, setModels] = useState(null);
+  const [whisperModel, setWhisperModel] = useState(
+    () => localStorage.getItem("whisper_model") || "");
+
+  useEffect(() => {
+    api.get("/api/transcribe/options").then((o) => {
+      setModels(o);
+      setWhisperModel((m) => m || o.default_model);
+    }).catch(() => {});
+  }, []);
 
   const submit = async () => {
     setBusy(true); setErr(""); setPct(null);
+    localStorage.setItem("whisper_model", whisperModel);
     try {
       if (mode === "upload") {
         if (!file) return setBusy(false);
@@ -58,15 +70,19 @@ function AddMediaModal({ user, onClose, onDone }) {
         if (srt) fd.append("subtitle", srt);
         fd.append("title", title);
         fd.append("user_id", user.id);
+        fd.append("whisper_model", whisperModel);
         await xhrUpload("/api/media", fd, setPct);
       } else if (mode === "path") {
         if (!path.trim()) return setBusy(false);
         await api.post("/api/media/import-path", {
           path, subtitle_path: srtPath.trim() || null, title, user_id: user.id,
+          whisper_model: whisperModel,
         });
       } else {
         if (!url.trim()) return setBusy(false);
-        await api.post("/api/media/from-url", { url, title, user_id: user.id });
+        await api.post("/api/media/from-url", {
+          url, title, user_id: user.id, whisper_model: whisperModel,
+        });
       }
       onDone(); onClose();
     } catch (e) { setErr(e.message); setBusy(false); }
@@ -146,6 +162,28 @@ function AddMediaModal({ user, onClose, onDone }) {
         <div>
           <label className="text-sm text-zinc-400">Title {mode === "link" && "(optional)"}</label>
           <input className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} />
+        </div>
+
+        <div>
+          <button className="text-xs text-zinc-500 hover:text-zinc-300"
+            onClick={() => setAdvanced((v) => !v)}>
+            {advanced ? "▾" : "▸"} advanced
+          </button>
+          {advanced && (
+            <div className="mt-2 p-3 rounded-lg bg-zinc-950 border border-zinc-800">
+              <label className="text-xs text-zinc-400">
+                Whisper model — used only if no subtitles are attached
+              </label>
+              <select className={`${inputCls} mt-1`} value={whisperModel}
+                onChange={(e) => setWhisperModel(e.target.value)}>
+                {(models?.models || (whisperModel ? [whisperModel] : ["small"])).map((m) => (
+                  <option key={m} value={m}>
+                    {m}{models && m === models.default_model ? " (default)" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {pct != null && (

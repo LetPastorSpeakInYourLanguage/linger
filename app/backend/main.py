@@ -1,7 +1,9 @@
 """Recomposer — single-process FastAPI app: API + media streaming + frontend."""
 import mimetypes
+import os
 import re
 import shutil
+from functools import lru_cache
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
@@ -9,7 +11,7 @@ from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import jobs, media_ops, search
+from . import jobs, media_ops, quiet_logs, search
 from .db import get_db, init_db, rows_to_dicts
 from .srt_parser import parse_subtitles
 
@@ -20,6 +22,7 @@ FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
 @app.on_event("startup")
 def _startup():
+    quiet_logs.install()
     init_db()
     jobs.start_worker()
 
@@ -113,6 +116,7 @@ async def upload_media(
     subtitle: UploadFile | None = File(None),
     title: str = Form(""),
     user_id: int = Form(...),
+    whisper_model: str = Form(""),
 ):
     """Browser upload: save the raw bytes, return immediately; ffmpeg runs in background."""
     db = get_db()
@@ -146,9 +150,15 @@ async def upload_media(
 
     jobs.enqueue("prepare", media_id,
                  {"src": str(raw_path), "keep_src": False,
-                  "then_transcribe": not has_subs})
+                  "then_transcribe": not has_subs,
+                  "whisper": _whisper_payload(whisper_model)})
     row = db.execute("SELECT * FROM media WHERE id=?", (media_id,)).fetchone()
     return dict(row)
+
+
+def _whisper_payload(model: str) -> dict:
+    model = (model or "").strip()
+    return {"model": model} if model else {}
 
 
 class PathImport(BaseModel):
@@ -156,6 +166,7 @@ class PathImport(BaseModel):
     subtitle_path: str | None = None
     title: str = ""
     user_id: int
+    whisper_model: str = ""
 
 
 @app.post("/api/media/import-path")
@@ -185,7 +196,8 @@ def import_path(body: PathImport):
 
     jobs.enqueue("prepare", media_id,
                  {"src": str(src), "keep_src": True,  # never touch the user's original
-                  "then_transcribe": not has_subs})
+                  "then_transcribe": not has_subs,
+                  "whisper": _whisper_payload(body.whisper_model)})
     row = db.execute("SELECT * FROM media WHERE id=?", (media_id,)).fetchone()
     return dict(row)
 
@@ -194,6 +206,7 @@ class UrlImport(BaseModel):
     url: str
     title: str = ""
     user_id: int
+    whisper_model: str = ""
 
 
 @app.post("/api/media/from-url")
@@ -209,7 +222,8 @@ def import_url(body: UrlImport):
         (title, "video", "", "downloading", body.user_id))
     media_id = cur.lastrowid
     db.commit()
-    jobs.enqueue("download", media_id, {"url": url, "then_transcribe": True})
+    jobs.enqueue("download", media_id, {"url": url, "then_transcribe": True,
+                                        "whisper": _whisper_payload(body.whisper_model)})
     row = db.execute("SELECT * FROM media WHERE id=?", (media_id,)).fetchone()
     return dict(row)
 
@@ -236,14 +250,60 @@ def delete_media(media_id: int, user_id: int):
     return {"ok": True}
 
 
+class TranscribeIn(BaseModel):
+    model: str = ""
+    language: str = ""
+    device: str = ""
+    compute: str = ""
+
+
 @app.post("/api/media/{media_id}/transcribe")
-def retranscribe(media_id: int):
+def retranscribe(media_id: int, body: TranscribeIn | None = None):
+    """Queue a (re-)transcription; body fields override the env defaults."""
     db = get_db()
     if not db.execute("SELECT 1 FROM media WHERE id=?", (media_id,)).fetchone():
         raise HTTPException(404)
     db.execute("UPDATE media SET status='queued_transcription' WHERE id=?", (media_id,))
     db.commit()
-    return {"job_id": jobs.enqueue("transcribe", media_id)}
+    payload = {k: v.strip() for k, v in (body.model_dump() if body else {}).items()
+               if v and v.strip()}
+    return {"job_id": jobs.enqueue("transcribe", media_id, payload)}
+
+
+WHISPER_MODELS = ["tiny", "tiny.en", "base", "base.en", "small", "small.en",
+                  "medium", "medium.en", "large-v2", "large-v3", "distil-large-v3"]
+
+
+@lru_cache(maxsize=1)
+def _whisper_env() -> tuple[str, str | None]:
+    """(device, engine) — importing torch is slow, so detect once per process."""
+    cuda = False
+    try:
+        import torch
+        cuda = torch.cuda.is_available()
+    except ImportError:
+        pass
+    engine = None
+    try:
+        import whisperx  # noqa: F401
+        engine = "whisperx"
+    except ImportError:
+        try:
+            import faster_whisper  # noqa: F401
+            engine = "faster-whisper"
+        except ImportError:
+            pass
+    return ("cuda" if cuda else "cpu"), engine
+
+
+@app.get("/api/transcribe/options")
+def transcribe_options():
+    """What the transcription UI can offer: models, default, detected device."""
+    device, engine = _whisper_env()
+    return {"models": WHISPER_MODELS,
+            "default_model": os.environ.get("RECOMPOSER_WHISPER_MODEL", "small"),
+            "device": device,
+            "engine": engine}
 
 
 @app.get("/api/media/{media_id}/segments")
@@ -367,15 +427,18 @@ def stream(media_id: int, request: Request):
     length = end - start + 1
 
     def iter_range():
-        with path.open("rb") as f:
-            f.seek(start)
-            remaining = length
-            while remaining > 0:
-                data = f.read(min(CHUNK, remaining))
-                if not data:
-                    break
-                remaining -= len(data)
-                yield data
+        try:
+            with path.open("rb") as f:
+                f.seek(start)
+                remaining = length
+                while remaining > 0:
+                    data = f.read(min(CHUNK, remaining))
+                    if not data:
+                        break
+                    remaining -= len(data)
+                    yield data
+        except (ConnectionResetError, BrokenPipeError):
+            return  # client aborted mid-stream (seek, cut switch) — normal
 
     return StreamingResponse(
         iter_range(), status_code=206, media_type=content_type,
@@ -395,6 +458,22 @@ def list_jobs():
         LEFT JOIN media m ON m.id = j.media_id
         ORDER BY j.id DESC LIMIT 50""")
     return rows_to_dicts(rows)
+
+
+@app.post("/api/jobs/{job_id}/cancel")
+def cancel_job(job_id: int):
+    res = jobs.request_cancel(job_id)
+    if "error" in res:
+        raise HTTPException(409, res["error"])
+    return res
+
+
+@app.post("/api/jobs/{job_id}/retry")
+def retry_job(job_id: int):
+    res = jobs.retry(job_id)
+    if "error" in res:
+        raise HTTPException(409, res["error"])
+    return res
 
 
 # ------------------------------------------------------- folders & tags
@@ -837,13 +916,14 @@ def export_recomp(recomp_id: int):
                    (recomp_id,)).fetchone()["n"]
     if not n:
         raise HTTPException(400, "add some cuts before exporting")
-    import json as _json
     running = db.execute("""SELECT 1 FROM jobs WHERE kind='export'
-        AND status IN ('queued','running') AND payload = ?""",
-        (_json.dumps({"recomp_id": recomp_id}),)).fetchone()
+        AND status IN ('queued','running')
+        AND target_kind='recomposition' AND target_id=?""",
+        (recomp_id,)).fetchone()
     if running:
         raise HTTPException(409, "an export of this recomposition is already running")
-    return {"job_id": jobs.enqueue("export", None, {"recomp_id": recomp_id})}
+    return {"job_id": jobs.enqueue("export", None, {"recomp_id": recomp_id},
+                                   target_kind="recomposition", target_id=recomp_id)}
 
 
 @app.get("/api/recompositions/{recomp_id}/exports")

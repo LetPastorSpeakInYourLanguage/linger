@@ -12,12 +12,24 @@ function AddTrackModal({ mediaId, onClose, onDone }) {
   const [path, setPath] = useState("");
   const [name, setName] = useState("");
   const [err, setErr] = useState("");
+  const [opts, setOpts] = useState(null); // /api/transcribe/options
+  const [model, setModel] = useState(() => localStorage.getItem("whisper_model") || "");
+  const [language, setLanguage] = useState(() => localStorage.getItem("whisper_language") || "");
+
+  useEffect(() => {
+    api.get("/api/transcribe/options").then((o) => {
+      setOpts(o);
+      setModel((m) => m || o.default_model);
+    }).catch(() => {});
+  }, []);
 
   const submit = async () => {
     setErr("");
     try {
       if (mode === "whisper") {
-        await api.post(`/api/media/${mediaId}/transcribe`);
+        localStorage.setItem("whisper_model", model);
+        localStorage.setItem("whisper_language", language);
+        await api.post(`/api/media/${mediaId}/transcribe`, { model, language });
       } else {
         const fd = new FormData();
         if (mode === "upload") {
@@ -57,13 +69,35 @@ function AddTrackModal({ mediaId, onClose, onDone }) {
             value={path} onChange={(e) => setPath(e.target.value)} />
         )}
         {mode === "whisper" && (
-          <p className="text-xs text-zinc-400 bg-zinc-950 rounded-lg p-3">
-            Transcribes the audio in the background into its own track
-            (named after the engine + model). Uses <b>WhisperX</b> for accurate
-            word timestamps if installed, else faster-whisper. Progress shows in
-            the server terminal and on the Library card — the track appears here
-            when it's done.
-          </p>
+          <>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="text-xs text-zinc-400">Model</label>
+                <select className={inputCls} value={model}
+                  onChange={(e) => setModel(e.target.value)}>
+                  {(opts?.models || (model ? [model] : ["small"])).map((m) => (
+                    <option key={m} value={m}>
+                      {m}{opts && m === opts.default_model ? " (default)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="text-xs text-zinc-400">Language hint — optional</label>
+                <input className={inputCls} placeholder="auto-detect (or en, es, am…)"
+                  value={language} onChange={(e) => setLanguage(e.target.value)} />
+              </div>
+            </div>
+            <p className="text-xs text-zinc-400 bg-zinc-950 rounded-lg p-3">
+              Transcribes the audio in the background into its own track
+              (named after the engine + model). Bigger models are more accurate
+              but slower{opts?.device === "cpu" && " — on CPU, medium/large can take a long time"}.
+              {opts?.engine
+                ? <> Engine: <b>{opts.engine}</b> on <b>{opts?.device}</b>.</>
+                : <> No engine detected — <code>pip install whisperx</code> on the server.</>}
+              {" "}The track appears here when it's done; watch progress in the ⚙ jobs panel.
+            </p>
+          </>
         )}
         {mode !== "whisper" && (
           <input className={inputCls} placeholder="Track name (e.g. English, Director's notes) — optional"

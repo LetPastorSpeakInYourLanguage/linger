@@ -147,6 +147,49 @@ END;
 HAS_TRIGRAM = False
 
 
+def _add_columns(conn, table: str, defs: list[str]):
+    """ALTER TABLE ADD COLUMN for each definition whose column is missing."""
+    have = {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
+    for d in defs:
+        if d.split()[0] not in have:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {d}")
+
+
+def _m1_jobs_queue(conn):
+    """Job-queue hardening: progress, retries, cooperative cancel, claim leases,
+    and a generic target reference (e.g. export → recomposition N)."""
+    _add_columns(conn, "jobs", [
+        "progress REAL",
+        "priority INTEGER NOT NULL DEFAULT 0",
+        "attempts INTEGER NOT NULL DEFAULT 0",
+        "max_attempts INTEGER NOT NULL DEFAULT 2",
+        "cancel_requested INTEGER NOT NULL DEFAULT 0",
+        "worker_id TEXT",
+        "lease_until TEXT",
+        "started_at TEXT",
+        "finished_at TEXT",
+        "target_kind TEXT",
+        "target_id INTEGER",
+    ])
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_claim ON jobs(status, priority, id)")
+
+
+# Ordered, run-once migrations tracked via PRAGMA user_version. Append only —
+# never reorder or edit a shipped migration.
+MIGRATIONS = [
+    _m1_jobs_queue,
+]
+
+
+def _migrate(conn):
+    version = conn.execute("PRAGMA user_version").fetchone()[0]
+    for i, migration in enumerate(MIGRATIONS, start=1):
+        if version < i:
+            migration(conn)
+            conn.execute(f"PRAGMA user_version={i}")
+            conn.commit()
+
+
 def get_db() -> sqlite3.Connection:
     conn = getattr(_local, "conn", None)
     if conn is None:
@@ -193,6 +236,7 @@ def init_db():
     except sqlite3.OperationalError:
         HAS_TRIGRAM = False  # old SQLite without trigram tokenizer: exact-only search
     conn.commit()
+    _migrate(conn)
 
 
 def rows_to_dicts(rows):

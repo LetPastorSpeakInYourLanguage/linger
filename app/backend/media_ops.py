@@ -58,7 +58,19 @@ def media_dir(media_id: int) -> Path:
     return d
 
 
-def _run_ffmpeg_with_progress(cmd, duration, on_progress):
+def _check(check_cancel, proc):
+    """Run the job's cancel check; if it raises, take ffmpeg down with us."""
+    if check_cancel is None:
+        return
+    try:
+        check_cancel()
+    except BaseException:
+        proc.kill()
+        proc.wait()
+        raise
+
+
+def _run_ffmpeg_with_progress(cmd, duration, on_progress, check_cancel=None):
     """Run ffmpeg with -progress on stdout; call on_progress(percent) as it goes."""
     full = cmd[:1] + ["-nostats", "-loglevel", "error",
                       "-progress", "pipe:1"] + cmd[1:]
@@ -66,6 +78,7 @@ def _run_ffmpeg_with_progress(cmd, duration, on_progress):
                             stderr=subprocess.PIPE, text=True)
     last = -10
     for line in proc.stdout:
+        _check(check_cancel, proc)
         line = line.strip()
         if line.startswith("out_time_ms=") and duration:
             try:
@@ -82,7 +95,7 @@ def _run_ffmpeg_with_progress(cmd, duration, on_progress):
 
 
 def prepare_for_streaming(src: Path, media_id: int, *, keep_src: bool = False,
-                          on_progress=None):
+                          on_progress=None, check_cancel=None):
     """Remux (fast) or re-encode (slow, shows progress) into a browser-seekable file.
 
     keep_src=True when src is the user's own file (local-path import) — never delete it.
@@ -115,7 +128,7 @@ def prepare_for_streaming(src: Path, media_id: int, *, keep_src: bool = False,
                    "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
                    "-c:a", "aac", "-b:a", "160k",
                    "-movflags", "+faststart", str(final)]
-        _run_ffmpeg_with_progress(cmd, duration, on_progress)
+        _run_ffmpeg_with_progress(cmd, duration, on_progress, check_cancel)
         if not keep_src:
             safe_unlink(src)
         return final, "video", duration, mode
@@ -135,7 +148,7 @@ def prepare_for_streaming(src: Path, media_id: int, *, keep_src: bool = False,
         mode = "reencode"
         cmd = ["ffmpeg", "-y", "-i", str(src), "-vn", "-c:a", "aac", "-b:a", "160k",
                "-movflags", "+faststart", str(final)]
-    _run_ffmpeg_with_progress(cmd, duration, on_progress)
+    _run_ffmpeg_with_progress(cmd, duration, on_progress, check_cancel)
     if not keep_src:
         safe_unlink(src)
     return final, "audio", duration, mode
@@ -153,10 +166,23 @@ V_ARGS = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "y
 A_ARGS = ["-c:a", "aac", "-b:a", "160k", "-ar", "44100", "-ac", "2"]
 
 
-def _run_ffmpeg(cmd):
-    out = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
-    if out.returncode != 0:
-        raise RuntimeError(f"ffmpeg failed: {out.stderr[-400:]}")
+def _run_ffmpeg(cmd, check_cancel=None, timeout=3600):
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            text=True)
+    waited = 0.0
+    while True:
+        try:
+            _, err = proc.communicate(timeout=0.5)
+            break
+        except subprocess.TimeoutExpired:
+            waited += 0.5
+            if waited > timeout:
+                proc.kill()
+                proc.communicate()
+                raise RuntimeError("ffmpeg timed out")
+            _check(check_cancel, proc)
+    if proc.returncode != 0:
+        raise RuntimeError(f"ffmpeg failed: {(err or '')[-400:]}")
 
 
 def _clip_cmd(src: Path, start: float, dur: float, out: Path,
@@ -180,10 +206,11 @@ def _clip_cmd(src: Path, start: float, dur: float, out: Path,
 
 
 def export_recomposition(recomp_id: int, title: str, cuts: list[dict],
-                         on_progress=None) -> Path:
+                         on_progress=None, check_cancel=None) -> Path:
     """cuts: [{src, start_s, end_s, is_video}] in playback order.
     Re-encodes every cut to identical parameters, then concat-copies them
-    into one file. Returns the final path under media_store/exports/."""
+    into one file. on_progress(msg, percent) as it goes.
+    Returns the final path under media_store/exports/."""
     if not have_ffmpeg():
         raise RuntimeError("ffmpeg is required for export")
     EXPORT_DIR.mkdir(parents=True, exist_ok=True)
@@ -199,35 +226,35 @@ def export_recomposition(recomp_id: int, title: str, cuts: list[dict],
         clips = []
         for i, c in enumerate(cuts):
             if on_progress:
-                on_progress(f"rendering cut {i + 1}/{len(cuts)}")
+                on_progress(f"rendering cut {i + 1}/{len(cuts)}", i / len(cuts) * 90)
             src = Path(c["src"])
             info = probe(src)
             src_has_audio = bool(info and info[3])
             dur = max(0.05, c["end_s"] - c["start_s"])
             out = tmp / f"{i:04d}.{ext}"
             _run_ffmpeg(_clip_cmd(src, c["start_s"], dur, out,
-                                  has_video, c["is_video"], src_has_audio))
+                                  has_video, c["is_video"], src_has_audio),
+                        check_cancel)
             clips.append(out)
 
         if on_progress:
-            on_progress("joining clips")
+            on_progress("joining clips", 95)
         listfile = tmp / "list.txt"
         listfile.write_text(
             "\n".join(f"file '{p.as_posix()}'" for p in clips), encoding="utf-8")
         _run_ffmpeg(["ffmpeg", "-y", "-f", "concat", "-safe", "0",
                      "-i", str(listfile), "-c", "copy",
                      *(["-movflags", "+faststart"] if has_video else []),
-                     str(final)])
+                     str(final)], check_cancel)
         return final
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
 
-def extract_wav_for_transcription(media_id: int, source: Path) -> Path:
+def extract_wav_for_transcription(media_id: int, source: Path,
+                                  check_cancel=None) -> Path:
     """16 kHz mono wav — what whisper wants."""
     wav = media_dir(media_id) / "transcribe.wav"
-    subprocess.run(
-        ["ffmpeg", "-y", "-i", str(source), "-ar", "16000", "-ac", "1",
-         "-c:a", "pcm_s16le", str(wav)],
-        capture_output=True, timeout=7200, check=True)
+    _run_ffmpeg(["ffmpeg", "-y", "-i", str(source), "-ar", "16000", "-ac", "1",
+                 "-c:a", "pcm_s16le", str(wav)], check_cancel, timeout=7200)
     return wav
