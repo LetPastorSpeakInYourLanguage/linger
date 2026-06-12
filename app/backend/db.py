@@ -174,10 +174,44 @@ def _m1_jobs_queue(conn):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_claim ON jobs(status, priority, id)")
 
 
+LANGUAGE_DEFAULTS = [
+    ("en", "English", "edge", "en-US-JennyNeural"),
+    ("es", "Spanish", "edge", "es-ES-ElviraNeural"),
+    ("fr", "French", "edge", "fr-FR-DeniseNeural"),
+    ("de", "German", "edge", "de-DE-KatjaNeural"),
+    ("pt", "Portuguese", "edge", "pt-BR-FranciscaNeural"),
+    ("ar", "Arabic", "edge", "ar-SA-ZariyahNeural"),
+    ("hi", "Hindi", "edge", "hi-IN-SwaraNeural"),
+    ("ja", "Japanese", "edge", "ja-JP-NanamiNeural"),
+    ("ko", "Korean", "edge", "ko-KR-SunHiNeural"),
+    ("zh", "Chinese", "edge", "zh-CN-XiaoxiaoNeural"),
+    ("am", "Amharic", "edge", "am-ET-MekdesNeural"),
+]
+
+
+def _m2_languages(conn):
+    """Language registry. A language is dub-capable when a TTS voice is set."""
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS languages (
+            code TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            tts_engine TEXT NOT NULL DEFAULT 'edge',
+            tts_voice TEXT NOT NULL DEFAULT '',
+            created_at TEXT DEFAULT (datetime('now')),
+            updated_at TEXT DEFAULT (datetime('now'))
+        )""")
+    for code, name, engine, voice in LANGUAGE_DEFAULTS:
+        conn.execute(
+            "INSERT OR IGNORE INTO languages (code, name, tts_engine, tts_voice) "
+            "VALUES (?,?,?,?)",
+            (code, name, engine, voice))
+
+
 # Ordered, run-once migrations tracked via PRAGMA user_version. Append only —
 # never reorder or edit a shipped migration.
 MIGRATIONS = [
     _m1_jobs_queue,
+    _m2_languages,
 ]
 
 

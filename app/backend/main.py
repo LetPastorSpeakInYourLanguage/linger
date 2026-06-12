@@ -3,6 +3,7 @@ import mimetypes
 import os
 import re
 import shutil
+import sqlite3
 from functools import lru_cache
 from pathlib import Path
 
@@ -304,6 +305,101 @@ def transcribe_options():
             "default_model": os.environ.get("RECOMPOSER_WHISPER_MODEL", "small"),
             "device": device,
             "engine": engine}
+
+
+# --------------------------------------------------------------- languages
+
+LANG_CODE_RE = re.compile(r"^[a-z]{2,3}(-[A-Z]{2})?$")
+
+
+def _norm_lang_code(code: str) -> str:
+    raw = (code or "").strip().replace("_", "-")
+    parts = [p for p in raw.split("-") if p]
+    if not parts:
+        raise HTTPException(400, "language code required")
+    base = parts[0].lower()
+    if len(parts) > 1:
+        norm = f"{base}-{parts[1].upper()}"
+    else:
+        norm = base
+    if not LANG_CODE_RE.match(norm):
+        raise HTTPException(400, "use a language code like en, es, am, or pt-BR")
+    return norm
+
+
+def _language_payload(row) -> dict:
+    d = dict(row)
+    d["dub_capable"] = bool((d.get("tts_voice") or "").strip())
+    return d
+
+
+class LanguageIn(BaseModel):
+    code: str
+    name: str = ""
+    tts_engine: str = "edge"
+    tts_voice: str = ""
+
+
+class LanguageUpdate(BaseModel):
+    name: str | None = None
+    tts_engine: str | None = None
+    tts_voice: str | None = None
+
+
+@app.get("/api/languages")
+def list_languages():
+    rows = get_db().execute("SELECT * FROM languages ORDER BY name, code").fetchall()
+    return [_language_payload(r) for r in rows]
+
+
+@app.post("/api/languages")
+def create_language(lang: LanguageIn):
+    db = get_db()
+    code = _norm_lang_code(lang.code)
+    name = lang.name.strip() or code
+    engine = (lang.tts_engine or "").strip() or "edge"
+    voice = (lang.tts_voice or "").strip()
+    try:
+        db.execute(
+            "INSERT INTO languages (code, name, tts_engine, tts_voice) VALUES (?,?,?,?)",
+            (code, name, engine, voice))
+        db.commit()
+    except sqlite3.IntegrityError:
+        raise HTTPException(409, f"language {code} already exists")
+    return _language_payload(db.execute(
+        "SELECT * FROM languages WHERE code=?", (code,)).fetchone())
+
+
+@app.patch("/api/languages/{code}")
+def update_language(code: str, lang: LanguageUpdate):
+    db = get_db()
+    code = _norm_lang_code(code)
+    row = db.execute("SELECT * FROM languages WHERE code=?", (code,)).fetchone()
+    if not row:
+        raise HTTPException(404)
+    if lang.name is not None:
+        db.execute("UPDATE languages SET name=?, updated_at=datetime('now') WHERE code=?",
+                   (lang.name.strip() or code, code))
+    if lang.tts_engine is not None:
+        db.execute("UPDATE languages SET tts_engine=?, updated_at=datetime('now') WHERE code=?",
+                   ((lang.tts_engine or "").strip() or "edge", code))
+    if lang.tts_voice is not None:
+        db.execute("UPDATE languages SET tts_voice=?, updated_at=datetime('now') WHERE code=?",
+                   ((lang.tts_voice or "").strip(), code))
+    db.commit()
+    return _language_payload(db.execute(
+        "SELECT * FROM languages WHERE code=?", (code,)).fetchone())
+
+
+@app.delete("/api/languages/{code}")
+def delete_language(code: str):
+    db = get_db()
+    code = _norm_lang_code(code)
+    cur = db.execute("DELETE FROM languages WHERE code=?", (code,))
+    db.commit()
+    if not cur.rowcount:
+        raise HTTPException(404)
+    return {"ok": True}
 
 
 @app.get("/api/media/{media_id}/segments")
@@ -682,6 +778,56 @@ def delete_cut(cut_id: int):
     db.execute("DELETE FROM cuts WHERE id=?", (cut_id,))
     db.commit()
     return {"ok": True}
+
+
+def _stem_status_payload(cache: dict) -> dict:
+    return {
+        "cut_id": cache["cut_id"],
+        "media_id": cache["media_id"],
+        "start_s": cache["start_s"],
+        "end_s": cache["end_s"],
+        "segment_start_s": cache["segment_start_s"],
+        "segment_end_s": cache["segment_end_s"],
+        "padding_s": cache["padding_s"],
+        "cache_dir": str(cache["dir"]),
+        "exists": cache["exists"],
+        "vocals": str(cache["vocals"]) if cache["vocals"].exists() else None,
+        "accompaniment": (
+            str(cache["accompaniment"]) if cache["accompaniment"].exists() else None
+        ),
+    }
+
+
+@app.get("/api/cuts/{cut_id}/stems")
+def cut_stems(cut_id: int, padding_s: float = 3.0):
+    try:
+        return _stem_status_payload(jobs.cut_stem_cache(cut_id, padding_s))
+    except RuntimeError as e:
+        raise HTTPException(404, str(e))
+
+
+@app.post("/api/cuts/{cut_id}/separate")
+def separate_cut(cut_id: int, padding_s: float = 3.0):
+    db = get_db()
+    try:
+        cache = jobs.cut_stem_cache(cut_id, padding_s)
+    except RuntimeError as e:
+        raise HTTPException(404, str(e))
+    if cache["exists"]:
+        return {"status": "ready", "cached": True,
+                "stems": _stem_status_payload(cache)}
+    running = db.execute("""
+        SELECT id, status FROM jobs
+        WHERE kind='separate' AND target_kind='cut' AND target_id=?
+          AND status IN ('queued','running')
+        ORDER BY id DESC LIMIT 1""", (cut_id,)).fetchone()
+    if running:
+        return {"job_id": running["id"], "status": running["status"], "cached": False}
+    return {"job_id": jobs.enqueue(
+        "separate", cache["media_id"],
+        {"cut_id": cut_id, "padding_s": padding_s},
+        target_kind="cut", target_id=cut_id),
+        "status": "queued", "cached": False}
 
 
 # ----------------------------------------------------- segment editing

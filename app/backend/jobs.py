@@ -10,6 +10,7 @@ Job kinds:
   download    {"url", "then_transcribe", "whisper"?}              — yt-dlp fetch
   prepare     {"src", "keep_src", "then_transcribe", "whisper"?}  — ffmpeg remux/re-encode
   transcribe  {"model"?, "language"?, "device"?, "compute"?}      — whisperx / faster-whisper
+  separate    {"cut_id", "padding_s"?}                             — Demucs vocals/accompaniment stems
   export      {"recomp_id"}                                       — render recomposition
 Jobs chain: download → prepare → (transcribe if no subtitles were provided);
 the optional "whisper" dict ({"model": ...}) rides along the chain.
@@ -23,6 +24,7 @@ from pathlib import Path
 
 from . import media_ops
 from .db import get_db
+from .engines import separation
 
 _wake = threading.Event()
 _started = False
@@ -127,6 +129,43 @@ def _find_source(media_id: int) -> Path | None:
     return None
 
 
+def cut_stem_cache(cut_id: int, padding_s: float = 3.0) -> dict:
+    """Return the cached stem window for a cut, with existence flags."""
+    db = get_db()
+    row = db.execute("""
+        SELECT c.id AS cut_id, c.media_id, m.filename, m.duration,
+               MIN(s.start_s) AS start_s, MAX(s.end_s) AS end_s
+        FROM cuts c
+        JOIN media m ON m.id = c.media_id
+        JOIN cut_segments cs ON cs.cut_id = c.id
+        JOIN segments s ON s.id = cs.segment_id
+        WHERE c.id=?
+        GROUP BY c.id, c.media_id, m.filename, m.duration""", (cut_id,)).fetchone()
+    if not row or row["start_s"] is None or row["end_s"] is None:
+        raise RuntimeError("cut not found or has no segments")
+    start = max(0.0, float(row["start_s"]) - padding_s)
+    end = float(row["end_s"]) + padding_s
+    if row["duration"] is not None:
+        end = min(float(row["duration"]), end)
+    start_ms = int(round(start * 1000))
+    end_ms = int(round(end * 1000))
+    d = media_ops.media_dir(row["media_id"]) / "stems" / f"{start_ms}-{end_ms}"
+    return {
+        "cut_id": cut_id,
+        "media_id": row["media_id"],
+        "filename": row["filename"],
+        "start_s": start,
+        "end_s": end,
+        "segment_start_s": float(row["start_s"]),
+        "segment_end_s": float(row["end_s"]),
+        "padding_s": padding_s,
+        "dir": d,
+        "vocals": d / "vocals.wav",
+        "accompaniment": d / "accompaniment.wav",
+        "exists": (d / "vocals.wav").exists() and (d / "accompaniment.wav").exists(),
+    }
+
+
 def _restore_media_after_stop(media_id: int):
     """After a cancel: the media is fine if it's already playable, otherwise
     it never got a streamable file and is effectively dead."""
@@ -138,6 +177,55 @@ def _restore_media_after_stop(media_id: int):
         _set_media(media_id, "ready", "")
     else:
         _set_media(media_id, "error", "cancelled before the file was ready")
+
+
+# ------------------------------------------------------------- separate
+
+@handler("separate")
+def _run_separate(ctx: JobContext, payload: dict):
+    """Windowed Demucs separation for one cut, cached by media/time range."""
+    cut_id = int(payload["cut_id"])
+    padding_s = float(payload.get("padding_s", 3.0))
+    cache = cut_stem_cache(cut_id, padding_s)
+    if cache["exists"]:
+        ctx.report("cached stems ready", progress=100)
+        return
+    if not media_ops.have_ffmpeg():
+        raise RuntimeError("ffmpeg is required for source separation")
+    src = media_ops.media_dir(cache["media_id"]) / cache["filename"]
+    if not src.exists():
+        raise RuntimeError(f"source file missing for media {cache['media_id']}")
+
+    cache_dir = cache["dir"]
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    input_wav = cache_dir / "input.wav"
+
+    ctx.report("extracting cut audio window", progress=10)
+    media_ops.extract_audio_window(src, cache["start_s"], cache["end_s"],
+                                   input_wav, check_cancel=ctx.check_cancel)
+
+    ctx.report("separating vocals/accompaniment", progress=35)
+    result = separation.get_separation_engine().separate_vocals(
+        input_wav, cache_dir, check_cancel=ctx.check_cancel)
+    if not result.vocals.exists() or not result.accompaniment.exists():
+        raise RuntimeError("separation engine did not produce both stems")
+
+    manifest = {
+        "cut_id": cut_id,
+        "media_id": cache["media_id"],
+        "start_s": cache["start_s"],
+        "end_s": cache["end_s"],
+        "segment_start_s": cache["segment_start_s"],
+        "segment_end_s": cache["segment_end_s"],
+        "padding_s": padding_s,
+        "engine": separation.get_separation_engine().name,
+        "vocals": result.vocals.name,
+        "accompaniment": result.accompaniment.name,
+    }
+    (cache_dir / "manifest.json").write_text(json.dumps(manifest, indent=2),
+                                             encoding="utf-8")
+    media_ops.safe_unlink(input_wav)
+    ctx.report("stems ready", progress=100)
 
 
 # ------------------------------------------------------------- download

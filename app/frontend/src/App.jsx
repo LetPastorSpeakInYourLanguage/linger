@@ -5,6 +5,7 @@ import MediaView from "./components/MediaView";
 import { CutsPage } from "./components/CutBrowser";
 import Studio from "./components/Studio";
 import JobsPanel from "./components/JobsPanel";
+import Settings from "./components/Settings";
 
 const COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6", "#06b6d4"];
 
@@ -56,6 +57,7 @@ const TABS = [
   { id: "library", label: "Library" },
   { id: "cuts", label: "Cuts" },
   { id: "studio", label: "Studio" },
+  { id: "settings", label: "Settings" },
 ];
 
 export default function App() {
@@ -131,6 +133,7 @@ export default function App() {
         )}
         {view.tab === "cuts" && <CutsPage user={user} openMedia={openMedia} />}
         {view.tab === "studio" && <Studio user={user} />}
+        {view.tab === "settings" && <Settings />}
       </main>
     </div>
   );

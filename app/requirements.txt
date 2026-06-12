@@ -7,3 +7,7 @@ python-multipart>=0.0.9
 whisperx
 # "From link" imports (YouTube etc.):
 yt-dlp
+# P1 engine layer: source separation, TTS with word-boundary events, translation.
+demucs
+edge-tts
+deep-translator

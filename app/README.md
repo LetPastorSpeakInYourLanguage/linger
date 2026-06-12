@@ -6,10 +6,13 @@ Local studio for turning movies, podcasts and lectures into searchable subtitle 
 
 - Python 3.10+
 - ffmpeg on your PATH (`ffmpeg -version` should work) — https://ffmpeg.org/download.html
-- `pip install -r requirements.txt` now includes **WhisperX** (transcription with
-  accurate word-level timestamps via forced alignment; first run downloads models)
-  and **yt-dlp** (link imports). If WhisperX won't install, `pip install faster-whisper`
-  is a lighter fallback — the app uses whichever it finds (WhisperX preferred).
+- `pip install -r requirements.txt` includes **WhisperX** (transcription with
+  accurate word-level timestamps via forced alignment), **yt-dlp** (link imports),
+  plus the P1 engine layer: **Demucs** (vocals/accompaniment separation),
+  **edge-tts** (dub voice generation with word-boundary events), and
+  **deep-translator** (keyless translation). First runs can download models.
+  If WhisperX won't install, `pip install faster-whisper` is a lighter fallback —
+  the app uses whichever it finds (WhisperX preferred).
 
 ### Whisper configuration
 
@@ -70,6 +73,8 @@ The frontend is pre-built (`frontend/dist`), so nothing else is needed. If you e
 3. **Cuts** tab → left: all cuts with a filter engine — add any mix of **#tag / 📁 folder / 🎬 media** filters via searchable pickers (chips show what's active, one click removes). The tag/folder/media labels on each cut card are clickable and add that filter. Right (resizable): **transcript search across every media file in the library** — fuzzy, with preview popups and "open media ↗" jumping straight to that line.
 4. **Studio** tab → open a recomposition: cut browser on the left (resizable, same filter engine), sequence on the right. Drag to reorder, **Play all** (playback is double-buffered — the next cut's file is preloaded so switching media doesn't flash), **🔁 loop** any cut to immerse. **Right-click a sequence item** to filter the browser by that cut's media, folder or tags. Shortcuts work from anywhere: `space` play/pause · `←/→` seek · `↑/↓` previous/next cut · `L` toggle loop · `esc` closes any popup (playback resumes).
 5. **⬇ Export** (in the recomposition editor) renders the whole sequence into one real file — `.mp4` (1280×720, h264+aac) if any cut has video, `.wav` if it's audio-only. Audio-only cuts inside a video export get a black screen; mute video gets silence. Progress shows next to the button and in the terminal; finished files appear as download links and live in `media_store/exports/`.
+6. **Settings** → Languages: add language codes, names and TTS voices. A language
+   becomes dub-capable as soon as it has a voice configured.
 
 Track deletion is protected: you can't delete a media's only subtitle track, nor a track that cuts were made from (delete those cuts first).
 
@@ -90,6 +95,7 @@ app/
     search.py            search engine: exact FTS5 + trigram fuzzy re-ranking
     jobs.py              background worker (download → prepare → transcribe)
     media_ops.py         ffmpeg probe/remux/re-encode with progress
+    engines/             Demucs, Edge TTS, translation protocols and fakes
     srt_parser.py        .srt/.vtt parsing
   frontend/              React + Vite + Tailwind (dist/ is the build)
   media_store/           your media (created on first upload)
@@ -104,5 +110,5 @@ lives in [docs/ROADMAP.md](docs/ROADMAP.md) with per-phase checkbox todos.
 ## Tests
 
 `pip install pytest httpx`, then from `app/`: `python -m pytest tests/`.
-Job-system and pipeline tests use synthetic ffmpeg media and a fake transcription
-engine, so they run in seconds with no model downloads.
+Job-system and pipeline tests use synthetic ffmpeg media plus fake transcription
+and media engines, so they run in seconds with no model downloads.

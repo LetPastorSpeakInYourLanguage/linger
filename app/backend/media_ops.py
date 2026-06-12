@@ -258,3 +258,20 @@ def extract_wav_for_transcription(media_id: int, source: Path,
     _run_ffmpeg(["ffmpeg", "-y", "-i", str(source), "-ar", "16000", "-ac", "1",
                  "-c:a", "pcm_s16le", str(wav)], check_cancel, timeout=7200)
     return wav
+
+
+def extract_audio_window(source: Path, start_s: float, end_s: float, out: Path,
+                         check_cancel=None) -> Path:
+    """Extract a small stereo WAV window for source separation / later dubbing."""
+    if end_s <= start_s:
+        raise RuntimeError("audio window end must be after start")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    _run_ffmpeg([
+        "ffmpeg", "-y",
+        "-ss", f"{max(0.0, start_s):.3f}",
+        "-t", f"{(end_s - start_s):.3f}",
+        "-i", str(source),
+        "-vn", "-ar", "44100", "-ac", "2",
+        "-c:a", "pcm_s16le", str(out),
+    ], check_cancel, timeout=7200)
+    return out

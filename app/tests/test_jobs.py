@@ -1,7 +1,12 @@
 """Job-system tests: migration, claim/lease, cancel, retry, crash adoption,
 and the import → prepare → transcribe → cut → export pipeline over the API."""
+import shutil
+
 from backend import jobs
 from backend.db import get_db
+from backend import media_ops
+from backend.engines import separation
+from backend.engines.fakes import FakeSeparationEngine
 
 from .conftest import wait_for
 
@@ -12,10 +17,29 @@ def _job(client, jid):
 
 def test_migration_applied(client):
     db = get_db()
-    assert db.execute("PRAGMA user_version").fetchone()[0] >= 1
+    assert db.execute("PRAGMA user_version").fetchone()[0] >= 2
     cols = {r[1] for r in db.execute("PRAGMA table_info(jobs)")}
     assert {"progress", "attempts", "max_attempts", "cancel_requested",
             "worker_id", "lease_until", "target_kind", "target_id"} <= cols
+    lang_cols = {r[1] for r in db.execute("PRAGMA table_info(languages)")}
+    assert {"code", "name", "tts_engine", "tts_voice"} <= lang_cols
+    assert db.execute("SELECT 1 FROM languages WHERE code='en'").fetchone()
+
+
+def test_languages_crud(client):
+    langs = client.get("/api/languages").json()
+    assert any(l["code"] == "en" and l["dub_capable"] for l in langs)
+
+    r = client.post("/api/languages", json={
+        "code": "sw", "name": "Swahili", "tts_engine": "edge", "tts_voice": ""})
+    assert r.status_code == 200
+    assert r.json()["dub_capable"] is False
+
+    r = client.patch("/api/languages/sw", json={"tts_voice": "sw-KE-ZuriNeural"})
+    assert r.status_code == 200
+    assert r.json()["dub_capable"] is True
+
+    assert client.delete("/api/languages/sw").status_code == 200
 
 
 def test_cancel_running_job(client):
@@ -111,3 +135,44 @@ def test_cut_recomposition_export(client, user):
     files = client.get(f"/api/recompositions/{recomp['id']}/exports").json()
     assert files and files[0]["size"] > 0
     assert files[0]["filename"].endswith(".mp4")
+
+
+def test_separate_cut_job_uses_cached_window(client, user, sample_video):
+    db = get_db()
+    cur = db.execute(
+        "INSERT INTO media (title, type, filename, duration, status, added_by) "
+        "VALUES ('Stem source', 'video', 'source.mp4', 2.0, 'ready', ?)",
+        (user["id"],))
+    media_id = cur.lastrowid
+    d = media_ops.media_dir(media_id)
+    shutil.copy2(sample_video, d / "source.mp4")
+    track_id = db.execute(
+        "INSERT INTO tracks (media_id, name) VALUES (?, 'Original')",
+        (media_id,)).lastrowid
+    seg_id = db.execute(
+        "INSERT INTO segments (media_id, track_id, idx, start_s, end_s, text) "
+        "VALUES (?,?,?,?,?,?)",
+        (media_id, track_id, 0, 0.2, 1.4, "fake transcript line")).lastrowid
+    cut_id = db.execute(
+        "INSERT INTO cuts (media_id, title, created_by) VALUES (?, 'Stem cut', ?)",
+        (media_id, user["id"])).lastrowid
+    db.execute("INSERT INTO cut_segments (cut_id, segment_id, position) VALUES (?,?,0)",
+               (cut_id, seg_id))
+    db.commit()
+
+    separation.set_separation_engine(FakeSeparationEngine())
+    try:
+        r = client.post(f"/api/cuts/{cut_id}/separate")
+        assert r.status_code == 200
+        jid = r.json()["job_id"]
+        wait_for(lambda: _job(client, jid)["status"] == "done", timeout=60)
+        status = client.get(f"/api/cuts/{cut_id}/stems").json()
+        assert status["exists"] is True
+        assert status["start_s"] == 0.0
+        assert status["end_s"] == 2.0
+
+        cached = client.post(f"/api/cuts/{cut_id}/separate").json()
+        assert cached["status"] == "ready"
+        assert cached["cached"] is True
+    finally:
+        separation.set_separation_engine(None)
