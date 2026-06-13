@@ -267,6 +267,43 @@ def _m3_translations_dubs(conn):
     ])
 
 
+def _m5_dub_voice_gender(conn):
+    """Per-dub gender override: 'auto' infers each line's speaker gender,
+    'M'/'F' forces a single voice gender for the whole cut."""
+    _add_columns(conn, "dubs", [
+        "voice_gender TEXT NOT NULL DEFAULT 'auto'",
+    ])
+
+
+def _m6_background_audio(conn):
+    """Background-audio assets + per-recomposition layers. A layer assigns one
+    asset to a span of cuts [from_pos..to_pos] and fits it to that span's exact
+    length (loop / stretch / trim). Several layers = several beds in sequence."""
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS audio_assets (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            filename TEXT NOT NULL,
+            duration_s REAL,
+            added_by INTEGER REFERENCES users(id),
+            created_at TEXT DEFAULT (datetime('now'))
+        )""")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS recomp_audio_layers (
+            id INTEGER PRIMARY KEY,
+            recomp_id INTEGER NOT NULL REFERENCES recompositions(id) ON DELETE CASCADE,
+            asset_id INTEGER NOT NULL REFERENCES audio_assets(id) ON DELETE CASCADE,
+            from_pos INTEGER NOT NULL DEFAULT 0,
+            to_pos INTEGER NOT NULL DEFAULT 0,
+            gain REAL NOT NULL DEFAULT 1.0,
+            fit TEXT NOT NULL DEFAULT 'loop',
+            ord INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT DEFAULT (datetime('now'))
+        )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_audio_layers_recomp "
+                 "ON recomp_audio_layers(recomp_id)")
+
+
 def _m4_gender_voices(conn):
     """Per-gender TTS voices + per-segment inferred speaker gender, so a dub
     can use a male or female voice that matches each line's speaker."""
@@ -295,6 +332,8 @@ MIGRATIONS = [
     _m2_languages,
     _m3_translations_dubs,
     _m4_gender_voices,
+    _m5_dub_voice_gender,
+    _m6_background_audio,
 ]
 
 

@@ -2,8 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, fmtTime } from "../api";
 import { Modal, inputCls, btnCls, btnGhost, Spinner } from "./ui";
 
+const GENDER_LABEL = { M: "♂ male", F: "♀ female" };
+
 function TranslationEditor({ translation, onChanged }) {
   const [saving, setSaving] = useState(null);
+  const [dubGender, setDubGender] = useState("auto");
 
   const saveSegment = async (seg, value) => {
     if (value === seg.text) return;
@@ -19,13 +22,25 @@ function TranslationEditor({ translation, onChanged }) {
     setSaving(null);
   };
 
+  const setSegmentGender = async (seg, gender) => {
+    try {
+      await api.patch(`/api/segments/${seg.segment_id}`, { gender });
+      onChanged();
+    } catch (e) { alert(e.message); }
+  };
+
   const createDub = async () => {
     try {
-      await api.post(`/api/translations/${translation.id}/dub`);
+      await api.post(`/api/translations/${translation.id}/dub`,
+                     { voice_gender: dubGender });
       onChanged();
-    } catch (e) {
-      alert(e.message);
-    }
+    } catch (e) { alert(e.message); }
+  };
+
+  const deleteDub = async (dub) => {
+    if (!confirm("Delete this dub?")) return;
+    try { await api.del(`/api/dubs/${dub.id}`); onChanged(); }
+    catch (e) { alert(e.message); }
   };
 
   return (
@@ -40,8 +55,15 @@ function TranslationEditor({ translation, onChanged }) {
             {translation.segments.length} subtitle lines
           </p>
         </div>
+        <select className={`${inputCls} w-32`} value={dubGender}
+          title="Voice gender for the generated dub"
+          onChange={(e) => setDubGender(e.target.value)}>
+          <option value="auto">Auto (per speaker)</option>
+          <option value="F">♀ Female</option>
+          <option value="M">♂ Male</option>
+        </select>
         <button className={btnCls} disabled={!translation.dub_capable}
-          title={translation.dub_capable ? "Generate audio from this translated subtitle text" : "Configure a TTS voice for this language first"}
+          title={translation.dub_capable ? "Generate dubbed audio from this translation" : "Configure a TTS voice for this language first"}
           onClick={createDub}>
           Generate dub
         </button>
@@ -50,7 +72,7 @@ function TranslationEditor({ translation, onChanged }) {
       <div className="overflow-y-auto">
         {translation.segments.map((seg) => (
           <div key={seg.segment_id}
-            className="grid grid-cols-[92px_1fr_1fr_44px] gap-2 px-3 py-2 border-b border-zinc-800/70 items-start">
+            className="grid grid-cols-[92px_1fr_1fr_84px] gap-2 px-3 py-2 border-b border-zinc-800/70 items-start">
             <div className="text-xs text-zinc-500 pt-2">
               {fmtTime(seg.start_s)}<br />{fmtTime(seg.end_s)}
             </div>
@@ -59,8 +81,20 @@ function TranslationEditor({ translation, onChanged }) {
               defaultValue={seg.text || ""}
               onBlur={(e) => saveSegment(seg, e.target.value)}
               placeholder="Translated subtitle text" />
-            <div className="pt-2 text-xs text-zinc-500">
-              {saving === seg.segment_id ? "saving" : ""}
+            <div className="pt-1">
+              <select className={`${inputCls} !px-1 text-xs`}
+                title="Speaker gender → which voice dubs this line"
+                value={seg.gender || ""}
+                onChange={(e) => setSegmentGender(seg, e.target.value)}>
+                <option value="">auto</option>
+                <option value="F">♀ F</option>
+                <option value="M">♂ M</option>
+              </select>
+              <p className="text-[10px] text-zinc-600 mt-0.5">
+                {saving === seg.segment_id ? "saving…"
+                  : seg.gender ? (seg.gender_source === "manual" ? "manual" : "detected")
+                  : ""}
+              </p>
             </div>
           </div>
         ))}
@@ -76,13 +110,20 @@ function TranslationEditor({ translation, onChanged }) {
               }`}>
                 {dub.status}
               </span>
-              <span className="text-zinc-500 flex-1 truncate">{dub.voice || dub.engine}</span>
+              <span className="text-zinc-400 w-16 text-xs">
+                {GENDER_LABEL[dub.voice_gender] || "auto"}
+              </span>
+              <span className="text-zinc-500 flex-1 truncate" title={dub.voice}>
+                {dub.voice || dub.engine}
+              </span>
               {dub.status === "done" && (
                 <audio controls src={`/api/dubs/${dub.id}/audio`} className="h-8 max-w-xs" />
               )}
               {dub.detail && dub.status !== "done" && (
                 <span className="text-xs text-zinc-500 truncate max-w-xs">{dub.detail}</span>
               )}
+              <button className="text-zinc-500 hover:text-red-400 text-xs"
+                onClick={() => deleteDub(dub)} title="Delete dub">✕</button>
             </div>
           ))}
         </div>

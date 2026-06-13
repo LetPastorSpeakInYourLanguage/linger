@@ -12,3 +12,7 @@ demucs
 edge-tts
 deep-translator
 mtranslate
+# Optional: speaker-embedding gender detection for dubbing (nearest male/female
+# reference voice). If absent, dubbing falls back to pitch-based gender. The app
+# works without it; install for better automatic male/female voice matching.
+resemblyzer

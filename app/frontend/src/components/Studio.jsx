@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, fmtTime, streamUrl } from "../api";
 import { inputCls, btnCls, btnGhost, modalOpen, useResizable, DragBar, ContextMenu } from "./ui";
 import CutBrowser, { EMPTY_FILTERS } from "./CutBrowser";
@@ -131,12 +131,147 @@ function useSequencePlayer(cuts) {
   return { refA, refB, activeEl, getPlayer, playingIdx, playFrom, stop, loop, setLoop };
 }
 
-function ExportModal({ recomp, exportJob, translationJob, onClose, onExport, onTranslate }) {
+/* One cut's pre-export review: proofread translated lines + confirm the output
+   voice gender, with a dub preview. */
+function CutReview({ cut, lang, user, onReload }) {
+  const [dubGender, setDubGender] = useState("auto");
+  const tr = cut.translation;
+
+  const translate = async () => {
+    try {
+      await api.post(`/api/cuts/${cut.cut_id}/translations`,
+                     { lang_code: lang, source: "auto", user_id: user.id });
+      onReload();
+    } catch (e) { alert(e.message); }
+  };
+  const saveText = async (sid, text, prev) => {
+    if (text === (prev || "")) return;
+    try { await api.patch(`/api/translations/${tr.id}/segments/${sid}`, { text }); }
+    catch (e) { alert(e.message); }
+  };
+  const setGender = async (sid, gender) => {
+    try { await api.patch(`/api/segments/${sid}`, { gender }); onReload(); }
+    catch (e) { alert(e.message); }
+  };
+  const genDub = async () => {
+    try { await api.post(`/api/translations/${tr.id}/dub`, { voice_gender: dubGender }); onReload(); }
+    catch (e) { alert(e.message); }
+  };
+  const deleteDub = async (id) => {
+    try { await api.del(`/api/dubs/${id}`); onReload(); } catch (e) { alert(e.message); }
+  };
+
+  const doneDub = tr?.dubs?.find((d) => d.status === "done");
+  const pendingDub = tr?.dubs?.find((d) => ["queued", "running"].includes(d.status));
+
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-zinc-500 text-xs">{cut.position + 1}.</span>
+        <span className="font-medium text-sm truncate flex-1" title={cut.title}>{cut.title}</span>
+        <span className="text-xs text-zinc-600 truncate">{cut.media_title}</span>
+      </div>
+
+      {!tr && (
+        <div className="flex items-center gap-2 text-sm text-zinc-500">
+          <span>Not translated yet.</span>
+          <button className={btnGhost} onClick={translate}>Translate to {lang}</button>
+        </div>
+      )}
+
+      {tr && (
+        <>
+          {tr.segments.map((s) => (
+            <div key={s.segment_id}
+              className="grid grid-cols-[1fr_1fr_70px] gap-2 items-start py-1 border-t border-zinc-900">
+              <p className="text-xs text-zinc-500 py-1">{s.source_text}</p>
+              <textarea className={`${inputCls} min-h-9 py-1 resize-y`}
+                defaultValue={s.text || ""}
+                onBlur={(e) => saveText(s.segment_id, e.target.value, s.text)}
+                placeholder={`translated (${lang})`} />
+              <select className={`${inputCls} !px-1 text-xs`} value={s.gender || ""}
+                title="Speaker gender → output voice"
+                onChange={(e) => setGender(s.segment_id, e.target.value)}>
+                <option value="">auto</option>
+                <option value="F">♀ F</option>
+                <option value="M">♂ M</option>
+              </select>
+            </div>
+          ))}
+          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-zinc-900">
+            <select className={`${inputCls} w-32`} value={dubGender}
+              onChange={(e) => setDubGender(e.target.value)}>
+              <option value="auto">Auto (per speaker)</option>
+              <option value="F">♀ Female</option>
+              <option value="M">♂ Male</option>
+            </select>
+            <button className={btnGhost} onClick={genDub}
+              disabled={!tr.dub_capable || !!pendingDub}>
+              {pendingDub ? `dub ${pendingDub.status}…` : "Preview dub"}
+            </button>
+            {doneDub && (
+              <>
+                <audio controls src={`/api/dubs/${doneDub.id}/audio`} className="h-8 flex-1 min-w-0" />
+                <button className="text-zinc-500 hover:text-red-400 text-xs"
+                  onClick={() => deleteDub(doneDub.id)} title="Delete dub">✕</button>
+              </>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function ReviewSection({ recompId, lang, user }) {
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState("");
+  const pollRef = useRef();
+
+  const load = useCallback(() =>
+    api.get(`/api/recompositions/${recompId}/review?lang=${encodeURIComponent(lang)}`)
+      .then(setData).catch((e) => setErr(e.message)), [recompId, lang]);
+
+  useEffect(() => { setData(null); setErr(""); load(); }, [load]);
+
+  const anyDubRunning = data?.cuts?.some((c) =>
+    c.translation?.dubs?.some((d) => ["queued", "running"].includes(d.status)));
+  useEffect(() => {
+    clearInterval(pollRef.current);
+    if (!anyDubRunning) return;
+    pollRef.current = setInterval(() => load().catch(() => {}), 2500);
+    return () => clearInterval(pollRef.current);
+  }, [anyDubRunning, load]);
+
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 space-y-2">
+      <p className="text-xs text-zinc-500">
+        Proofread each cut's translated text and confirm the output voice gender,
+        then preview the dub. Edits are saved as you go and used by the export.
+      </p>
+      {err && <p className="text-xs text-red-400">{err}</p>}
+      {!data && <p className="text-sm text-zinc-500">Loading…</p>}
+      {data?.cuts?.length === 0 && (
+        <p className="text-sm text-zinc-500">This recomposition has no cuts.</p>
+      )}
+      <div className="space-y-2 max-h-[40vh] overflow-y-auto">
+        {data?.cuts?.map((c) => (
+          <CutReview key={c.cut_id} cut={c} lang={lang} user={user} onReload={load} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ExportModal({ recomp, user, exportJob, translationJob, onClose, onExport, onTranslate }) {
   const [languages, setLanguages] = useState([]);
   const [targetLang, setTargetLang] = useState("");
   const [audioMode, setAudioMode] = useState("original");
   const [quality, setQuality] = useState("720p");
   const [overwrite, setOverwrite] = useState(false);
+  const [keepAccompaniment, setKeepAccompaniment] = useState(true);
+  const [keepSourceVocals, setKeepSourceVocals] = useState(false);
+  const [showReview, setShowReview] = useState(false);
   const [busy, setBusy] = useState("");
   const [err, setErr] = useState("");
 
@@ -164,6 +299,8 @@ function ExportModal({ recomp, exportJob, translationJob, onClose, onExport, onT
         audio_mode: audioMode,
         target_lang: targetLang.trim(),
         quality,
+        keep_accompaniment: keepAccompaniment,
+        keep_source_vocals: keepSourceVocals,
       });
       onClose();
     } catch (e) { setErr(e.message); }
@@ -171,11 +308,14 @@ function ExportModal({ recomp, exportJob, translationJob, onClose, onExport, onT
   };
   const translationRunning = translationJob &&
     ["queued", "running"].includes(translationJob.status);
+  const dubMode = audioMode === "dub";
+  const targetIsDubCapable = languages.find((l) => l.code === targetLang)?.dub_capable;
 
   return (
     <div data-modal className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col">
+      <div className={`bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl w-full ${
+        showReview && dubMode ? "max-w-3xl" : "max-w-lg"} max-h-[85vh] flex flex-col`}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
           <h2 className="font-semibold">Export {recomp.title}</h2>
           <button onClick={onClose} className="text-zinc-400 hover:text-white text-xl leading-none">×</button>
@@ -183,14 +323,11 @@ function ExportModal({ recomp, exportJob, translationJob, onClose, onExport, onT
         <div className="p-4 space-y-4 overflow-y-auto">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-zinc-400">Target language</label>
-              <select className={inputCls} value={targetLang}
-                onChange={(e) => setTargetLang(e.target.value)}>
-                {languages.map((l) => (
-                  <option key={l.code} value={l.code}>
-                    {l.name} ({l.code}){l.dub_capable ? "" : " · no voice"}
-                  </option>
-                ))}
+              <label className="text-xs text-zinc-400">Export audio</label>
+              <select className={inputCls} value={audioMode}
+                onChange={(e) => setAudioMode(e.target.value)}>
+                <option value="original">Original audio</option>
+                <option value="dub">Dub into another language</option>
               </select>
             </div>
             <div>
@@ -204,43 +341,73 @@ function ExportModal({ recomp, exportJob, translationJob, onClose, onExport, onT
             </div>
           </div>
 
-          <div>
-            <label className="text-xs text-zinc-400">Export audio</label>
-            <select className={inputCls} value={audioMode}
-              onChange={(e) => setAudioMode(e.target.value)}>
-              <option value="original">Original audio</option>
-              <option value="target_dub">Ready dub for target language</option>
-              <option value="sequence">Saved sequence choices</option>
-            </select>
-          </div>
-
-          <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 space-y-3">
-            <div className="flex items-center justify-between gap-3">
+          {dubMode && (
+            <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 space-y-3">
               <div>
-                <p className="text-sm font-medium">Cut translations</p>
-                <p className="text-xs text-zinc-500">
-                  {recomp.cuts.length} cuts in this recomposition
-                </p>
+                <label className="text-xs text-zinc-400">Target language</label>
+                <select className={inputCls} value={targetLang}
+                  onChange={(e) => setTargetLang(e.target.value)}>
+                  {languages.map((l) => (
+                    <option key={l.code} value={l.code}>
+                      {l.name} ({l.code}){l.dub_capable ? "" : " · no voice"}
+                    </option>
+                  ))}
+                </select>
+                {!targetIsDubCapable && targetLang && (
+                  <p className="text-xs text-amber-400 mt-1">
+                    No TTS voice set for this language — add one in Settings.
+                  </p>
+                )}
               </div>
-              <button className={btnGhost} disabled={!targetLang || busy === "translate" || translationRunning}
-                onClick={runTranslate}>
-                {busy === "translate" ? "Starting…" : "Translate cuts"}
-              </button>
-            </div>
-            <label className="flex items-center gap-2 text-xs text-zinc-400">
-              <input type="checkbox" checked={overwrite}
-                onChange={(e) => setOverwrite(e.target.checked)} />
-              Replace existing translations in this language
-            </label>
-            {translationJob && (
-              <p className={`text-xs ${
-                translationJob.status === "failed" ? "text-red-400" : "text-amber-400"
-              }`}>
-                translation {translationJob.status}
-                {translationJob.progress != null ? ` ${Math.round(translationJob.progress)}%` : ""} · {translationJob.detail || "queued"}
+              <p className="text-xs text-zinc-500">
+                One click translates every cut's subtitles, separates each cut's
+                audio (vocals vs. background), generates male/female voices to
+                match the speakers, and replaces the original speech.
               </p>
-            )}
-          </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={keepAccompaniment}
+                  onChange={(e) => setKeepAccompaniment(e.target.checked)} />
+                Keep background audio (music & effects from separation)
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={keepSourceVocals}
+                  onChange={(e) => setKeepSourceVocals(e.target.checked)} />
+                Keep original-language vocals under the dub
+              </label>
+              <div className="flex items-center justify-between gap-3 pt-1 border-t border-zinc-800">
+                <span className="text-xs text-zinc-500">
+                  Optional: translate ahead to proofread before exporting
+                </span>
+                <button className={btnGhost}
+                  disabled={!targetLang || busy === "translate" || translationRunning}
+                  onClick={runTranslate}>
+                  {busy === "translate" ? "Starting…" : "Translate cuts"}
+                </button>
+              </div>
+              <label className="flex items-center gap-2 text-xs text-zinc-400">
+                <input type="checkbox" checked={overwrite}
+                  onChange={(e) => setOverwrite(e.target.checked)} />
+                Replace existing translations when pre-translating
+              </label>
+              {translationJob && (
+                <p className={`text-xs ${
+                  translationJob.status === "failed" ? "text-red-400" : "text-amber-400"
+                }`}>
+                  translation {translationJob.status}
+                  {translationJob.progress != null ? ` ${Math.round(translationJob.progress)}%` : ""} · {translationJob.detail || "queued"}
+                </p>
+              )}
+              <div className="pt-2 border-t border-zinc-800">
+                <button className="text-xs text-zinc-300 hover:text-white"
+                  onClick={() => setShowReview((v) => !v)}>
+                  {showReview ? "▾" : "▸"} Advanced — review &amp; confirm translation text + voices
+                </button>
+              </div>
+              {showReview && targetLang && (
+                <ReviewSection recompId={recomp.id} lang={targetLang} user={user} />
+              )}
+            </div>
+          )}
 
           {exportJob && (
             <p className="text-sm text-amber-400">
@@ -252,7 +419,9 @@ function ExportModal({ recomp, exportJob, translationJob, onClose, onExport, onT
 
           <div className="flex justify-end gap-2">
             <button className={btnGhost} onClick={onClose}>Cancel</button>
-            <button className={btnCls} disabled={busy === "export" || !!exportJob || !recomp.cuts.length}
+            <button className={btnCls}
+              disabled={busy === "export" || !!exportJob || !recomp.cuts.length
+                || (dubMode && !targetIsDubCapable)}
               onClick={runExport}>
               {busy === "export" ? "Starting…" : "Start export"}
             </button>
@@ -561,7 +730,7 @@ function RecompEditor({ user, recompId, back }) {
           onClose={() => setMenu(null)} />
       )}
       {showExport && (
-        <ExportModal recomp={recomp} exportJob={exportJob} translationJob={translationJob}
+        <ExportModal recomp={recomp} user={user} exportJob={exportJob} translationJob={translationJob}
           onClose={() => setShowExport(false)}
           onExport={startExport}
           onTranslate={translateRecomp} />

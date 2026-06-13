@@ -63,6 +63,13 @@ def media_dir(media_id: int) -> Path:
     return d
 
 
+BG_AUDIO_DIR = MEDIA_ROOT / "bg_audio"
+
+
+def bg_audio_path(filename: str) -> Path:
+    return BG_AUDIO_DIR / filename
+
+
 def _check(check_cancel, proc):
     """Run the job's cancel check; if it raises, take ffmpeg down with us."""
     if check_cancel is None:
@@ -244,13 +251,15 @@ def _clip_cmd(src: Path, start: float, dur: float, out: Path,
 
 def export_recomposition(recomp_id: int, title: str, cuts: list[dict],
                          on_progress=None, check_cancel=None,
-                         quality: str = "720p") -> Path:
+                         quality: str = "720p", bg_layers: list[dict] | None = None) -> Path:
     """cuts: [{src, start_s, end_s, is_video}] in playback order.
-    Re-encodes every cut to identical parameters, then concat-copies them
-    into one file. on_progress(msg, percent) as it goes.
-    Returns the final path under media_store/exports/."""
+    Re-encodes every cut to identical parameters, concat-copies them, then (if
+    bg_layers) mixes dynamic-length background-audio beds over the result.
+    bg_layers: [{asset_path, from_pos, to_pos, gain, fit}].
+    on_progress(msg, percent). Returns the final path under media_store/exports/."""
     if not have_ffmpeg():
         raise RuntimeError("ffmpeg is required for export")
+    from . import compose  # lazy: compose imports media_ops
     EXPORT_DIR.mkdir(parents=True, exist_ok=True)
     has_video = any(c["is_video"] for c in cuts)
     ext = "mp4" if has_video else "wav"
@@ -264,7 +273,7 @@ def export_recomposition(recomp_id: int, title: str, cuts: list[dict],
         clips = []
         for i, c in enumerate(cuts):
             if on_progress:
-                on_progress(f"rendering cut {i + 1}/{len(cuts)}", i / len(cuts) * 90)
+                on_progress(f"rendering cut {i + 1}/{len(cuts)}", i / len(cuts) * 85)
             src = Path(c["src"])
             info = probe(src)
             src_has_audio = bool(info and info[3])
@@ -278,14 +287,31 @@ def export_recomposition(recomp_id: int, title: str, cuts: list[dict],
             clips.append(out)
 
         if on_progress:
-            on_progress("joining clips", 95)
+            on_progress("joining clips", 88)
         listfile = tmp / "list.txt"
         listfile.write_text(
             "\n".join(f"file '{p.as_posix()}'" for p in clips), encoding="utf-8")
+        concat_out = (tmp / f"concat.{ext}") if bg_layers else final
         _run_ffmpeg(["ffmpeg", "-y", "-f", "concat", "-safe", "0",
                      "-i", str(listfile), "-c", "copy",
                      *(["-movflags", "+faststart"] if has_video else []),
-                     str(final)], check_cancel)
+                     str(concat_out)], check_cancel)
+
+        if bg_layers:
+            if on_progress:
+                on_progress("adding background audio", 94)
+            segs = compose.timeline([max(0.05, c["end_s"] - c["start_s"]) for c in cuts])
+            rendered = []
+            for k, layer in enumerate(bg_layers):
+                start_s, span_dur = compose.span_window(
+                    segs, int(layer["from_pos"]), int(layer["to_pos"]))
+                fitted = compose.render_layer(
+                    Path(layer["asset_path"]), span_dur, layer.get("fit", "loop"),
+                    float(layer.get("gain", 1.0)), tmp / f"bg_{k:03d}.wav",
+                    check_cancel=check_cancel)
+                rendered.append({"path": fitted, "start_s": start_s})
+            compose.apply_background(concat_out, has_video, rendered, final,
+                                     check_cancel=check_cancel)
         return final
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
@@ -298,6 +324,39 @@ def extract_wav_for_transcription(media_id: int, source: Path,
     _run_ffmpeg(["ffmpeg", "-y", "-i", str(source), "-ar", "16000", "-ac", "1",
                  "-c:a", "pcm_s16le", str(wav)], check_cancel, timeout=7200)
     return wav
+
+
+def mix_audio(inputs, out: Path, duration: float | None = None,
+              check_cancel=None) -> Path:
+    """Mix several full-length audio tracks into one (amix, no level scaling).
+
+    Used to compose a dubbed clip's audio from its components — translated
+    speech, the separated accompaniment (background), and/or the original
+    vocals — depending on the export options. `normalize=0` keeps each track at
+    its own level instead of dividing by the input count."""
+    paths = [Path(p) for p in inputs if p and Path(p).exists()]
+    if not paths:
+        raise RuntimeError("no audio inputs to mix")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    is_wav = out.suffix.lower() == ".wav"
+    codec = (["-c:a", "pcm_s16le"] if is_wav
+             else ["-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart"])
+    cmd = ["ffmpeg", "-y"]
+    for p in paths:
+        cmd += ["-i", str(p)]
+    if len(paths) == 1:
+        cmd += (["-t", f"{duration:.3f}"] if duration else [])
+        cmd += ["-ar", "44100", "-ac", "2", *codec, str(out)]
+    else:
+        mix = (f"amix=inputs={len(paths)}:duration=longest:"
+               f"dropout_transition=0:normalize=0")
+        if duration:
+            mix += f",atrim=0:{duration:.3f}"
+        labels = "".join(f"[{i}:a]" for i in range(len(paths)))
+        cmd += ["-filter_complex", f"{labels}{mix}[a]", "-map", "[a]",
+                "-ar", "44100", "-ac", "2", *codec, str(out)]
+    _run_ffmpeg(cmd, check_cancel, timeout=7200)
+    return out
 
 
 def extract_audio_window(source: Path, start_s: float, end_s: float, out: Path,

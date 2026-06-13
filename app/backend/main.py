@@ -943,7 +943,7 @@ def _translation_payload(db, translation_id: int) -> dict:
     out = dict(row)
     segs = db.execute("""
         SELECT s.id AS segment_id, s.idx, s.start_s, s.end_s,
-               s.text AS source_text, ts.text
+               s.text AS source_text, s.gender, s.gender_source, ts.text
         FROM cut_segments cs
         JOIN segments s ON s.id=cs.segment_id
         LEFT JOIN translation_segments ts
@@ -956,7 +956,10 @@ def _translation_payload(db, translation_id: int) -> dict:
         (translation_id,)).fetchall())
     for d in out["dubs"]:
         d["audio_url"] = f"/api/dubs/{d['id']}/audio" if d["status"] == "done" else None
-    out["dub_capable"] = bool((row["tts_voice"] or "").strip())
+    lrow = db.execute("SELECT tts_voice, tts_voice_female, tts_voice_male "
+                      "FROM languages WHERE code=?", (row["lang_code"],)).fetchone()
+    out["dub_capable"] = bool(lrow and (lrow["tts_voice"] or lrow["tts_voice_female"]
+                                        or lrow["tts_voice_male"]))
     return out
 
 
@@ -975,6 +978,33 @@ def list_cut_translations(cut_id: int):
         "source_segments": source_segments,
         "translations": [_translation_payload(db, tid) for tid in ids],
     }
+
+
+@app.get("/api/recompositions/{recomp_id}/review")
+def review_recomposition(recomp_id: int, lang: str):
+    """Per-cut translation + speaker genders + dubs for one target language —
+    everything the pre-export review needs to proofread text and voices."""
+    db = get_db()
+    if not db.execute("SELECT 1 FROM recompositions WHERE id=?", (recomp_id,)).fetchone():
+        raise HTTPException(404)
+    lang = _norm_lang_code(lang)
+    rows = db.execute("""
+        SELECT rc.position, c.id AS cut_id, c.title, m.title AS media_title
+        FROM recomp_cuts rc
+        JOIN cuts c ON c.id=rc.cut_id
+        JOIN media m ON m.id=c.media_id
+        WHERE rc.recomp_id=? ORDER BY rc.position""", (recomp_id,)).fetchall()
+    cuts = []
+    for r in rows:
+        tr = db.execute("""
+            SELECT id FROM cut_translations WHERE cut_id=? AND lang_code=?
+            ORDER BY id DESC LIMIT 1""", (r["cut_id"], lang)).fetchone()
+        cuts.append({
+            "cut_id": r["cut_id"], "title": r["title"],
+            "media_title": r["media_title"], "position": r["position"],
+            "translation": _translation_payload(db, tr["id"]) if tr else None,
+        })
+    return {"lang_code": lang, "cuts": cuts}
 
 
 @app.post("/api/cuts/{cut_id}/translations")
@@ -1033,8 +1063,12 @@ def delete_translation(translation_id: int):
     return {"ok": True}
 
 
+class DubCreate(BaseModel):
+    voice_gender: str = "auto"  # auto | M | F
+
+
 @app.post("/api/translations/{translation_id}/dub")
-def create_dub(translation_id: int):
+def create_dub(translation_id: int, body: DubCreate | None = None):
     db = get_db()
     row = db.execute("""
         SELECT ct.*, l.tts_engine, l.tts_voice, l.tts_voice_female, l.tts_voice_male
@@ -1042,26 +1076,53 @@ def create_dub(translation_id: int):
         WHERE ct.id=?""", (translation_id,)).fetchone()
     if not row:
         raise HTTPException(404)
-    default_voice = ((row["tts_voice"] or "").strip()
-                     or (row["tts_voice_female"] or "").strip()
-                     or (row["tts_voice_male"] or "").strip())
+    voice_gender = ((body.voice_gender if body else "auto") or "auto").strip().upper()
+    voice_gender = voice_gender if voice_gender in ("M", "F") else "auto"
+    # the dub's default voice; the job swaps in female/male per segment unless
+    # voice_gender forces one
+    if voice_gender == "F":
+        default_voice = (row["tts_voice_female"] or row["tts_voice"] or row["tts_voice_male"] or "").strip()
+    elif voice_gender == "M":
+        default_voice = (row["tts_voice_male"] or row["tts_voice"] or row["tts_voice_female"] or "").strip()
+    else:
+        default_voice = ((row["tts_voice"] or "").strip()
+                         or (row["tts_voice_female"] or "").strip()
+                         or (row["tts_voice_male"] or "").strip())
     if not default_voice:
         raise HTTPException(400, f"language {row['lang_code']} has no TTS voice configured")
+    # one running dub per (translation, gender) at a time
     running = db.execute("""
-        SELECT * FROM dubs WHERE translation_id=? AND status IN ('queued','running')
-        ORDER BY id DESC LIMIT 1""", (translation_id,)).fetchone()
+        SELECT * FROM dubs WHERE translation_id=? AND voice_gender=?
+        AND status IN ('queued','running') ORDER BY id DESC LIMIT 1""",
+        (translation_id, voice_gender)).fetchone()
     if running:
         return {"dub": dict(running), "job_id": None, "status": running["status"]}
     cur = db.execute(
-        "INSERT INTO dubs (translation_id, engine, voice, status, detail) "
-        "VALUES (?,?,?,?,?)",
-        (translation_id, row["tts_engine"] or "edge", default_voice, "queued", "queued"))
+        "INSERT INTO dubs (translation_id, engine, voice, voice_gender, status, detail) "
+        "VALUES (?,?,?,?,?,?)",
+        (translation_id, row["tts_engine"] or "edge", default_voice, voice_gender,
+         "queued", "queued"))
     dub_id = cur.lastrowid
     db.commit()
     job_id = jobs.enqueue("dub", None, {"dub_id": dub_id},
                           target_kind="dub", target_id=dub_id, max_attempts=1)
     dub = dict(db.execute("SELECT * FROM dubs WHERE id=?", (dub_id,)).fetchone())
     return {"dub": dub, "job_id": job_id, "status": "queued"}
+
+
+@app.delete("/api/dubs/{dub_id}")
+def delete_dub(dub_id: int):
+    db = get_db()
+    row = db.execute("SELECT * FROM dubs WHERE id=?", (dub_id,)).fetchone()
+    if not row:
+        raise HTTPException(404)
+    # detach from any recomposition items still pointing at it
+    db.execute("UPDATE recomp_cuts SET audio_mode='original', dub_id=NULL WHERE dub_id=?",
+               (dub_id,))
+    db.execute("DELETE FROM dubs WHERE id=?", (dub_id,))
+    db.commit()
+    shutil.rmtree(jobs._dub_dir(dub_id), ignore_errors=True)
+    return {"ok": True}
 
 
 @app.get("/api/dubs/{dub_id}/audio")
@@ -1393,14 +1454,24 @@ def translate_recomp(recomp_id: int, body: RecompTranslateIn):
 # ------------------------------------------------------------- export
 
 class ExportIn(BaseModel):
-    audio_mode: str = "sequence"  # sequence | original | target_dub
+    # original = source audio · sequence = per-cut studio choice · dub = translate
+    # + dub every cut into target_lang and compose
+    audio_mode: str = "original"
     target_lang: str = ""
+    source_language: str = "auto"
     quality: str = "720p"
+    keep_accompaniment: bool = True   # keep the separated background music/SFX
+    keep_source_vocals: bool = False  # keep the original-language voices too
+    user_id: int | None = None
 
 
 @app.post("/api/recompositions/{recomp_id}/export")
 def export_recomp(recomp_id: int, body: ExportIn | None = None):
-    """Render the recomposition into one real .mp4 (or .wav if audio-only)."""
+    """Render the recomposition into one real .mp4 (or .wav if audio-only).
+
+    In `dub` mode this single call translates every cut into `target_lang`,
+    generates the gendered dubs (vocals removed via separation), and composes
+    the final audio honouring keep_accompaniment / keep_source_vocals."""
     db = get_db()
     if not db.execute("SELECT 1 FROM recompositions WHERE id=?", (recomp_id,)).fetchone():
         raise HTTPException(404)
@@ -1415,22 +1486,38 @@ def export_recomp(recomp_id: int, body: ExportIn | None = None):
     if running:
         raise HTTPException(409, "an export of this recomposition is already running")
     body = body or ExportIn()
-    audio_mode = (body.audio_mode or "sequence").strip()
-    if audio_mode not in ("sequence", "original", "target_dub"):
-        raise HTTPException(400, "audio_mode must be sequence, original, or target_dub")
+    audio_mode = (body.audio_mode or "original").strip()
+    if audio_mode == "target_dub":   # legacy alias
+        audio_mode = "dub"
+    if audio_mode not in ("original", "sequence", "dub"):
+        raise HTTPException(400, "audio_mode must be original, sequence, or dub")
     quality = (body.quality or "720p").strip()
     if quality not in media_ops.EXPORT_PRESETS:
         raise HTTPException(400, "quality must be 480p, 720p, or 1080p")
     target_lang = _norm_lang_code_or_empty(body.target_lang)
-    if audio_mode == "target_dub" and not target_lang:
-        raise HTTPException(400, "target_lang is required for translated dub export")
+    if audio_mode == "dub":
+        if not target_lang:
+            raise HTTPException(400, "target_lang is required for a dub export")
+        lang = db.execute("SELECT tts_voice, tts_voice_female, tts_voice_male "
+                          "FROM languages WHERE code=?", (target_lang,)).fetchone()
+        if not lang:
+            raise HTTPException(404, f"language {target_lang} is not configured")
+        if not (lang["tts_voice"] or lang["tts_voice_female"] or lang["tts_voice_male"]):
+            raise HTTPException(400,
+                f"language {target_lang} has no TTS voice — set one in Settings")
+    source_language = (body.source_language or "auto").strip()
+    if source_language and source_language != "auto":
+        source_language = _norm_lang_code(source_language)
     return {"job_id": jobs.enqueue("export", None, {
         "recomp_id": recomp_id,
         "audio_mode": audio_mode,
         "target_lang": target_lang,
+        "source_language": source_language or "auto",
         "quality": quality,
-    },
-                                   target_kind="recomposition", target_id=recomp_id)}
+        "keep_accompaniment": bool(body.keep_accompaniment),
+        "keep_source_vocals": bool(body.keep_source_vocals),
+        "user_id": body.user_id,
+    }, target_kind="recomposition", target_id=recomp_id)}
 
 
 @app.get("/api/recompositions/{recomp_id}/exports")
@@ -1466,6 +1553,106 @@ def delete_export(filename: str):
         raise HTTPException(404)
     media_ops.safe_unlink(path)
     return {"ok": True}
+
+
+# --------------------------------------------- background audio (P3)
+
+@app.get("/api/audio-assets")
+def list_audio_assets():
+    return rows_to_dicts(get_db().execute("""
+        SELECT a.*, u.name AS added_by_name FROM audio_assets a
+        LEFT JOIN users u ON u.id = a.added_by ORDER BY a.id DESC"""))
+
+
+@app.post("/api/audio-assets")
+async def upload_audio_asset(file: UploadFile = File(...),
+                             name: str = Form(""),
+                             user_id: int = Form(...)):
+    """Upload a background-audio bed (music/ambience) for use as a layer."""
+    media_ops.BG_AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+    db = get_db()
+    title = name.strip() or Path(file.filename or "audio").stem
+    suffix = Path(file.filename or "a.mp3").suffix.lower() or ".mp3"
+    cur = db.execute(
+        "INSERT INTO audio_assets (name, filename, added_by) VALUES (?,?,?)",
+        (title, "", user_id))
+    asset_id = cur.lastrowid
+    stored = f"{asset_id}{suffix}"
+    dest = media_ops.bg_audio_path(stored)
+    try:
+        with dest.open("wb") as out:
+            shutil.copyfileobj(file.file, out, length=1024 * 1024)
+    except Exception as e:
+        db.execute("DELETE FROM audio_assets WHERE id=?", (asset_id,))
+        db.commit()
+        raise HTTPException(400, f"could not save audio: {e}")
+    dur = media_ops.duration(dest)
+    db.execute("UPDATE audio_assets SET filename=?, duration_s=? WHERE id=?",
+               (stored, dur, asset_id))
+    db.commit()
+    return dict(db.execute("SELECT * FROM audio_assets WHERE id=?", (asset_id,)).fetchone())
+
+
+@app.get("/api/audio-assets/{asset_id}/audio")
+def stream_audio_asset(asset_id: int):
+    row = get_db().execute("SELECT * FROM audio_assets WHERE id=?", (asset_id,)).fetchone()
+    if not row or not row["filename"]:
+        raise HTTPException(404)
+    path = media_ops.bg_audio_path(row["filename"])
+    if not path.is_file():
+        raise HTTPException(404)
+    return FileResponse(path, media_type=mimetypes.guess_type(str(path))[0] or "audio/mpeg")
+
+
+@app.delete("/api/audio-assets/{asset_id}")
+def delete_audio_asset(asset_id: int):
+    db = get_db()
+    row = db.execute("SELECT * FROM audio_assets WHERE id=?", (asset_id,)).fetchone()
+    if not row:
+        raise HTTPException(404)
+    db.execute("DELETE FROM audio_assets WHERE id=?", (asset_id,))  # cascades layers
+    db.commit()
+    if row["filename"]:
+        media_ops.safe_unlink(media_ops.bg_audio_path(row["filename"]))
+    return {"ok": True}
+
+
+class AudioLayerItem(BaseModel):
+    asset_id: int
+    from_pos: int = 0
+    to_pos: int = 0
+    gain: float = 1.0
+    fit: str = "loop"   # loop | stretch | trim
+
+
+class AudioLayers(BaseModel):
+    layers: list[AudioLayerItem]
+
+
+@app.get("/api/recompositions/{recomp_id}/audio-layers")
+def list_audio_layers(recomp_id: int):
+    return rows_to_dicts(get_db().execute("""
+        SELECT ral.*, aa.name AS asset_name, aa.duration_s AS asset_duration
+        FROM recomp_audio_layers ral JOIN audio_assets aa ON aa.id = ral.asset_id
+        WHERE ral.recomp_id=? ORDER BY ral.ord, ral.id""", (recomp_id,)))
+
+
+@app.put("/api/recompositions/{recomp_id}/audio-layers")
+def set_audio_layers(recomp_id: int, body: AudioLayers):
+    db = get_db()
+    if not db.execute("SELECT 1 FROM recompositions WHERE id=?", (recomp_id,)).fetchone():
+        raise HTTPException(404)
+    db.execute("DELETE FROM recomp_audio_layers WHERE recomp_id=?", (recomp_id,))
+    for i, l in enumerate(body.layers):
+        fit = l.fit if l.fit in ("loop", "stretch", "trim") else "loop"
+        db.execute(
+            "INSERT INTO recomp_audio_layers "
+            "(recomp_id, asset_id, from_pos, to_pos, gain, fit, ord) "
+            "VALUES (?,?,?,?,?,?,?)",
+            (recomp_id, l.asset_id, max(0, l.from_pos), max(0, l.to_pos),
+             max(0.0, l.gain), fit, i))
+    db.commit()
+    return list_audio_layers(recomp_id)
 
 
 # ------------------------------------------------------------ frontend

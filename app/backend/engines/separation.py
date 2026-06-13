@@ -5,11 +5,10 @@ Jobs and tests can swap the default engine without touching the queue layer.
 """
 from __future__ import annotations
 
-import shutil
 import subprocess
-import sys
 import time
 import importlib.util
+import wave
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Protocol
@@ -22,6 +21,29 @@ CheckCancel = Callable[[], None] | None
 class SeparationResult:
     vocals: Path
     accompaniment: Path
+
+
+def _save_wav(tensor, samplerate: int, path: Path):
+    """Write an audio tensor/array [channels, samples] to a 16-bit PCM WAV using
+    only numpy + the stdlib — avoids torchaudio's save backend, which is often
+    missing on Windows (`soundfile`/`sox` not installed → demucs save crashes)."""
+    import numpy as np
+
+    arr = tensor
+    if hasattr(arr, "detach"):
+        arr = arr.detach()
+    if hasattr(arr, "cpu"):
+        arr = arr.cpu()
+    arr = np.asarray(arr, dtype=np.float32)
+    if arr.ndim == 1:
+        arr = arr[None, :]
+    data = np.clip(arr.T, -1.0, 1.0)               # [samples, channels]
+    pcm = (data * 32767.0).astype("<i2")
+    with wave.open(str(path), "wb") as w:
+        w.setnchannels(pcm.shape[1])
+        w.setsampwidth(2)
+        w.setframerate(int(samplerate))
+        w.writeframes(pcm.tobytes())
 
 
 class SeparationEngine(Protocol):
@@ -58,44 +80,68 @@ def _run_cancelable(cmd: list[str], check_cancel: CheckCancel = None,
 
 
 class DemucsEngine:
-    """Demucs htdemucs two-stem separation.
+    """Demucs htdemucs separation via its stable low-level functions.
 
-    The command writes Demucs' native tree into a temporary folder, then copies
-    the two expected stems into stable cache names used by later phases.
+    We deliberately avoid both the demucs CLI and `demucs.api`: the CLI saves
+    stems with `torchaudio.save`, which needs a `soundfile`/`sox` backend that
+    is absent on many Windows installs (torchaudio 2.x ships none), and
+    `demucs.api` doesn't exist in demucs 4.0.1. Instead we load with demucs'
+    ffmpeg-based `AudioFile`, run `apply_model`, and write the WAVs ourselves —
+    no torchaudio backend required. Accompaniment = sum of the non-vocal stems
+    (drums + bass + other). The model is cached across cuts.
     """
 
     name = "demucs"
 
     def __init__(self, model: str = "htdemucs"):
         self.model = model
+        self._model_obj = None
+
+    def _model(self):
+        if self._model_obj is None:
+            from demucs.pretrained import get_model
+            m = get_model(self.model)
+            m.eval()
+            self._model_obj = m
+        return self._model_obj
 
     def separate_vocals(self, input_audio: Path, out_dir: Path,
                         check_cancel: CheckCancel = None) -> SeparationResult:
+        from demucs.apply import apply_model
+        from demucs.audio import AudioFile
+
         out_dir.mkdir(parents=True, exist_ok=True)
-        work = out_dir / "_demucs"
-        shutil.rmtree(work, ignore_errors=True)
-        work.mkdir(parents=True, exist_ok=True)
+        if check_cancel:
+            check_cancel()
+        model = self._model()
+        wav = AudioFile(str(input_audio)).read(
+            streams=0, samplerate=model.samplerate, channels=model.audio_channels)
+        ref = wav.mean(0)
+        wav_n = (wav - ref.mean()) / (ref.std() + 1e-8)   # demucs normalization
+        if check_cancel:
+            check_cancel()
+        sources = apply_model(model, wav_n[None], device="cpu", split=True,
+                              overlap=0.25, progress=False)[0]
+        sources = sources * ref.std() + ref.mean()
+        if check_cancel:
+            check_cancel()
 
-        cmd = [
-            sys.executable, "-m", "demucs",
-            "-n", self.model,
-            "--two-stems", "vocals",
-            "-o", str(work),
-            str(input_audio),
-        ]
-        _run_cancelable(cmd, check_cancel)
-
-        native_dir = work / self.model / input_audio.stem
-        vocals_src = native_dir / "vocals.wav"
-        accomp_src = native_dir / "no_vocals.wav"
-        if not vocals_src.exists() or not accomp_src.exists():
-            raise RuntimeError("demucs did not produce vocals/no_vocals stems")
+        names = list(model.sources)
+        if "vocals" not in names:
+            raise RuntimeError("demucs model has no vocals stem")
+        vi = names.index("vocals")
+        vocals_t = sources[vi]
+        others = [sources[i] for i in range(len(names)) if i != vi]
+        if not others:
+            raise RuntimeError("demucs produced no accompaniment stems")
+        accomp_t = others[0].clone()
+        for o in others[1:]:
+            accomp_t = accomp_t + o
 
         vocals = out_dir / "vocals.wav"
         accompaniment = out_dir / "accompaniment.wav"
-        shutil.copy2(vocals_src, vocals)
-        shutil.copy2(accomp_src, accompaniment)
-        shutil.rmtree(work, ignore_errors=True)
+        _save_wav(vocals_t, model.samplerate, vocals)
+        _save_wav(accomp_t, model.samplerate, accompaniment)
         return SeparationResult(vocals=vocals, accompaniment=accompaniment)
 
 
