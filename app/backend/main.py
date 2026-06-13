@@ -338,7 +338,9 @@ def _norm_lang_code_or_empty(code: str | None) -> str:
 
 def _language_payload(row) -> dict:
     d = dict(row)
-    d["dub_capable"] = bool((d.get("tts_voice") or "").strip())
+    d["dub_capable"] = bool((d.get("tts_voice") or "").strip()
+                            or (d.get("tts_voice_female") or "").strip()
+                            or (d.get("tts_voice_male") or "").strip())
     return d
 
 
@@ -347,12 +349,16 @@ class LanguageIn(BaseModel):
     name: str = ""
     tts_engine: str = "edge"
     tts_voice: str = ""
+    tts_voice_female: str = ""
+    tts_voice_male: str = ""
 
 
 class LanguageUpdate(BaseModel):
     name: str | None = None
     tts_engine: str | None = None
     tts_voice: str | None = None
+    tts_voice_female: str | None = None
+    tts_voice_male: str | None = None
 
 
 @app.get("/api/languages")
@@ -370,8 +376,11 @@ def create_language(lang: LanguageIn):
     voice = (lang.tts_voice or "").strip()
     try:
         db.execute(
-            "INSERT INTO languages (code, name, tts_engine, tts_voice) VALUES (?,?,?,?)",
-            (code, name, engine, voice))
+            "INSERT INTO languages (code, name, tts_engine, tts_voice, "
+            "tts_voice_female, tts_voice_male) VALUES (?,?,?,?,?,?)",
+            (code, name, engine, voice,
+             (lang.tts_voice_female or "").strip(),
+             (lang.tts_voice_male or "").strip()))
         db.commit()
     except sqlite3.IntegrityError:
         raise HTTPException(409, f"language {code} already exists")
@@ -395,6 +404,12 @@ def update_language(code: str, lang: LanguageUpdate):
     if lang.tts_voice is not None:
         db.execute("UPDATE languages SET tts_voice=?, updated_at=datetime('now') WHERE code=?",
                    ((lang.tts_voice or "").strip(), code))
+    if lang.tts_voice_female is not None:
+        db.execute("UPDATE languages SET tts_voice_female=?, updated_at=datetime('now') WHERE code=?",
+                   ((lang.tts_voice_female or "").strip(), code))
+    if lang.tts_voice_male is not None:
+        db.execute("UPDATE languages SET tts_voice_male=?, updated_at=datetime('now') WHERE code=?",
+                   ((lang.tts_voice_male or "").strip(), code))
     db.commit()
     return _language_payload(db.execute(
         "SELECT * FROM languages WHERE code=?", (code,)).fetchone())
@@ -1022,12 +1037,15 @@ def delete_translation(translation_id: int):
 def create_dub(translation_id: int):
     db = get_db()
     row = db.execute("""
-        SELECT ct.*, l.tts_engine, l.tts_voice
+        SELECT ct.*, l.tts_engine, l.tts_voice, l.tts_voice_female, l.tts_voice_male
         FROM cut_translations ct JOIN languages l ON l.code=ct.lang_code
         WHERE ct.id=?""", (translation_id,)).fetchone()
     if not row:
         raise HTTPException(404)
-    if not (row["tts_voice"] or "").strip():
+    default_voice = ((row["tts_voice"] or "").strip()
+                     or (row["tts_voice_female"] or "").strip()
+                     or (row["tts_voice_male"] or "").strip())
+    if not default_voice:
         raise HTTPException(400, f"language {row['lang_code']} has no TTS voice configured")
     running = db.execute("""
         SELECT * FROM dubs WHERE translation_id=? AND status IN ('queued','running')
@@ -1037,7 +1055,7 @@ def create_dub(translation_id: int):
     cur = db.execute(
         "INSERT INTO dubs (translation_id, engine, voice, status, detail) "
         "VALUES (?,?,?,?,?)",
-        (translation_id, row["tts_engine"] or "edge", row["tts_voice"], "queued", "queued"))
+        (translation_id, row["tts_engine"] or "edge", default_voice, "queued", "queued"))
     dub_id = cur.lastrowid
     db.commit()
     job_id = jobs.enqueue("dub", None, {"dub_id": dub_id},
@@ -1066,6 +1084,7 @@ class SegmentUpdate(BaseModel):
     text: str | None = None
     start_s: float | None = None
     end_s: float | None = None
+    gender: str | None = None  # 'M' | 'F' | '' (clear) — speaker gender for dubs
 
 
 class SegmentIn(BaseModel):
@@ -1088,6 +1107,12 @@ def update_segment(seg_id: int, u: SegmentUpdate):
         raise HTTPException(400, "end time must be after start time")
     db.execute("UPDATE segments SET text=?, start_s=?, end_s=? WHERE id=?",
                (text.strip(), round(start, 3), round(end, 3), seg_id))
+    if u.gender is not None:  # manual override wins over auto inference
+        g = u.gender.strip().upper()
+        if g not in ("M", "F", ""):
+            raise HTTPException(400, "gender must be 'M', 'F' or '' to clear")
+        db.execute("UPDATE segments SET gender=?, gender_source=? WHERE id=?",
+                   (g or None, "manual" if g else None, seg_id))
     if u.start_s is not None:  # order may have changed
         _reindex_track(db, row["track_id"])
     db.commit()

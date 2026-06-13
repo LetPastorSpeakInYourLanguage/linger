@@ -207,6 +207,23 @@ def _m2_languages(conn):
             (code, name, engine, voice))
 
 
+# Edge-TTS female/male voices for the seeded languages. Used to give translated
+# speech a voice that matches each speaker's inferred gender.
+GENDER_VOICE_DEFAULTS = {
+    "en": ("en-US-JennyNeural", "en-US-GuyNeural"),
+    "es": ("es-ES-ElviraNeural", "es-ES-AlvaroNeural"),
+    "fr": ("fr-FR-DeniseNeural", "fr-FR-HenriNeural"),
+    "de": ("de-DE-KatjaNeural", "de-DE-ConradNeural"),
+    "pt": ("pt-BR-FranciscaNeural", "pt-BR-AntonioNeural"),
+    "ar": ("ar-SA-ZariyahNeural", "ar-SA-HamedNeural"),
+    "hi": ("hi-IN-SwaraNeural", "hi-IN-MadhurNeural"),
+    "ja": ("ja-JP-NanamiNeural", "ja-JP-KeitaNeural"),
+    "ko": ("ko-KR-SunHiNeural", "ko-KR-InJoonNeural"),
+    "zh": ("zh-CN-XiaoxiaoNeural", "zh-CN-YunxiNeural"),
+    "am": ("am-ET-MekdesNeural", "am-ET-AmehaNeural"),
+}
+
+
 def _m3_translations_dubs(conn):
     """Cut translations, generated dub artifacts, and recomposition audio mode."""
     _add_columns(conn, "tracks", [
@@ -250,12 +267,34 @@ def _m3_translations_dubs(conn):
     ])
 
 
+def _m4_gender_voices(conn):
+    """Per-gender TTS voices + per-segment inferred speaker gender, so a dub
+    can use a male or female voice that matches each line's speaker."""
+    _add_columns(conn, "languages", [
+        "tts_voice_female TEXT NOT NULL DEFAULT ''",
+        "tts_voice_male TEXT NOT NULL DEFAULT ''",
+    ])
+    # gender: 'M' | 'F' | NULL (unknown). source: 'auto' | 'manual'.
+    _add_columns(conn, "segments", [
+        "gender TEXT",
+        "gender_source TEXT",
+    ])
+    for code, (female, male) in GENDER_VOICE_DEFAULTS.items():
+        conn.execute(
+            "UPDATE languages SET tts_voice_female=? "
+            "WHERE code=? AND tts_voice_female=''", (female, code))
+        conn.execute(
+            "UPDATE languages SET tts_voice_male=? "
+            "WHERE code=? AND tts_voice_male=''", (male, code))
+
+
 # Ordered, run-once migrations tracked via PRAGMA user_version. Append only —
 # never reorder or edit a shipped migration.
 MIGRATIONS = [
     _m1_jobs_queue,
     _m2_languages,
     _m3_translations_dubs,
+    _m4_gender_voices,
 ]
 
 

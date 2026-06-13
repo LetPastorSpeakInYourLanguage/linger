@@ -69,3 +69,26 @@ something we missed is that when user deletes a subtitle track, if it is the las
 - Full End to End testing of All Features from Uploaded to Community and all Social Media Pushed Recomposition Content
 
 You have Delivered the MVP, but now I want to know how we are moving forward, remember I still have a lot of integrations to be added to this application, what are in plan for the complete build - above I have listed things that are my important (you probably also got them from the notes we started with,) can you please re-evaluate how far we have come and if we are actually on track to make all this updates, and what things are possible from my list, and first build me a feature list with epics and milestones (as use-cases) and the complete plan with todos on how to get to the complete system and then we will follow that plan thoroughly
+
+
+-----------
+codex tried to build the remaining phases of on your plan earlier
+
+@app/docs/codex.md  /code-review  I had codex try and build until phase two of our plan @app/docs/ROADMAP.md  - please look through what changes it has make and fix those that are not inline with the idea we are working towards (and also I don't think the vocals + accompaninemt splitting of source media voices is working) - the exports are just the target language voice added on the source media full audio, there is no removal of the vocal parts of the source media in the source language so that we replace it with the target language's voice only
+
+also I want to be able to use multiple voices to actually make a different between the different speakers as their voice is translated - atleast male and female voices should be translated respectfully (I have attached the complete logic for implementing this kind of structure to reference from in @app/temp - from my previous attempts to build this app) [ atleast gender based differentiation should be available - their gender can be infered and adjusted by user at recomposition export it if the processes is damaging to how we started ]
+
+and please lets also make the source media decoupled, so that anyone with access to the system, who might not have access to the media files in their local pc, can link to it via, link or add a reference from their own pc local storage and the videos would just work, you'ld just need to verify a sha256 matching to confirm that they have located the exact same source media (if it is from a file)
+
+also as very high difficulty additions don't forget we need
+- a complete dynamic length backgrond audio studio where we store bg-audio's and then also apply algorithms to actually cut them in the right places and extend them to each other to make the same audio be of any length that we want so that we can add bg-audio spanning any length of cuts, like I can say for this 12 cut sequence use these 3 bg-audios in this order and cuts of those will be accurate length matched to the recomposition
+
+- and the .ass based (or if you have a better recommendation I am up for it), overlay text display method on which we can show, captions, any other text, or anything we want visual wise on the video overlay
+
+- this all means that there will be multiple parrallel tracks on the recomposition studio (overlays, main videos, bg-audios), ...
+
+
+so please review where we are, the code codex built, where we are planning to go, things we need to adjust and the feasible way forward
+
+
+also please remember - we are working towards 

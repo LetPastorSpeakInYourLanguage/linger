@@ -21,6 +21,8 @@ function LanguageRow({ lang, onSaved, onDeleted }) {
     name: lang.name,
     tts_engine: lang.tts_engine || "edge",
     tts_voice: lang.tts_voice || "",
+    tts_voice_female: lang.tts_voice_female || "",
+    tts_voice_male: lang.tts_voice_male || "",
   });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -28,8 +30,13 @@ function LanguageRow({ lang, onSaved, onDeleted }) {
   const dirty = useMemo(() =>
     draft.name !== lang.name ||
     draft.tts_engine !== (lang.tts_engine || "edge") ||
-    draft.tts_voice !== (lang.tts_voice || ""),
+    draft.tts_voice !== (lang.tts_voice || "") ||
+    draft.tts_voice_female !== (lang.tts_voice_female || "") ||
+    draft.tts_voice_male !== (lang.tts_voice_male || ""),
     [draft, lang]);
+
+  const dubReady = draft.tts_voice.trim() || draft.tts_voice_female.trim()
+    || draft.tts_voice_male.trim();
 
   const save = async () => {
     setBusy(true); setErr("");
@@ -53,17 +60,27 @@ function LanguageRow({ lang, onSaved, onDeleted }) {
     <div className="grid grid-cols-[72px_1.2fr_88px_1.5fr_96px] gap-2 items-center px-3 py-2 border-b border-zinc-800">
       <div>
         <p className="font-mono text-sm text-zinc-200">{lang.code}</p>
-        <p className={`text-[11px] ${draft.tts_voice.trim() ? "text-emerald-400" : "text-zinc-600"}`}>
-          {draft.tts_voice.trim() ? "dub ready" : "text only"}
+        <p className={`text-[11px] ${dubReady ? "text-emerald-400" : "text-zinc-600"}`}>
+          {dubReady ? "dub ready" : "text only"}
         </p>
       </div>
       <input className={inputCls} value={draft.name}
         onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
       <input className={inputCls} value={draft.tts_engine}
         onChange={(e) => setDraft({ ...draft, tts_engine: e.target.value })} />
-      <input className={inputCls} list="voice-hints" placeholder="Edge voice name"
-        value={draft.tts_voice}
-        onChange={(e) => setDraft({ ...draft, tts_voice: e.target.value })} />
+      <div className="space-y-1">
+        <input className={inputCls} list="voice-hints" placeholder="default voice"
+          value={draft.tts_voice}
+          onChange={(e) => setDraft({ ...draft, tts_voice: e.target.value })} />
+        <div className="flex gap-1">
+          <input className={inputCls} list="voice-hints" placeholder="♀ female voice"
+            value={draft.tts_voice_female}
+            onChange={(e) => setDraft({ ...draft, tts_voice_female: e.target.value })} />
+          <input className={inputCls} list="voice-hints" placeholder="♂ male voice"
+            value={draft.tts_voice_male}
+            onChange={(e) => setDraft({ ...draft, tts_voice_male: e.target.value })} />
+        </div>
+      </div>
       <div className="flex items-center justify-end gap-1">
         <button className={`${btnCls} !px-2`} disabled={busy || !dirty} onClick={save}>
           Save
@@ -88,6 +105,8 @@ export default function Settings() {
     name: "",
     tts_engine: "edge",
     tts_voice: "",
+    tts_voice_female: "",
+    tts_voice_male: "",
   });
 
   const refresh = () =>
@@ -102,7 +121,8 @@ export default function Settings() {
     setBusy(true); setErr("");
     try {
       await api.post("/api/languages", form);
-      setForm({ code: "", name: "", tts_engine: "edge", tts_voice: "" });
+      setForm({ code: "", name: "", tts_engine: "edge", tts_voice: "",
+                tts_voice_female: "", tts_voice_male: "" });
       refresh();
     } catch (e) { setErr(e.message); }
     setBusy(false);
@@ -136,9 +156,19 @@ export default function Settings() {
                   onChange={(e) => setForm({ ...form, name: e.target.value })} />
                 <input className={inputCls} value={form.tts_engine}
                   onChange={(e) => setForm({ ...form, tts_engine: e.target.value })} />
-                <input className={inputCls} list="voice-hints" placeholder="optional"
-                  value={form.tts_voice}
-                  onChange={(e) => setForm({ ...form, tts_voice: e.target.value })} />
+                <div className="space-y-1">
+                  <input className={inputCls} list="voice-hints" placeholder="default voice (optional)"
+                    value={form.tts_voice}
+                    onChange={(e) => setForm({ ...form, tts_voice: e.target.value })} />
+                  <div className="flex gap-1">
+                    <input className={inputCls} list="voice-hints" placeholder="♀ female"
+                      value={form.tts_voice_female}
+                      onChange={(e) => setForm({ ...form, tts_voice_female: e.target.value })} />
+                    <input className={inputCls} list="voice-hints" placeholder="♂ male"
+                      value={form.tts_voice_male}
+                      onChange={(e) => setForm({ ...form, tts_voice_male: e.target.value })} />
+                  </div>
+                </div>
                 <button className={btnCls} disabled={busy || !form.code.trim()} onClick={add}>
                   Add
                 </button>

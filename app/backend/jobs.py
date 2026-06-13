@@ -19,11 +19,13 @@ the optional "whisper" dict ({"model": ...}) rides along the chain.
 """
 import json
 import os
+import shutil
 import socket
 import threading
 import traceback
 from pathlib import Path
 
+from . import gender as gender_mod
 from . import media_ops, translation_ops
 from .db import get_db
 from .engines import separation, tts
@@ -244,6 +246,46 @@ def _dub_dir(dub_id: int) -> Path:
     return d
 
 
+def _infer_segment_genders(ctx: JobContext, segs: list[dict], cache: dict,
+                           cut_start: float):
+    """Fill in each segment's speaker gender (for male/female voice choice) by
+    measuring pitch on that segment's slice of the vocals stem. Only segments
+    with no gender yet are touched, and results persist so a user can override
+    them later (gender_source stays 'auto')."""
+    todo = [s for s in segs if not s.get("gender")]
+    if not todo:
+        return
+    db = get_db()
+    vocals = cache.get("vocals")
+    work = cache["dir"] / "_gender"
+    work.mkdir(parents=True, exist_ok=True)
+    for s in todo:
+        ctx.check_cancel()
+        guess = None
+        if vocals and Path(vocals).exists():
+            offset = max(0.0, float(s["start_s"]) - float(cache["start_s"]))
+            dur = max(0.2, float(s["end_s"]) - float(s["start_s"]))
+            slice_wav = work / f"seg_{s['id']}.wav"
+            try:
+                media_ops._run_ffmpeg([
+                    "ffmpeg", "-y", "-ss", f"{offset:.3f}", "-t", f"{dur:.3f}",
+                    "-i", str(vocals), "-ar", "22050", "-ac", "1",
+                    "-c:a", "pcm_s16le", str(slice_wav),
+                ], check_cancel=ctx.check_cancel, timeout=600)
+                guess = gender_mod.estimate_gender(slice_wav)
+            except Exception as e:
+                log(f"gender inference failed for segment {s['id']}: {e}")
+            finally:
+                media_ops.safe_unlink(slice_wav)
+        if guess:
+            s["gender"] = guess
+            db.execute(
+                "UPDATE segments SET gender=?, gender_source='auto' "
+                "WHERE id=? AND gender IS NULL", (guess, s["id"]))
+    db.commit()
+    shutil.rmtree(work, ignore_errors=True)
+
+
 def _boundary_payload(boundary, segment_id: int, segment_offset_ms: int) -> dict:
     return {
         "segment_id": segment_id,
@@ -263,7 +305,8 @@ def _run_dub(ctx: JobContext, payload: dict):
     db.commit()
     try:
         row = db.execute("""
-            SELECT d.*, ct.cut_id, ct.lang_code, l.tts_engine, l.tts_voice
+            SELECT d.*, ct.cut_id, ct.lang_code, l.tts_engine, l.tts_voice,
+                   l.tts_voice_female, l.tts_voice_male
             FROM dubs d
             JOIN cut_translations ct ON ct.id=d.translation_id
             JOIN languages l ON l.code=ct.lang_code
@@ -271,12 +314,21 @@ def _run_dub(ctx: JobContext, payload: dict):
         if not row:
             raise RuntimeError("dub not found")
         cut_id = int(row["cut_id"])
-        voice = row["voice"] or row["tts_voice"]
-        if not voice:
+        default_voice = row["voice"] or row["tts_voice"]
+        female_voice = row["tts_voice_female"] or default_voice
+        male_voice = row["tts_voice_male"] or default_voice
+        if not default_voice:
             raise RuntimeError(f"language {row['lang_code']} has no TTS voice configured")
 
+        def voice_for(gender):
+            if gender == "F":
+                return female_voice
+            if gender == "M":
+                return male_voice
+            return default_voice
+
         segs = db.execute("""
-            SELECT s.id, s.start_s, s.end_s, ts.text
+            SELECT s.id, s.start_s, s.end_s, s.gender, ts.text
             FROM cut_segments cs
             JOIN segments s ON s.id=cs.segment_id
             JOIN translation_segments ts
@@ -285,6 +337,7 @@ def _run_dub(ctx: JobContext, payload: dict):
             ORDER BY cs.position""", (row["translation_id"], cut_id)).fetchall()
         if not segs:
             raise RuntimeError("translation has no segments")
+        segs = [dict(s) for s in segs]
 
         cut_start = min(float(s["start_s"]) for s in segs)
         cut_end = max(float(s["end_s"]) for s in segs)
@@ -292,6 +345,7 @@ def _run_dub(ctx: JobContext, payload: dict):
 
         ctx.report("preparing accompaniment stem", progress=10)
         cache = _ensure_cut_stems(ctx, cut_id, 3.0)
+        _infer_segment_genders(ctx, segs, cache, cut_start)
         work = _dub_dir(dub_id)
         base = work / "accompaniment_cut.wav"
         stem_offset = max(0.0, cut_start - cache["start_s"])
@@ -309,9 +363,11 @@ def _run_dub(ctx: JobContext, payload: dict):
             if not text:
                 continue
             pct = 35 + (i / max(1, len(segs))) * 40
-            ctx.report(f"synthesizing segment {i + 1}/{len(segs)}", progress=pct)
+            seg_voice = voice_for(seg.get("gender"))
+            ctx.report(f"synthesizing segment {i + 1}/{len(segs)} ({seg_voice})",
+                       progress=pct)
             raw = work / f"tts_{i:03d}.mp3"
-            result = engine.synthesize(text, voice, raw)
+            result = engine.synthesize(text, seg_voice, raw)
             for b in result.word_boundaries:
                 boundaries.append(_boundary_payload(
                     b, int(seg["id"]), int(round((float(seg["start_s"]) - cut_start) * 1000))))
@@ -342,7 +398,8 @@ def _run_dub(ctx: JobContext, payload: dict):
             mix_inputs = "[0:a]" + "".join(f"[a{i}]" for i in range(1, len(speech_files) + 1))
             filters.append(
                 f"{mix_inputs}amix=inputs={len(speech_files) + 1}:duration=first:"
-                f"dropout_transition=0,atrim=0:{cut_duration:.3f},asetpts=N/SR/TB[aout]")
+                f"dropout_transition=0:normalize=0,"
+                f"atrim=0:{cut_duration:.3f},asetpts=N/SR/TB[aout]")
             cmd += ["-filter_complex", ";".join(filters), "-map", "[aout]",
                     "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(final)]
         else:
