@@ -942,15 +942,21 @@ def _run_export(ctx: JobContext, payload: dict):
 
         bg_layers = []
         for lr in db.execute("""
-                SELECT ral.from_pos, ral.to_pos, ral.gain, ral.fit, aa.filename
+                SELECT ral.from_pos, ral.to_pos, ral.gain, ral.fit, aa.filename,
+                       aa.trim_start_s, aa.trim_end_s, aa.loop_start_s, aa.loop_end_s,
+                       aa.fade_in_s, aa.fade_out_s
                 FROM recomp_audio_layers ral
                 JOIN audio_assets aa ON aa.id=ral.asset_id
                 WHERE ral.recomp_id=? ORDER BY ral.ord, ral.id""", (recomp_id,)):
             path = media_ops.bg_audio_path(lr["filename"])
             if path.exists():
-                bg_layers.append({"asset_path": str(path), "from_pos": lr["from_pos"],
-                                  "to_pos": lr["to_pos"], "gain": lr["gain"],
-                                  "fit": lr["fit"]})
+                bg_layers.append({
+                    "asset_path": str(path), "from_pos": lr["from_pos"],
+                    "to_pos": lr["to_pos"], "gain": lr["gain"], "fit": lr["fit"],
+                    "trim_start": lr["trim_start_s"] or 0.0, "trim_end": lr["trim_end_s"],
+                    "loop_start": lr["loop_start_s"], "loop_end": lr["loop_end_s"],
+                    "fade_in": lr["fade_in_s"] or 0.0, "fade_out": lr["fade_out_s"] or 0.0,
+                })
 
         final = media_ops.export_recomposition(recomp_id, title, cuts,
                                                on_progress=prog,

@@ -4,6 +4,7 @@ import Library from "./components/Library";
 import MediaView from "./components/MediaView";
 import { CutsPage } from "./components/CutBrowser";
 import Studio from "./components/Studio";
+import AudioStudio from "./components/AudioStudio";
 import JobsPanel from "./components/JobsPanel";
 import Settings from "./components/Settings";
 
@@ -57,6 +58,7 @@ const TABS = [
   { id: "library", label: "Library" },
   { id: "cuts", label: "Cuts" },
   { id: "studio", label: "Studio" },
+  { id: "audio", label: "Audio" },
   { id: "settings", label: "Settings" },
 ];
 
@@ -133,6 +135,7 @@ export default function App() {
         )}
         {view.tab === "cuts" && <CutsPage user={user} openMedia={openMedia} />}
         {view.tab === "studio" && <Studio user={user} />}
+        {view.tab === "audio" && <AudioStudio user={user} />}
         {view.tab === "settings" && <Settings />}
       </main>
     </div>

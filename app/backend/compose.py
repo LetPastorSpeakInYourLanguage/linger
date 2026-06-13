@@ -60,30 +60,68 @@ def _atempo_chain(ratio: float) -> str:
 
 
 def render_layer(asset_path: Path, target_dur: float, fit: str, gain: float,
-                 out: Path, check_cancel=None) -> Path:
-    """Produce a stereo WAV of exactly `target_dur` seconds from `asset_path`.
+                 out: Path, *, trim_start: float = 0.0, trim_end: float | None = None,
+                 loop_start: float | None = None, loop_end: float | None = None,
+                 fade_in: float = 0.0, fade_out: float = 0.0,
+                 check_cancel=None) -> Path:
+    """Produce a stereo WAV of exactly `target_dur` seconds from `asset_path`,
+    honoring the bed's prepared structure.
 
     fit:
-      loop    — repeat the asset to fill the span (trim the final repeat)
+      loop    — repeat the asset (its loop region if set) to fill the span
       stretch — time-stretch the asset to the span length (tempo changes)
       trim    — play once, padded with silence if short / cut if long
+    trim_start/end   — usable region of the source file
+    loop_start/end   — clean region to repeat when fit=loop (falls back to trim)
+    fade_in/out      — fades applied at the span boundaries
     """
     out.parent.mkdir(parents=True, exist_ok=True)
     gain = max(0.0, float(gain))
-    vol = f"volume={gain:.3f}"
+    target_dur = max(0.05, float(target_dur))
+    fade_in = max(0.0, min(float(fade_in), target_dur))
+    fade_out = max(0.0, min(float(fade_out), target_dur))
+
+    # region of the source to use: the loop region for looping, else the trim region
+    if fit == "loop" and loop_start is not None and loop_end is not None \
+            and float(loop_end) > float(loop_start):
+        reg_start, reg_end = float(loop_start), float(loop_end)
+    else:
+        reg_start = max(0.0, float(trim_start or 0.0))
+        reg_end = float(trim_end) if trim_end else None
+
+    src = asset_path
+    region_tmp = None
+    if reg_start > 0.01 or reg_end is not None:
+        region_tmp = out.parent / f"{out.stem}_region.wav"
+        cmd = ["ffmpeg", "-y", "-ss", f"{reg_start:.3f}"]
+        if reg_end is not None:
+            cmd += ["-to", f"{reg_end:.3f}"]
+        cmd += ["-i", str(asset_path), "-ar", "44100", "-ac", "2",
+                "-c:a", "pcm_s16le", str(region_tmp)]
+        media_ops._run_ffmpeg(cmd, check_cancel, timeout=7200)
+        src = region_tmp
+
+    fades = ""
+    if fade_in > 0:
+        fades += f",afade=t=in:st=0:d={fade_in:.3f}"
+    if fade_out > 0:
+        fades += f",afade=t=out:st={max(0.0, target_dur - fade_out):.3f}:d={fade_out:.3f}"
+    tail = f"{fades},volume={gain:.3f}"
     common = ["-ar", "44100", "-ac", "2", "-c:a", "pcm_s16le", str(out)]
+
     if fit == "stretch":
-        asset_dur = media_ops.duration(asset_path) or target_dur
-        af = f"{_atempo_chain(asset_dur / target_dur)},apad,atrim=0:{target_dur:.3f},{vol}"
-        cmd = ["ffmpeg", "-y", "-i", str(asset_path), "-af", af, *common]
+        asset_dur = media_ops.duration(src) or target_dur
+        af = f"{_atempo_chain(asset_dur / target_dur)},apad,atrim=0:{target_dur:.3f}{tail}"
+        cmd = ["ffmpeg", "-y", "-i", str(src), "-af", af, *common]
     elif fit == "trim":
-        af = f"apad,atrim=0:{target_dur:.3f},{vol}"
-        cmd = ["ffmpeg", "-y", "-i", str(asset_path), "-af", af, *common]
+        af = f"apad,atrim=0:{target_dur:.3f}{tail}"
+        cmd = ["ffmpeg", "-y", "-i", str(src), "-af", af, *common]
     else:  # loop (default)
-        af = f"atrim=0:{target_dur:.3f},{vol}"
-        cmd = ["ffmpeg", "-y", "-stream_loop", "-1", "-i", str(asset_path),
-               "-af", af, *common]
+        af = f"atrim=0:{target_dur:.3f}{tail}"
+        cmd = ["ffmpeg", "-y", "-stream_loop", "-1", "-i", str(src), "-af", af, *common]
     media_ops._run_ffmpeg(cmd, check_cancel, timeout=7200)
+    if region_tmp:
+        media_ops.safe_unlink(region_tmp)
     return out
 
 

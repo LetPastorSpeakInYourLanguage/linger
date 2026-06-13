@@ -432,6 +432,177 @@ function ExportModal({ recomp, user, exportJob, translationJob, onClose, onExpor
   );
 }
 
+const FIT_HINT = {
+  loop: "repeat the bed to fill the span",
+  stretch: "time-stretch the bed to the span length",
+  trim: "play once, padded/cut to the span",
+};
+
+/* Manage background-audio beds and assign them as length-matched layers over
+   spans of cuts. Several layers on adjacent spans = several beds in sequence. */
+function BackgroundAudioModal({ recomp, user, onClose }) {
+  const cuts = recomp.cuts;
+  const [assets, setAssets] = useState([]);
+  const [layers, setLayers] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  const loadAssets = () => api.get("/api/audio-assets").then(setAssets).catch(() => {});
+  useEffect(() => {
+    loadAssets();
+    api.get(`/api/recompositions/${recomp.id}/audio-layers`)
+      .then((rows) => setLayers(rows.map((r) => ({
+        asset_id: r.asset_id, from_pos: r.from_pos, to_pos: r.to_pos,
+        gain: r.gain, fit: r.fit,
+      })))).catch(() => {});
+  }, [recomp.id]);
+
+  const upload = async (file) => {
+    if (!file) return;
+    setBusy(true); setErr("");
+    try {
+      const fd = new FormData();
+      fd.append("file", file); fd.append("name", file.name.replace(/\.[^.]+$/, ""));
+      fd.append("user_id", user.id);
+      await api.upload("/api/audio-assets", fd);
+      await loadAssets();
+    } catch (e) { setErr(e.message); }
+    setBusy(false);
+  };
+  const deleteAsset = async (id) => {
+    if (!confirm("Delete this bed (and any layers using it)?")) return;
+    await api.del(`/api/audio-assets/${id}`);
+    loadAssets();
+    setLayers((ls) => ls.filter((l) => l.asset_id !== id));
+  };
+
+  const addLayer = () => {
+    const a = assets[0];
+    setLayers((ls) => [...ls, {
+      asset_id: a?.id, from_pos: 0, to_pos: Math.max(0, cuts.length - 1),
+      gain: a?.default_gain ?? 0.3, fit: a?.default_fit || "loop",
+    }]);
+  };
+  const patchLayer = (i, p) => setLayers((ls) => ls.map((l, j) => j === i ? { ...l, ...p } : l));
+  const removeLayer = (i) => setLayers((ls) => ls.filter((_, j) => j !== i));
+
+  const save = async () => {
+    setBusy(true); setErr(""); setSaved(false);
+    try {
+      const valid = layers.filter((l) => l.asset_id);
+      await api.put(`/api/recompositions/${recomp.id}/audio-layers`, { layers: valid });
+      setSaved(true);
+    } catch (e) { setErr(e.message); }
+    setBusy(false);
+  };
+
+  return (
+    <div data-modal className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+          <h2 className="font-semibold">Background audio — {recomp.title}</h2>
+          <button onClick={onClose} className="text-zinc-400 hover:text-white text-xl leading-none">×</button>
+        </div>
+        <div className="p-4 space-y-4 overflow-y-auto">
+          <section>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-zinc-300">Beds</h3>
+              <label className={`${btnGhost} cursor-pointer`}>
+                {busy ? "Uploading…" : "+ Upload bed"}
+                <input type="file" accept="audio/*" className="hidden"
+                  onChange={(e) => upload(e.target.files[0])} />
+              </label>
+            </div>
+            <p className="text-[11px] text-zinc-600 mb-2">
+              Tip: prepare beds (trim, loop region, fades, audition at any length)
+              in the <b>Audio</b> tab — they're reusable across recompositions.
+            </p>
+            {assets.length === 0 && <p className="text-xs text-zinc-500">No beds yet — upload music/ambience.</p>}
+            <div className="space-y-1">
+              {assets.map((a) => (
+                <div key={a.id} className="flex items-center gap-2 text-sm">
+                  <span className="flex-1 truncate">{a.name}
+                    <span className="text-zinc-600 text-xs ml-2">
+                      {a.duration_s ? `${a.duration_s.toFixed(1)}s` : ""}</span>
+                  </span>
+                  <audio controls src={`/api/audio-assets/${a.id}/audio`} className="h-7 w-40" />
+                  <button className="text-zinc-500 hover:text-red-400 text-xs"
+                    onClick={() => deleteAsset(a.id)}>✕</button>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="border-t border-zinc-800 pt-3">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-zinc-300">Layers</h3>
+              <button className={btnGhost} disabled={!assets.length} onClick={addLayer}>+ Add layer</button>
+            </div>
+            {layers.length === 0 && (
+              <p className="text-xs text-zinc-500">
+                No layers. Add one and assign a bed to a span of cuts — it auto-fits that span's length.
+              </p>
+            )}
+            <div className="space-y-2">
+              {layers.map((l, i) => (
+                <div key={i} className="rounded-lg border border-zinc-800 bg-zinc-950 p-2 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <select className={`${inputCls} flex-1`} value={l.asset_id ?? ""}
+                      onChange={(e) => patchLayer(i, { asset_id: Number(e.target.value) })}>
+                      {assets.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                    </select>
+                    <button className="text-zinc-500 hover:text-red-400 text-sm"
+                      onClick={() => removeLayer(i)}>✕</button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="text-xs text-zinc-500">From cut
+                      <select className={inputCls} value={l.from_pos}
+                        onChange={(e) => patchLayer(i, { from_pos: Number(e.target.value) })}>
+                        {cuts.map((c, idx) => <option key={idx} value={idx}>{idx + 1}. {c.title}</option>)}
+                      </select>
+                    </label>
+                    <label className="text-xs text-zinc-500">To cut
+                      <select className={inputCls} value={l.to_pos}
+                        onChange={(e) => patchLayer(i, { to_pos: Number(e.target.value) })}>
+                        {cuts.map((c, idx) => <option key={idx} value={idx}>{idx + 1}. {c.title}</option>)}
+                      </select>
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 items-end">
+                    <label className="text-xs text-zinc-500">Fit
+                      <select className={inputCls} value={l.fit}
+                        onChange={(e) => patchLayer(i, { fit: e.target.value })}>
+                        <option value="loop">loop</option>
+                        <option value="stretch">stretch</option>
+                        <option value="trim">trim</option>
+                      </select>
+                    </label>
+                    <label className="text-xs text-zinc-500">Volume {Math.round(l.gain * 100)}%
+                      <input type="range" min="0" max="1.5" step="0.05" value={l.gain}
+                        className="w-full"
+                        onChange={(e) => patchLayer(i, { gain: Number(e.target.value) })} />
+                    </label>
+                  </div>
+                  <p className="text-[11px] text-zinc-600">{FIT_HINT[l.fit]}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {err && <p className="text-sm text-red-400">{err}</p>}
+          <div className="flex items-center justify-end gap-2">
+            {saved && <span className="text-xs text-emerald-400">saved</span>}
+            <button className={btnGhost} onClick={onClose}>Close</button>
+            <button className={btnCls} disabled={busy} onClick={save}>Save layers</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RecompEditor({ user, recompId, back }) {
   const [recomp, setRecomp] = useState(null);
   const [dragIdx, setDragIdx] = useState(null);
@@ -439,6 +610,7 @@ function RecompEditor({ user, recompId, back }) {
   const [folders, setFolders] = useState([]);
   const [menu, setMenu] = useState(null); // {x, y, cut}
   const [showExport, setShowExport] = useState(false);
+  const [showLayers, setShowLayers] = useState(false);
   const wasPlayingRef = useRef(false);
   const { refA, refB, activeEl, getPlayer, playingIdx, playFrom, stop, loop, setLoop } =
     useSequencePlayer(recomp?.cuts ?? []);
@@ -628,6 +800,11 @@ function RecompEditor({ user, recompId, back }) {
           <h1 className="font-semibold truncate">{recomp.title}</h1>
           <span className="text-xs text-zinc-500 whitespace-nowrap">{recomp.cuts.length} cuts · {fmtTime(total)}</span>
           <div className="ml-auto flex gap-2 items-center">
+            <button title="Add background-audio beds over spans of cuts"
+              className={btnGhost} disabled={!recomp.cuts.length}
+              onClick={() => setShowLayers(true)}>
+              🎵 Background
+            </button>
             <button title="Render this recomposition into one real video/audio file"
               className={btnGhost} disabled={!recomp.cuts.length || !!exportJob}
               onClick={() => setShowExport(true)}>
@@ -734,6 +911,10 @@ function RecompEditor({ user, recompId, back }) {
           onClose={() => setShowExport(false)}
           onExport={startExport}
           onTranslate={translateRecomp} />
+      )}
+      {showLayers && (
+        <BackgroundAudioModal recomp={recomp} user={user}
+          onClose={() => setShowLayers(false)} />
       )}
     </div>
   );

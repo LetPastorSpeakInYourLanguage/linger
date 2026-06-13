@@ -1593,6 +1593,54 @@ async def upload_audio_asset(file: UploadFile = File(...),
     return dict(db.execute("SELECT * FROM audio_assets WHERE id=?", (asset_id,)).fetchone())
 
 
+class AudioAssetUpdate(BaseModel):
+    name: str | None = None
+    trim_start_s: float | None = None
+    trim_end_s: float | None = None      # null clears (use end of file)
+    loop_start_s: float | None = None
+    loop_end_s: float | None = None
+    fade_in_s: float | None = None
+    fade_out_s: float | None = None
+    default_gain: float | None = None
+    default_fit: str | None = None
+    clear_trim_end: bool = False
+    clear_loop: bool = False
+
+
+@app.patch("/api/audio-assets/{asset_id}")
+def update_audio_asset(asset_id: int, u: AudioAssetUpdate):
+    """Save a bed's tweaking structure (trim, loop region, fades, defaults)."""
+    db = get_db()
+    if not db.execute("SELECT 1 FROM audio_assets WHERE id=?", (asset_id,)).fetchone():
+        raise HTTPException(404)
+    sets, params = [], []
+    if u.name is not None:
+        sets.append("name=?"); params.append(u.name.strip() or "Bed")
+    for col, val in (("trim_start_s", u.trim_start_s), ("fade_in_s", u.fade_in_s),
+                     ("fade_out_s", u.fade_out_s), ("default_gain", u.default_gain)):
+        if val is not None:
+            sets.append(f"{col}=?"); params.append(max(0.0, float(val)))
+    if u.default_fit is not None:
+        fit = u.default_fit if u.default_fit in ("loop", "stretch", "trim") else "loop"
+        sets.append("default_fit=?"); params.append(fit)
+    if u.clear_trim_end:
+        sets.append("trim_end_s=NULL")
+    elif u.trim_end_s is not None:
+        sets.append("trim_end_s=?"); params.append(float(u.trim_end_s))
+    if u.clear_loop:
+        sets.append("loop_start_s=NULL"); sets.append("loop_end_s=NULL")
+    else:
+        if u.loop_start_s is not None:
+            sets.append("loop_start_s=?"); params.append(float(u.loop_start_s))
+        if u.loop_end_s is not None:
+            sets.append("loop_end_s=?"); params.append(float(u.loop_end_s))
+    if sets:
+        params.append(asset_id)
+        db.execute(f"UPDATE audio_assets SET {', '.join(sets)} WHERE id=?", params)
+        db.commit()
+    return dict(db.execute("SELECT * FROM audio_assets WHERE id=?", (asset_id,)).fetchone())
+
+
 @app.get("/api/audio-assets/{asset_id}/audio")
 def stream_audio_asset(asset_id: int):
     row = get_db().execute("SELECT * FROM audio_assets WHERE id=?", (asset_id,)).fetchone()
@@ -1602,6 +1650,37 @@ def stream_audio_asset(asset_id: int):
     if not path.is_file():
         raise HTTPException(404)
     return FileResponse(path, media_type=mimetypes.guess_type(str(path))[0] or "audio/mpeg")
+
+
+@app.get("/api/audio-assets/{asset_id}/preview")
+def preview_audio_asset(asset_id: int, length: float, fit: str = "",
+                        gain: float | None = None):
+    """Render the bed fitted to an arbitrary length (honoring its saved
+    structure) so the Audio studio can hear how it sounds at that duration."""
+    from . import compose
+    db = get_db()
+    row = db.execute("SELECT * FROM audio_assets WHERE id=?", (asset_id,)).fetchone()
+    if not row or not row["filename"]:
+        raise HTTPException(404)
+    src = media_ops.bg_audio_path(row["filename"])
+    if not src.is_file():
+        raise HTTPException(404)
+    length = max(0.1, min(float(length), 1800.0))
+    fit = fit if fit in ("loop", "stretch", "trim") else (row["default_fit"] or "loop")
+    g = float(gain) if gain is not None else (row["default_gain"] or 1.0)
+    previews = media_ops.BG_AUDIO_DIR / "previews"
+    previews.mkdir(parents=True, exist_ok=True)
+    out = previews / f"{asset_id}.wav"
+    try:
+        compose.render_layer(
+            src, length, fit, g, out,
+            trim_start=row["trim_start_s"] or 0.0, trim_end=row["trim_end_s"],
+            loop_start=row["loop_start_s"], loop_end=row["loop_end_s"],
+            fade_in=row["fade_in_s"] or 0.0, fade_out=row["fade_out_s"] or 0.0)
+    except Exception as e:
+        raise HTTPException(500, f"preview render failed: {e}")
+    return FileResponse(out, media_type="audio/wav",
+                        headers={"Cache-Control": "no-store"})
 
 
 @app.delete("/api/audio-assets/{asset_id}")

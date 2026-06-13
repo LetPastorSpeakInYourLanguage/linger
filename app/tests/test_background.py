@@ -39,6 +39,29 @@ def test_render_layer_fits_exact_duration(tmp_path):
         assert abs(_wav_seconds(out) - 3.0) < 0.15, fit
 
 
+def test_asset_structure_edit_and_length_preview(client, user):
+    import subprocess as sp
+    proc = sp.run(["ffmpeg", "-y", "-f", "lavfi", "-i", "sine=frequency=220:duration=2",
+                   "-ac", "2", "-f", "wav", "pipe:1"], capture_output=True, check=True)
+    asset = client.post("/api/audio-assets",
+                        files={"file": ("bed.wav", proc.stdout, "audio/wav")},
+                        data={"name": "Bed", "user_id": user["id"]}).json()
+    # save a tweaking structure
+    upd = client.patch(f"/api/audio-assets/{asset['id']}", json={
+        "trim_start_s": 0.2, "trim_end_s": 1.8, "fade_in_s": 0.3, "fade_out_s": 0.5,
+        "default_fit": "loop", "default_gain": 0.4})
+    assert upd.status_code == 200
+    j = upd.json()
+    assert j["trim_start_s"] == 0.2 and j["default_fit"] == "loop"
+
+    # preview at an arbitrary length → a WAV of ~that length
+    r = client.get(f"/api/audio-assets/{asset['id']}/preview?length=5&fit=loop")
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("audio/")
+    out = media_ops.BG_AUDIO_DIR / "previews" / f"{asset['id']}.wav"
+    assert abs(_wav_seconds(out) - 5.0) < 0.2
+
+
 def test_export_with_background_layer(client, user, sample_video):
     db = get_db()
     cur = db.execute(
@@ -50,6 +73,7 @@ def test_export_with_background_layer(client, user, sample_video):
     tid = db.execute("INSERT INTO tracks (media_id, name) VALUES (?, 'o')", (media_id,)).lastrowid
     sid = db.execute("INSERT INTO segments (media_id, track_id, idx, start_s, end_s, text) "
                      "VALUES (?,?,0,0.2,1.6,'hi')", (media_id, tid)).lastrowid
+    db.commit()
     cut = client.post("/api/cuts", json={"media_id": media_id, "title": "bg cut",
                                          "segment_ids": [sid], "user_id": user["id"]}).json()
     recomp = client.post("/api/recompositions",

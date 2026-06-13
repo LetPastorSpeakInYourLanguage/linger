@@ -308,6 +308,9 @@ def export_recomposition(recomp_id: int, title: str, cuts: list[dict],
                 fitted = compose.render_layer(
                     Path(layer["asset_path"]), span_dur, layer.get("fit", "loop"),
                     float(layer.get("gain", 1.0)), tmp / f"bg_{k:03d}.wav",
+                    trim_start=layer.get("trim_start", 0.0), trim_end=layer.get("trim_end"),
+                    loop_start=layer.get("loop_start"), loop_end=layer.get("loop_end"),
+                    fade_in=layer.get("fade_in", 0.0), fade_out=layer.get("fade_out", 0.0),
                     check_cancel=check_cancel)
                 rendered.append({"path": fitted, "start_s": start_s})
             compose.apply_background(concat_out, has_video, rendered, final,

@@ -304,6 +304,22 @@ def _m6_background_audio(conn):
                  "ON recomp_audio_layers(recomp_id)")
 
 
+def _m7_audio_asset_structure(conn):
+    """Per-bed tweaking structure: trim the usable region, a clean loop region,
+    fades, and default gain/fit — set once in the Audio studio, reused by every
+    recomposition layer."""
+    _add_columns(conn, "audio_assets", [
+        "trim_start_s REAL NOT NULL DEFAULT 0",
+        "trim_end_s REAL",
+        "loop_start_s REAL",
+        "loop_end_s REAL",
+        "fade_in_s REAL NOT NULL DEFAULT 0",
+        "fade_out_s REAL NOT NULL DEFAULT 0",
+        "default_gain REAL NOT NULL DEFAULT 1.0",
+        "default_fit TEXT NOT NULL DEFAULT 'loop'",
+    ])
+
+
 def _m4_gender_voices(conn):
     """Per-gender TTS voices + per-segment inferred speaker gender, so a dub
     can use a male or female voice that matches each line's speaker."""
@@ -334,6 +350,7 @@ MIGRATIONS = [
     _m4_gender_voices,
     _m5_dub_voice_gender,
     _m6_background_audio,
+    _m7_audio_asset_structure,
 ]
 
 
