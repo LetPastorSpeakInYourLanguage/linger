@@ -16,7 +16,11 @@ import re
 from difflib import SequenceMatcher
 
 from . import db as dbmod
+from . import vectors
 from .db import get_db, rows_to_dicts
+from .engines import embeddings
+
+RRF_K = 60  # reciprocal-rank-fusion constant for blending exact/fuzzy/semantic
 
 WORD_RE = re.compile(r"\w+", re.UNICODE)
 
@@ -95,8 +99,111 @@ def _fts(db, fts_table: str, match: str, media_id, limit: int, track_id=None):
         return []  # malformed FTS query etc. — never break the endpoint
 
 
+def _rows_by_ids(db, ids: list[int]) -> dict[int, dict]:
+    if not ids:
+        return {}
+    qmarks = ",".join("?" * len(ids))
+    rows = db.execute(
+        f"""SELECT s.*, m.title AS media_title, m.type AS media_type
+            FROM segments s JOIN media m ON m.id = s.media_id
+            WHERE s.id IN ({qmarks})""", ids).fetchall()
+    return {r["id"]: dict(r) for r in rows}
+
+
+def _exact_rows(db, q, qwords, media_id, track_id, limit) -> list[dict]:
+    rows = _fts(db, "segments_fts", _phrase_prefix(q), media_id, limit, track_id)
+    if len(qwords) > 1:
+        seen = {r["id"] for r in rows}
+        for r in _fts(db, "segments_fts", _and_words(qwords), media_id, limit, track_id):
+            if r["id"] not in seen:
+                rows.append(r)
+                seen.add(r["id"])
+    return rows
+
+
+def _fuzzy_scored(db, q, qwords, media_id, track_id, limit, exclude=()) -> list[tuple]:
+    if not getattr(dbmod, "HAS_TRIGRAM", False):
+        return []
+    tq = _trigram_query(q)
+    if not tq:
+        return []
+    scored = []
+    for r in _fts(db, "segments_tri", tq, media_id, FUZZY_CANDIDATES, track_id):
+        if r["id"] in exclude:
+            continue
+        s = _score(qwords, r["text"])
+        if s >= FUZZY_THRESHOLD:
+            scored.append((s, r))
+    scored.sort(key=lambda x: -x[0])
+    return scored[:limit]
+
+
+def _semantic_ranked(db, q, media_id, track_id, limit) -> list[tuple]:
+    """[(segment_id, cosine)] for the query, or [] when embeddings unavailable."""
+    engine = embeddings.get_embedding_engine()
+    if engine is None:
+        return []
+    try:
+        qv = engine.embed([q])[0]
+    except Exception:
+        return []
+    media_ids = [media_id] if media_id is not None else None
+    return vectors.search(qv, limit=limit, media_ids=media_ids, track_id=track_id)
+
+
+def smart_search(q: str, media_id=None, track_id=None, limit=60) -> list[dict]:
+    """Blend exact + fuzzy + semantic with Reciprocal Rank Fusion."""
+    db = get_db()
+    q = q.strip()
+    if not q:
+        return []
+    limit = min(max(limit, 1), 200)
+    qwords = _words(q)
+    pool = max(limit, 50)
+
+    exact_rows = _exact_rows(db, q, qwords, media_id, track_id, pool)
+    fuzzy = _fuzzy_scored(db, q, qwords, media_id, track_id, pool)
+    semantic = _semantic_ranked(db, q, media_id, track_id, pool)
+
+    rrf: dict[int, float] = {}
+    methods: dict[int, set] = {}
+    cache: dict[int, dict] = {}
+
+    def add(ids, name):
+        for rank, sid in enumerate(ids):
+            rrf[sid] = rrf.get(sid, 0.0) + 1.0 / (RRF_K + rank + 1)
+            methods.setdefault(sid, set()).add(name)
+
+    for r in exact_rows:
+        cache[r["id"]] = r
+    add([r["id"] for r in exact_rows], "exact")
+    for _, r in fuzzy:
+        cache.setdefault(r["id"], r)
+    add([r["id"] for _, r in fuzzy], "fuzzy")
+    add([sid for sid, _ in semantic], "semantic")
+
+    cache.update(_rows_by_ids(db, [sid for sid, _ in semantic if sid not in cache]))
+
+    ranked = sorted(rrf, key=lambda sid: -rrf[sid])
+    out = []
+    for sid in ranked[:limit]:
+        r = cache.get(sid)
+        if not r:
+            continue
+        r = dict(r)
+        m = methods[sid]
+        r["match"] = ("semantic" if m == {"semantic"}
+                      else "exact" if "exact" in m else "fuzzy")
+        r["methods"] = sorted(m)
+        r["score"] = round(rrf[sid], 4)
+        out.append(r)
+    return out
+
+
 def search_segments(q: str, media_id: int | None = None, track_id: int | None = None,
-                    limit: int = 60, fuzzy: bool = True) -> list[dict]:
+                    limit: int = 60, fuzzy: bool = True, smart: bool = False) -> list[dict]:
+    if smart:
+        return smart_search(q, media_id, track_id, limit)
     db = get_db()
     q = q.strip()
     if not q:

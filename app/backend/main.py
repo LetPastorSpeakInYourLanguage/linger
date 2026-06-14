@@ -12,7 +12,8 @@ from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import jobs, media_ops, quiet_logs, search, translation_ops
+from . import (ai_ops, ass_writer, jobs, media_ops, overlay_ops, quiet_logs,
+               search, storage, translation_ops, vectors)
 from .db import get_db, init_db, rows_to_dicts
 from .srt_parser import parse_subtitles
 
@@ -65,7 +66,12 @@ def list_media():
                (SELECT COUNT(*) FROM cuts c WHERE c.media_id = m.id) AS cut_count
         FROM media m LEFT JOIN users u ON u.id = m.added_by
         ORDER BY m.id DESC""").fetchall()
-    return rows_to_dicts(rows)
+    out = rows_to_dicts(rows)
+    for d in out:
+        # "linked" = this instance actually has the playable bytes; otherwise the
+        # DB row is shared but the file must be relinked (sha256-verified)
+        d["linked"] = storage.is_linked(d["id"])
+    return out
 
 
 def _insert_subtitles(db, media_id: int, raw: str, track_name: str = "Subtitles",
@@ -239,7 +245,49 @@ def get_media(media_id: int):
     row = get_db().execute("SELECT * FROM media WHERE id=?", (media_id,)).fetchone()
     if not row:
         raise HTTPException(404)
-    return dict(row)
+    d = dict(row)
+    d["linked"] = storage.is_linked(media_id)
+    return d
+
+
+class RelinkIn(BaseModel):
+    path: str
+    user_id: int | None = None
+
+
+@app.get("/api/media/{media_id}/sources")
+def media_sources(media_id: int):
+    return rows_to_dicts(get_db().execute(
+        "SELECT * FROM media_sources WHERE media_id=? ORDER BY priority, id", (media_id,)))
+
+
+@app.post("/api/media/{media_id}/relink")
+def relink_media(media_id: int, body: RelinkIn):
+    """Point a media (whose bytes this instance lacks) at a local copy. The copy
+    is sha256-verified against the recorded hash, then prepared into media_store
+    so cuts/exports work — no re-transcription (the transcript is shared)."""
+    db = get_db()
+    m = db.execute("SELECT * FROM media WHERE id=?", (media_id,)).fetchone()
+    if not m:
+        raise HTTPException(404)
+    src = Path(body.path.strip().strip('"'))
+    if not src.is_file():
+        raise HTTPException(400, f"file not found on the host: {src}")
+    digest = media_ops.sha256_file(src)
+    if m["content_hash"] and digest != m["content_hash"]:
+        raise HTTPException(409,
+            f"this file isn't the same media — sha256 {digest[:12]}… "
+            f"≠ expected {m['content_hash'][:12]}…")
+    db.execute("INSERT INTO media_sources (media_id, kind, locator, status) "
+               "VALUES (?,?,?,?)", (media_id, "local", str(src), "ok"))
+    if not m["content_hash"]:
+        db.execute("UPDATE media SET content_hash=? WHERE id=?", (digest, media_id))
+    db.execute("UPDATE media SET status='preparing', status_detail='relinking' WHERE id=?",
+               (media_id,))
+    db.commit()
+    job_id = jobs.enqueue("prepare", media_id,
+                          {"src": str(src), "keep_src": True, "then_transcribe": False})
+    return {"job_id": job_id, "status": "relinking", "sha256": digest}
 
 
 @app.delete("/api/media/{media_id}")
@@ -766,6 +814,120 @@ def create_cut(c: CutIn):
     return _cut_payload(db, db.execute("SELECT * FROM cuts WHERE id=?", (cut_id,)).fetchone())
 
 
+SENTENCE_END = (".", "!", "?", "。", "！", "？", "؟", "…")
+
+
+class AutoCutIn(BaseModel):
+    track_id: int | None = None
+    max_gap_s: float = 1.0      # split when the silence between lines exceeds this
+    max_cut_s: float = 30.0     # never let a cut grow past this
+    min_cut_s: float = 1.5      # don't split on a sentence end before this length
+    user_id: int | None = None
+
+
+def _auto_cut_groups(segs, max_gap, max_cut, min_cut):
+    """Group consecutive segments into cut-sized runs at pauses / sentence ends."""
+    groups, cur = [], []
+    for s in segs:
+        if cur:
+            gap = float(s["start_s"]) - float(cur[-1]["end_s"])
+            span = float(cur[-1]["end_s"]) - float(cur[0]["start_s"])
+            if gap > max_gap or span + (float(s["end_s"]) - float(s["start_s"])) > max_cut:
+                groups.append(cur)
+                cur = []
+        cur.append(s)
+        span = float(cur[-1]["end_s"]) - float(cur[0]["start_s"])
+        if span >= min_cut and (s["text"] or "").rstrip().endswith(SENTENCE_END):
+            groups.append(cur)
+            cur = []
+    if cur:
+        groups.append(cur)
+    return groups
+
+
+@app.post("/api/media/{media_id}/auto-cut")
+def auto_cut(media_id: int, body: AutoCutIn):
+    """Heuristically slice a transcript into cuts (pause-gap / sentence / max
+    length) under an 'Auto-cuts' folder, each tagged `auto` for triage."""
+    db = get_db()
+    if not db.execute("SELECT 1 FROM media WHERE id=?", (media_id,)).fetchone():
+        raise HTTPException(404)
+    track_id = body.track_id
+    if track_id is None:
+        row = db.execute("SELECT id FROM tracks WHERE media_id=? ORDER BY id LIMIT 1",
+                         (media_id,)).fetchone()
+        if not row:
+            raise HTTPException(400, "this media has no subtitle track")
+        track_id = row["id"]
+    segs = db.execute(
+        "SELECT id, idx, start_s, end_s, text FROM segments WHERE track_id=? ORDER BY idx",
+        (track_id,)).fetchall()
+    if not segs:
+        raise HTTPException(400, "track has no segments")
+
+    folder = db.execute("SELECT id FROM folders WHERE name='Auto-cuts'").fetchone()
+    folder_id = folder["id"] if folder else db.execute(
+        "INSERT INTO folders (name) VALUES ('Auto-cuts')").lastrowid
+    tag_ids = _tag_ids(db, ["auto"])
+
+    created = 0
+    for group in _auto_cut_groups(segs, body.max_gap_s, body.max_cut_s, body.min_cut_s):
+        title = " ".join((group[0]["text"] or "").split()[:7]) or "Auto cut"
+        cut_id = db.execute(
+            "INSERT INTO cuts (media_id, title, folder_id, created_by) VALUES (?,?,?,?)",
+            (media_id, title[:80], folder_id, body.user_id)).lastrowid
+        for pos, s in enumerate(group):
+            db.execute("INSERT INTO cut_segments (cut_id, segment_id, position) VALUES (?,?,?)",
+                       (cut_id, s["id"], pos))
+        for tid in tag_ids:
+            db.execute("INSERT OR IGNORE INTO cut_tags (cut_id, tag_id) VALUES (?,?)",
+                       (cut_id, tid))
+        created += 1
+    db.commit()
+    return {"created": created, "folder_id": folder_id}
+
+
+@app.get("/api/cuts/{cut_id}/tag-suggestions")
+def cut_tag_suggestions(cut_id: int, limit: int = 6):
+    db = get_db()
+    if not db.execute("SELECT 1 FROM cuts WHERE id=?", (cut_id,)).fetchone():
+        raise HTTPException(404)
+    return {"suggestions": ai_ops.tag_suggestions(db, cut_id, limit=limit)}
+
+
+class ComposeIn(BaseModel):
+    prompt: str
+    title: str = ""
+    limit: int = 12
+    media_ids: list[int] | None = None
+    create: bool = True
+    user_id: int | None = None
+
+
+@app.post("/api/ai/compose")
+def ai_compose(body: ComposeIn):
+    """Draft a recomposition from a natural-language goal: semantic retrieval of
+    related cuts, optional LLM ordering. With create=true, saves a recomposition."""
+    db = get_db()
+    if not body.prompt.strip():
+        raise HTTPException(400, "prompt is required")
+    from .engines import embeddings
+    if not embeddings.available():
+        raise HTTPException(503, "no embedding engine — pip install sentence-transformers")
+    result = ai_ops.compose(db, body.prompt.strip(), limit=body.limit,
+                            media_ids=body.media_ids)
+    if body.create and result["cut_ids"]:
+        title = body.title.strip() or f"AI: {body.prompt.strip()[:40]}"
+        rid = db.execute("INSERT INTO recompositions (title, created_by) VALUES (?,?)",
+                         (title, body.user_id)).lastrowid
+        for pos, cid in enumerate(result["cut_ids"]):
+            db.execute("INSERT INTO recomp_cuts (recomp_id, cut_id, position) VALUES (?,?,?)",
+                       (rid, cid, pos))
+        db.commit()
+        result["recomp_id"] = rid
+    return result
+
+
 def _csv_ints(s: str) -> list[int]:
     out = []
     for part in s.split(","):
@@ -1274,11 +1436,43 @@ def batch_segments(track_id: int, b: BatchOp):
 
 @app.get("/api/search/segments")
 def search_segments(q: str, media_id: int | None = None, track_id: int | None = None,
-                    limit: int = 60, fuzzy: int = 1):
-    """Exact (FTS5) + fuzzy (trigram-index + word-similarity re-rank) search.
-    Results carry match='exact'|'fuzzy' and a 0–1 score."""
+                    limit: int = 60, fuzzy: int = 1, smart: int = 0):
+    """Exact (FTS5) + fuzzy (trigram) search; with smart=1 also blends semantic
+    (embedding) similarity via Reciprocal Rank Fusion. Results carry
+    match='exact'|'fuzzy'|'semantic' (+ a `methods` list in smart mode)."""
     return search.search_segments(q, media_id=media_id, track_id=track_id,
-                                  limit=limit, fuzzy=bool(fuzzy))
+                                  limit=limit, fuzzy=bool(fuzzy), smart=bool(smart))
+
+
+# -------------------------------------------------- semantic index (P6.1)
+
+@app.get("/api/embed/status")
+def embed_status():
+    from .engines import embeddings
+    engine = embeddings.get_embedding_engine()
+    return {"available": engine is not None,
+            "engine": engine.name if engine else None,
+            **vectors.stats()}
+
+
+@app.post("/api/media/{media_id}/embed")
+def embed_media(media_id: int):
+    from .engines import embeddings
+    if not get_db().execute("SELECT 1 FROM media WHERE id=?", (media_id,)).fetchone():
+        raise HTTPException(404)
+    if not embeddings.available():
+        raise HTTPException(503, "no embedding engine — pip install sentence-transformers")
+    return {"job_id": jobs.enqueue("embed", media_id)}
+
+
+@app.post("/api/embed/all")
+def embed_all():
+    from .engines import embeddings
+    if not embeddings.available():
+        raise HTTPException(503, "no embedding engine — pip install sentence-transformers")
+    db = get_db()
+    ids = [r["id"] for r in db.execute("SELECT id FROM media WHERE status='ready'")]
+    return {"queued": [jobs.enqueue("embed", mid) for mid in ids]}
 
 
 # ------------------------------------------------------ recompositions
@@ -1489,8 +1683,8 @@ def export_recomp(recomp_id: int, body: ExportIn | None = None):
     audio_mode = (body.audio_mode or "original").strip()
     if audio_mode == "target_dub":   # legacy alias
         audio_mode = "dub"
-    if audio_mode not in ("original", "sequence", "dub"):
-        raise HTTPException(400, "audio_mode must be original, sequence, or dub")
+    if audio_mode not in ("original", "sequence", "dub", "vocals_only"):
+        raise HTTPException(400, "audio_mode must be original, sequence, dub, or vocals_only")
     quality = (body.quality or "720p").strip()
     if quality not in media_ops.EXPORT_PRESETS:
         raise HTTPException(400, "quality must be 480p, 720p, or 1080p")
@@ -1732,6 +1926,176 @@ def set_audio_layers(recomp_id: int, body: AudioLayers):
              max(0.0, l.gain), fit, i))
     db.commit()
     return list_audio_layers(recomp_id)
+
+
+# ------------------------------------------------- text overlays (P5)
+
+class OverlayIn(BaseModel):
+    name: str = "Captions"
+    source: str = "subtitles"   # subtitles | translation
+    lang_code: str = ""
+    style: dict = {}
+    enabled: bool = True
+
+
+class OverlayUpdate(BaseModel):
+    name: str | None = None
+    source: str | None = None
+    lang_code: str | None = None
+    style: dict | None = None
+    enabled: bool | None = None
+
+
+def _overlay_payload(row) -> dict:
+    import json as _json
+    d = dict(row)
+    try:
+        d["style"] = _json.loads(d.pop("style_json") or "{}")
+    except (ValueError, TypeError):
+        d["style"] = {}
+    d["enabled"] = bool(d["enabled"])
+    return d
+
+
+@app.get("/api/recompositions/{recomp_id}/overlays")
+def list_overlays(recomp_id: int):
+    rows = get_db().execute(
+        "SELECT * FROM overlay_tracks WHERE recomp_id=? ORDER BY ord, id",
+        (recomp_id,)).fetchall()
+    return [_overlay_payload(r) for r in rows]
+
+
+@app.post("/api/recompositions/{recomp_id}/overlays")
+def create_overlay(recomp_id: int, body: OverlayIn):
+    import json as _json
+    db = get_db()
+    if not db.execute("SELECT 1 FROM recompositions WHERE id=?", (recomp_id,)).fetchone():
+        raise HTTPException(404)
+    source = body.source if body.source in ("subtitles", "translation") else "subtitles"
+    n = db.execute("SELECT COUNT(*) AS n FROM overlay_tracks WHERE recomp_id=?",
+                   (recomp_id,)).fetchone()["n"]
+    cur = db.execute(
+        "INSERT INTO overlay_tracks (recomp_id, name, source, lang_code, style_json, "
+        "enabled, ord) VALUES (?,?,?,?,?,?,?)",
+        (recomp_id, body.name.strip() or "Captions", source,
+         _norm_lang_code(body.lang_code) if body.lang_code else "",
+         _json.dumps(body.style or {}), 1 if body.enabled else 0, n))
+    db.commit()
+    return _overlay_payload(db.execute("SELECT * FROM overlay_tracks WHERE id=?",
+                                       (cur.lastrowid,)).fetchone())
+
+
+@app.patch("/api/overlays/{overlay_id}")
+def update_overlay(overlay_id: int, body: OverlayUpdate):
+    import json as _json
+    db = get_db()
+    if not db.execute("SELECT 1 FROM overlay_tracks WHERE id=?", (overlay_id,)).fetchone():
+        raise HTTPException(404)
+    sets, params = [], []
+    if body.name is not None:
+        sets.append("name=?"); params.append(body.name.strip() or "Captions")
+    if body.source is not None:
+        src = body.source if body.source in ("subtitles", "translation") else "subtitles"
+        sets.append("source=?"); params.append(src)
+    if body.lang_code is not None:
+        sets.append("lang_code=?")
+        params.append(_norm_lang_code(body.lang_code) if body.lang_code else "")
+    if body.style is not None:
+        sets.append("style_json=?"); params.append(_json.dumps(body.style))
+    if body.enabled is not None:
+        sets.append("enabled=?"); params.append(1 if body.enabled else 0)
+    if sets:
+        params.append(overlay_id)
+        db.execute(f"UPDATE overlay_tracks SET {', '.join(sets)} WHERE id=?", params)
+        db.commit()
+    return _overlay_payload(db.execute("SELECT * FROM overlay_tracks WHERE id=?",
+                                       (overlay_id,)).fetchone())
+
+
+@app.delete("/api/overlays/{overlay_id}")
+def delete_overlay(overlay_id: int):
+    db = get_db()
+    cur = db.execute("DELETE FROM overlay_tracks WHERE id=?", (overlay_id,))
+    db.commit()
+    if not cur.rowcount:
+        raise HTTPException(404)
+    return {"ok": True}
+
+
+@app.get("/api/overlays/{overlay_id}.ass")
+def download_overlay_ass(overlay_id: int):
+    db = get_db()
+    ov = db.execute("SELECT * FROM overlay_tracks WHERE id=?", (overlay_id,)).fetchone()
+    if not ov:
+        raise HTTPException(404)
+    import json as _json
+    try:
+        style = _json.loads(ov["style_json"] or "{}")
+    except (ValueError, TypeError):
+        style = {}
+    events = overlay_ops.gather_events(db, ov["recomp_id"], ov["source"], ov["lang_code"])
+    text = ass_writer.build_ass([{"name": ov["name"], "style": style, "events": events}])
+    return Response(text, media_type="text/plain",
+                    headers={"Content-Disposition":
+                             f'attachment; filename="overlay_{overlay_id}.ass"'})
+
+
+# ----------------------------------------- remote executor protocol (P8.3)
+
+def _worker_auth(token: str):
+    """Worker endpoints are off unless RECOMPOSER_WORKER_TOKEN is set; then the
+    caller must present it. Keeps job control closed by default."""
+    expected = os.environ.get("RECOMPOSER_WORKER_TOKEN", "")
+    if not expected or token != expected:
+        raise HTTPException(403, "worker authentication required")
+
+
+class WorkerClaim(BaseModel):
+    worker_id: str
+    kinds: list[str] = []
+    token: str = ""
+
+
+class WorkerUpdate(BaseModel):
+    token: str = ""
+    worker_id: str = ""
+    detail: str = ""
+    error: str = ""
+
+
+@app.post("/api/worker/claim")
+def worker_claim(body: WorkerClaim):
+    """A remote executor (e.g. Colab) claims the next queued job of its kinds."""
+    _worker_auth(body.token)
+    import json as _json
+    job = jobs.claim_remote(body.worker_id, set(body.kinds))
+    if job and isinstance(job.get("payload"), str):
+        try:
+            job["payload"] = _json.loads(job["payload"] or "{}")
+        except ValueError:
+            job["payload"] = {}
+    return {"job": job}
+
+
+@app.post("/api/worker/{job_id}/heartbeat")
+def worker_heartbeat(job_id: int, body: WorkerUpdate):
+    _worker_auth(body.token)
+    jobs.remote_heartbeat(job_id, body.worker_id)
+    return {"ok": True}
+
+
+@app.post("/api/worker/{job_id}/complete")
+def worker_complete(job_id: int, body: WorkerUpdate):
+    _worker_auth(body.token)
+    jobs.remote_complete(job_id, body.detail)
+    return {"ok": True}
+
+
+@app.post("/api/worker/{job_id}/fail")
+def worker_fail(job_id: int, body: WorkerUpdate):
+    _worker_auth(body.token)
+    jobs.remote_fail(job_id, body.error)
+    return {"ok": True}
 
 
 # ------------------------------------------------------------ frontend

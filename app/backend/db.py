@@ -304,6 +304,59 @@ def _m6_background_audio(conn):
                  "ON recomp_audio_layers(recomp_id)")
 
 
+def _m10_relinkable_media(conn):
+    """Decouple media records from local files: a sha256 of the source so any
+    copy can be verified, plus recorded source locations on this instance."""
+    _add_columns(conn, "media", ["content_hash TEXT"])
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS media_sources (
+            id INTEGER PRIMARY KEY,
+            media_id INTEGER NOT NULL REFERENCES media(id) ON DELETE CASCADE,
+            kind TEXT NOT NULL DEFAULT 'local',   -- local | url
+            locator TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'ok',
+            priority INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT DEFAULT (datetime('now'))
+        )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_media_sources_media "
+                 "ON media_sources(media_id)")
+
+
+def _m9_segment_embeddings(conn):
+    """Vector store for semantic search — one float32 BLOB per segment."""
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS segment_embeddings (
+            segment_id INTEGER PRIMARY KEY REFERENCES segments(id) ON DELETE CASCADE,
+            media_id INTEGER,
+            text_hash TEXT,
+            dim INTEGER,
+            vec BLOB,
+            model TEXT
+        )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_seg_emb_media "
+                 "ON segment_embeddings(media_id)")
+
+
+def _m8_overlay_tracks(conn):
+    """Styled text-overlay tracks burned onto a recomposition's export. Events
+    are derived at render time from the cuts (source subtitle text or a
+    translation), anchored to the shared timeline so reordering never desyncs."""
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS overlay_tracks (
+            id INTEGER PRIMARY KEY,
+            recomp_id INTEGER NOT NULL REFERENCES recompositions(id) ON DELETE CASCADE,
+            name TEXT NOT NULL DEFAULT 'Captions',
+            source TEXT NOT NULL DEFAULT 'subtitles',  -- subtitles | translation
+            lang_code TEXT NOT NULL DEFAULT '',
+            style_json TEXT NOT NULL DEFAULT '{}',
+            enabled INTEGER NOT NULL DEFAULT 1,
+            ord INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT DEFAULT (datetime('now'))
+        )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_overlay_tracks_recomp "
+                 "ON overlay_tracks(recomp_id)")
+
+
 def _m7_audio_asset_structure(conn):
     """Per-bed tweaking structure: trim the usable region, a clean loop region,
     fades, and default gain/fit — set once in the Audio studio, reused by every
@@ -351,6 +404,9 @@ MIGRATIONS = [
     _m5_dub_voice_gender,
     _m6_background_audio,
     _m7_audio_asset_structure,
+    _m8_overlay_tracks,
+    _m9_segment_embeddings,
+    _m10_relinkable_media,
 ]
 
 

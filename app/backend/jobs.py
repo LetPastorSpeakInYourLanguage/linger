@@ -26,9 +26,9 @@ import traceback
 from pathlib import Path
 
 from . import gender as gender_mod
-from . import media_ops, translation_ops
+from . import media_ops, overlay_ops, translation_ops, vectors
 from .db import get_db
-from .engines import separation, tts
+from .engines import embeddings, separation, tts
 
 _wake = threading.Event()
 _started = False
@@ -255,6 +255,50 @@ def _restore_media_after_stop(media_id: int):
         _set_media(media_id, "ready", "")
     else:
         _set_media(media_id, "error", "cancelled before the file was ready")
+
+
+# --------------------------------------------------------------- embed
+
+@handler("embed")
+def _run_embed(ctx: JobContext, payload: dict):
+    """Embed a media's segments for semantic search — only the ones whose text
+    or model changed since last time, so re-runs are cheap."""
+    media_id = ctx.media_id
+    engine = embeddings.get_embedding_engine()
+    if engine is None:
+        ctx.report("no embedding engine installed (pip install sentence-transformers)",
+                   progress=100)
+        return
+    db = get_db()
+    rows = db.execute(
+        "SELECT id, text FROM segments WHERE media_id=? ORDER BY id", (media_id,)).fetchall()
+    if not rows:
+        ctx.report("no segments", progress=100)
+        return
+    have = vectors.current_hashes(media_id)
+    todo = [r for r in rows
+            if have.get(r["id"], (None, None)) != (vectors.text_hash(r["text"]), engine.name)]
+    if not todo:
+        ctx.report("embeddings up to date", progress=100)
+        return
+    ctx.report(f"embedding {len(todo)} segments", progress=10)
+    batch = 64
+    for i in range(0, len(todo), batch):
+        ctx.check_cancel()
+        chunk = todo[i:i + batch]
+        vecs = engine.embed([r["text"] for r in chunk])
+        for r, v in zip(chunk, vecs):
+            vectors.upsert(r["id"], media_id, r["text"], v, engine.name)
+        db.commit()
+        ctx.report(f"embedded {min(i + batch, len(todo))}/{len(todo)}",
+                   progress=10 + (i + batch) / len(todo) * 90)
+    ctx.report("embeddings ready", progress=100)
+
+
+def enqueue_embed(media_id: int):
+    """Queue an embed pass if an engine is available (no-op otherwise)."""
+    if embeddings.available():
+        enqueue("embed", media_id, priority=-1)  # low priority, behind user work
 
 
 # ------------------------------------------------------------- separate
@@ -569,13 +613,26 @@ def _run_prepare(ctx: JobContext, payload: dict):
         _set_media(media_id, "preparing", msg)
         log(f"'{title}' {msg}")
 
+    keep_src = payload.get("keep_src", False)
+    # hash the ORIGINAL before prepare may consume it, so a copy can be relinked
+    content_hash = None
+    try:
+        ctx.report("hashing source", progress=1)
+        content_hash = media_ops.sha256_file(src)
+    except Exception as e:
+        log(f"could not hash source: {e}")
+
     final, mtype, duration, mode = media_ops.prepare_for_streaming(
-        src, media_id, keep_src=payload.get("keep_src", False),
+        src, media_id, keep_src=keep_src,
         on_progress=on_progress, check_cancel=ctx.check_cancel)
 
     db = get_db()
-    db.execute("UPDATE media SET type=?, filename=?, duration=? WHERE id=?",
-               (mtype, final.name, duration, media_id))
+    db.execute("UPDATE media SET type=?, filename=?, duration=?, content_hash=? WHERE id=?",
+               (mtype, final.name, duration, content_hash, media_id))
+    # a kept (host-path) original is a stable, relinkable source location
+    if keep_src and content_hash:
+        db.execute("INSERT INTO media_sources (media_id, kind, locator, status) "
+                   "VALUES (?,?,?,?)", (media_id, "local", str(src), "ok"))
     db.commit()
     log(f"'{title}' prepared ({mode}, {mtype})")
 
@@ -664,6 +721,7 @@ def _run_transcription(ctx: JobContext, payload: dict):
         raise RuntimeError("transcription produced no segments")
     _set_media(media_id, "ready")
     log(f"'{title}' transcription done ({engine}): {idx} segments")
+    enqueue_embed(media_id)  # build the semantic index in the background
 
 
 def _transcribe_whisperx(ctx, media_id, wav, model_name, device, compute,
@@ -838,6 +896,21 @@ def _ensure_cut_dub(ctx: JobContext, db, translation_id: int) -> int:
     return dub_id
 
 
+def _cut_vocals_clip(ctx: JobContext, cut_id: int, start_s: float, end_s: float,
+                     out: Path) -> Path:
+    """Isolated vocals (speech, music removed) for a cut span — lets an export
+    keep the dialogue while a fresh background bed is layered over it."""
+    cache = _ensure_cut_stems(ctx, cut_id, 3.0)
+    offset = max(0.0, float(start_s) - float(cache["start_s"]))
+    dur = max(0.05, float(end_s) - float(start_s))
+    media_ops._run_ffmpeg([
+        "ffmpeg", "-y", "-ss", f"{offset:.3f}", "-t", f"{dur:.3f}",
+        "-i", str(cache["vocals"]),
+        "-ar", "44100", "-ac", "2", "-c:a", "pcm_s16le", str(out),
+    ], check_cancel=ctx.check_cancel, timeout=7200)
+    return out
+
+
 def _compose_clip_audio(dub_id: int, out: Path, dur: float, *,
                         keep_accompaniment: bool, keep_source_vocals: bool,
                         check_cancel=None) -> Path:
@@ -866,8 +939,8 @@ def _run_export(ctx: JobContext, payload: dict):
     keep_accompaniment = payload.get("keep_accompaniment", True)
     keep_source_vocals = payload.get("keep_source_vocals", False)
     user_id = payload.get("user_id")
-    if audio_mode not in ("original", "sequence", "dub"):
-        raise RuntimeError("audio_mode must be original, sequence, or dub")
+    if audio_mode not in ("original", "sequence", "dub", "vocals_only"):
+        raise RuntimeError("audio_mode must be original, sequence, dub, or vocals_only")
     if audio_mode == "dub" and not target_lang:
         raise RuntimeError("target language is required for a translated dub export")
 
@@ -894,7 +967,7 @@ def _run_export(ctx: JobContext, payload: dict):
     title = recomp["title"]
     log(f"export '{title}': {len(rows)} cuts ({quality}, audio={audio_mode})")
     audio_tmp = media_ops.EXPORT_DIR / f"audio_{recomp_id}_{os.getpid()}"
-    if audio_mode in ("dub", "sequence"):
+    if audio_mode in ("dub", "sequence", "vocals_only"):
         audio_tmp.mkdir(parents=True, exist_ok=True)
 
     def prog(msg, pct=None):
@@ -922,6 +995,10 @@ def _run_export(ctx: JobContext, payload: dict):
                     keep_accompaniment=keep_accompaniment,
                     keep_source_vocals=keep_source_vocals,
                     check_cancel=ctx.check_cancel)
+            elif audio_mode == "vocals_only":
+                prog(f"isolating vocals for cut {i + 1}/{len(rows)}", i / len(rows) * 80)
+                audio_src = _cut_vocals_clip(ctx, r["cut_id"], r["start_s"], r["end_s"],
+                                             audio_tmp / f"{i:04d}.wav")
             elif audio_mode == "sequence" and r["seq_audio_mode"] == "dub":
                 if not r["dub_id"]:
                     raise RuntimeError(f"cut {r['cut_id']} is set to dub but has no dub")
@@ -958,10 +1035,13 @@ def _run_export(ctx: JobContext, payload: dict):
                     "fade_in": lr["fade_in_s"] or 0.0, "fade_out": lr["fade_out_s"] or 0.0,
                 })
 
+        overlays = overlay_ops.enabled_overlay_specs(db, recomp_id)
+
         final = media_ops.export_recomposition(recomp_id, title, cuts,
                                                on_progress=prog,
                                                check_cancel=ctx.check_cancel,
-                                               quality=quality, bg_layers=bg_layers)
+                                               quality=quality, bg_layers=bg_layers,
+                                               overlays=overlays)
     finally:
         shutil.rmtree(audio_tmp, ignore_errors=True)
     log(f"export '{title}' done → {final}")
@@ -1019,17 +1099,31 @@ def retry(job_id: int) -> dict:
 
 # --------------------------------------------------------------- worker
 
+def _remote_kinds() -> set[str]:
+    """Job kinds reserved for a remote executor — the in-process worker leaves
+    these queued (status shows 'waiting for bg-server')."""
+    raw = os.environ.get("RECOMPOSER_REMOTE_KINDS", "").strip()
+    return {k.strip() for k in raw.split(",") if k.strip()}
+
+
 def _claim_next():
     """Claim the next runnable job with an optimistic UPDATE. Also adopts
-    running jobs whose lease expired (their worker died)."""
+    running jobs whose lease expired (their worker died). Skips kinds reserved
+    for a remote executor."""
     db = get_db()
+    remote = _remote_kinds()
+    excl = ""
+    params_sel: list = []
+    if remote:
+        excl = f" AND kind NOT IN ({','.join('?' * len(remote))})"
+        params_sel = list(remote)
     for _ in range(10):
-        row = db.execute("""
+        row = db.execute(f"""
             SELECT id FROM jobs
-            WHERE (status='queued' AND cancel_requested=0)
+            WHERE ((status='queued' AND cancel_requested=0)
                OR (status='running' AND lease_until IS NOT NULL
-                   AND lease_until < datetime('now'))
-            ORDER BY priority DESC, id LIMIT 1""").fetchone()
+                   AND lease_until < datetime('now'))){excl}
+            ORDER BY priority DESC, id LIMIT 1""", params_sel).fetchone()
         if row is None:
             return None
         cur = db.execute("""
@@ -1044,6 +1138,57 @@ def _claim_next():
         if cur.rowcount:
             return db.execute("SELECT * FROM jobs WHERE id=?", (row["id"],)).fetchone()
     return None
+
+
+# ---------------------------------------------- remote executor protocol
+
+def claim_remote(worker_id: str, kinds: set[str]) -> dict | None:
+    """Claim a queued job of one of `kinds` for an out-of-process executor."""
+    if not kinds:
+        return None
+    db = get_db()
+    ph = ",".join("?" * len(kinds))
+    for _ in range(10):
+        row = db.execute(
+            f"""SELECT id FROM jobs WHERE status='queued' AND cancel_requested=0
+                AND kind IN ({ph}) ORDER BY priority DESC, id LIMIT 1""",
+            list(kinds)).fetchone()
+        if row is None:
+            return None
+        cur = db.execute("""
+            UPDATE jobs SET status='running', worker_id=?,
+                   lease_until=datetime('now', ?),
+                   started_at=COALESCE(started_at, datetime('now')),
+                   attempts=attempts+1, updated_at=datetime('now')
+            WHERE id=? AND status='queued'""",
+            (worker_id, f"+{LEASE_SECONDS} seconds", row["id"]))
+        db.commit()
+        if cur.rowcount:
+            return dict(db.execute("SELECT * FROM jobs WHERE id=?", (row["id"],)).fetchone())
+    return None
+
+
+def remote_heartbeat(job_id: int, worker_id: str):
+    db = get_db()
+    db.execute("UPDATE jobs SET lease_until=datetime('now', ?), updated_at=datetime('now') "
+               "WHERE id=? AND worker_id=?",
+               (f"+{LEASE_SECONDS} seconds", job_id, worker_id))
+    db.commit()
+
+
+def remote_complete(job_id: int, detail: str = ""):
+    db = get_db()
+    db.execute("UPDATE jobs SET status='done', progress=100, detail=?, "
+               "finished_at=datetime('now'), updated_at=datetime('now') WHERE id=?",
+               (detail or "done", job_id))
+    db.commit()
+
+
+def remote_fail(job_id: int, error: str = ""):
+    db = get_db()
+    db.execute("UPDATE jobs SET status='failed', detail=?, finished_at=datetime('now'), "
+               "updated_at=datetime('now') WHERE id=?", ((error or "remote failure")[:500], job_id))
+    db.commit()
 
 
 def _finish(job_id: int, status: str, detail: str | None = None):

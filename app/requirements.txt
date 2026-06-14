@@ -16,3 +16,13 @@ mtranslate
 # reference voice). If absent, dubbing falls back to pitch-based gender. The app
 # works without it; install for better automatic male/female voice matching.
 resemblyzer
+# Optional (P6 AI): semantic 'Smart' search, auto-tag, and prompt-compose use
+# sentence-transformers embeddings (multilingual MiniLM). Without it, search
+# stays exact+fuzzy and AI features are disabled. numpy powers the vector store.
+sentence-transformers
+numpy
+# Optional (P6.4): LLM ordering/titling for prompt-compose via the Anthropic SDK
+# (needs ANTHROPIC_API_KEY). Compose still works without it (semantic order).
+anthropic
+# Optional (P8.3): the standalone executor (executor/worker.py) uses requests.
+requests

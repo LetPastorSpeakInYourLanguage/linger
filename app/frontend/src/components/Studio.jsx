@@ -327,6 +327,7 @@ function ExportModal({ recomp, user, exportJob, translationJob, onClose, onExpor
               <select className={inputCls} value={audioMode}
                 onChange={(e) => setAudioMode(e.target.value)}>
                 <option value="original">Original audio</option>
+                <option value="vocals_only">Vocals only (remove music)</option>
                 <option value="dub">Dub into another language</option>
               </select>
             </div>
@@ -437,6 +438,140 @@ const FIT_HINT = {
   stretch: "time-stretch the bed to the span length",
   trim: "play once, padded/cut to the span",
 };
+
+const ALIGN_OPTS = [
+  { v: 1, l: "↙ bottom-left" }, { v: 2, l: "↓ bottom-center" }, { v: 3, l: "↘ bottom-right" },
+  { v: 4, l: "← mid-left" }, { v: 5, l: "· middle" }, { v: 6, l: "→ mid-right" },
+  { v: 7, l: "↖ top-left" }, { v: 8, l: "↑ top-center" }, { v: 9, l: "↗ top-right" },
+];
+const DEFAULT_OVERLAY_STYLE = {
+  font_name: "Arial", font_size: 48, primary_color: "#FFFFFF",
+  outline_color: "#000000", outline: 2, alignment: 2, margin_v: 40, bold: false,
+};
+
+/* Styled text overlays burned onto the export (captions / titles), sourced from
+   each cut's subtitles or a translation. */
+function OverlaysModal({ recomp, onClose }) {
+  const [overlays, setOverlays] = useState([]);
+  const [languages, setLanguages] = useState([]);
+  const [err, setErr] = useState("");
+
+  const load = () => api.get(`/api/recompositions/${recomp.id}/overlays`)
+    .then(setOverlays).catch((e) => setErr(e.message));
+  useEffect(() => {
+    load();
+    api.get("/api/languages").then(setLanguages).catch(() => {});
+  }, [recomp.id]);
+
+  const add = async () => {
+    try {
+      await api.post(`/api/recompositions/${recomp.id}/overlays`, {
+        name: "Captions", source: "subtitles", style: DEFAULT_OVERLAY_STYLE });
+      load();
+    } catch (e) { setErr(e.message); }
+  };
+  const patch = async (id, body) => {
+    try { await api.patch(`/api/overlays/${id}`, body); load(); }
+    catch (e) { setErr(e.message); }
+  };
+  const remove = async (id) => {
+    if (!confirm("Delete this overlay track?")) return;
+    try { await api.del(`/api/overlays/${id}`); load(); } catch (e) { setErr(e.message); }
+  };
+  const setStyle = (ov, patchStyle) =>
+    patch(ov.id, { style: { ...DEFAULT_OVERLAY_STYLE, ...ov.style, ...patchStyle } });
+
+  return (
+    <div data-modal className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+          <h2 className="font-semibold">Text overlays — {recomp.title}</h2>
+          <button onClick={onClose} className="text-zinc-400 hover:text-white text-xl leading-none">×</button>
+        </div>
+        <div className="p-4 space-y-3 overflow-y-auto">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-zinc-500">
+              Burned onto the export. Sourced from each cut's subtitles or a translation,
+              anchored to the timeline.
+            </p>
+            <button className={btnGhost} onClick={add}>+ Add overlay</button>
+          </div>
+          {overlays.length === 0 && (
+            <p className="text-sm text-zinc-500">No overlays yet.</p>
+          )}
+          {overlays.map((ov) => {
+            const st = { ...DEFAULT_OVERLAY_STYLE, ...ov.style };
+            return (
+              <div key={ov.id} className="rounded-lg border border-zinc-800 bg-zinc-950 p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <input className={`${inputCls} flex-1`} value={ov.name}
+                    onChange={(e) => patch(ov.id, { name: e.target.value })} />
+                  <label className="flex items-center gap-1 text-xs text-zinc-400">
+                    <input type="checkbox" checked={ov.enabled}
+                      onChange={(e) => patch(ov.id, { enabled: e.target.checked })} />
+                    export
+                  </label>
+                  <a className="text-xs text-indigo-400 hover:text-indigo-300"
+                    href={`/api/overlays/${ov.id}.ass`} download>.ass</a>
+                  <button className="text-zinc-500 hover:text-red-400 text-sm"
+                    onClick={() => remove(ov.id)}>✕</button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="text-xs text-zinc-500">Source
+                    <select className={inputCls} value={ov.source}
+                      onChange={(e) => patch(ov.id, { source: e.target.value })}>
+                      <option value="subtitles">Original subtitles</option>
+                      <option value="translation">Translation</option>
+                    </select>
+                  </label>
+                  {ov.source === "translation" && (
+                    <label className="text-xs text-zinc-500">Language
+                      <select className={inputCls} value={ov.lang_code}
+                        onChange={(e) => patch(ov.id, { lang_code: e.target.value })}>
+                        <option value="">—</option>
+                        {languages.map((l) => <option key={l.code} value={l.code}>{l.name}</option>)}
+                      </select>
+                    </label>
+                  )}
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <label className="text-xs text-zinc-500">Font size
+                    <input type="number" min="10" className={inputCls} value={st.font_size}
+                      onChange={(e) => setStyle(ov, { font_size: Number(e.target.value) })} />
+                  </label>
+                  <label className="text-xs text-zinc-500">Text
+                    <input type="color" className={`${inputCls} h-9 p-1`} value={st.primary_color}
+                      onChange={(e) => setStyle(ov, { primary_color: e.target.value })} />
+                  </label>
+                  <label className="text-xs text-zinc-500">Outline
+                    <input type="color" className={`${inputCls} h-9 p-1`} value={st.outline_color}
+                      onChange={(e) => setStyle(ov, { outline_color: e.target.value })} />
+                  </label>
+                  <label className="text-xs text-zinc-500">Position
+                    <select className={inputCls} value={st.alignment}
+                      onChange={(e) => setStyle(ov, { alignment: Number(e.target.value) })}>
+                      {ALIGN_OPTS.map((a) => <option key={a.v} value={a.v}>{a.l}</option>)}
+                    </select>
+                  </label>
+                  <label className="text-xs text-zinc-500">Outline width
+                    <input type="number" min="0" step="0.5" className={inputCls} value={st.outline}
+                      onChange={(e) => setStyle(ov, { outline: Number(e.target.value) })} />
+                  </label>
+                  <label className="text-xs text-zinc-500">Margin
+                    <input type="number" min="0" className={inputCls} value={st.margin_v}
+                      onChange={(e) => setStyle(ov, { margin_v: Number(e.target.value) })} />
+                  </label>
+                </div>
+              </div>
+            );
+          })}
+          {err && <p className="text-sm text-red-400">{err}</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* Manage background-audio beds and assign them as length-matched layers over
    spans of cuts. Several layers on adjacent spans = several beds in sequence. */
@@ -611,6 +746,7 @@ function RecompEditor({ user, recompId, back }) {
   const [menu, setMenu] = useState(null); // {x, y, cut}
   const [showExport, setShowExport] = useState(false);
   const [showLayers, setShowLayers] = useState(false);
+  const [showOverlays, setShowOverlays] = useState(false);
   const wasPlayingRef = useRef(false);
   const { refA, refB, activeEl, getPlayer, playingIdx, playFrom, stop, loop, setLoop } =
     useSequencePlayer(recomp?.cuts ?? []);
@@ -805,6 +941,11 @@ function RecompEditor({ user, recompId, back }) {
               onClick={() => setShowLayers(true)}>
               🎵 Background
             </button>
+            <button title="Add styled text overlays burned onto the export"
+              className={btnGhost} disabled={!recomp.cuts.length}
+              onClick={() => setShowOverlays(true)}>
+              💬 Overlays
+            </button>
             <button title="Render this recomposition into one real video/audio file"
               className={btnGhost} disabled={!recomp.cuts.length || !!exportJob}
               onClick={() => setShowExport(true)}>
@@ -916,6 +1057,9 @@ function RecompEditor({ user, recompId, back }) {
         <BackgroundAudioModal recomp={recomp} user={user}
           onClose={() => setShowLayers(false)} />
       )}
+      {showOverlays && (
+        <OverlaysModal recomp={recomp} onClose={() => setShowOverlays(false)} />
+      )}
     </div>
   );
 }
@@ -924,15 +1068,34 @@ export default function Studio({ user }) {
   const [recomps, setRecomps] = useState([]);
   const [openId, setOpenId] = useState(null);
   const [newTitle, setNewTitle] = useState("");
+  const [prompt, setPrompt] = useState("");
+  const [composing, setComposing] = useState(false);
+  const [smartAvail, setSmartAvail] = useState(false);
 
   const refresh = () => api.get("/api/recompositions").then(setRecomps);
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    refresh();
+    api.get("/api/embed/status").then((s) => setSmartAvail(!!s.available)).catch(() => {});
+  }, []);
 
   const create = async () => {
     if (!newTitle.trim()) return;
     const r = await api.post("/api/recompositions", { title: newTitle.trim(), user_id: user.id });
     setNewTitle("");
     setOpenId(r.id);
+  };
+
+  const compose = async () => {
+    if (!prompt.trim()) return;
+    setComposing(true);
+    try {
+      const r = await api.post("/api/ai/compose",
+                               { prompt: prompt.trim(), create: true, user_id: user.id });
+      setPrompt("");
+      if (r.recomp_id) { await refresh(); setOpenId(r.recomp_id); }
+      else alert("No matching cuts found — build the search index and make some cuts first.");
+    } catch (e) { alert(e.message); }
+    setComposing(false);
   };
 
   const remove = async (r) => {
@@ -949,12 +1112,23 @@ export default function Studio({ user }) {
   return (
     <div className="h-full overflow-y-auto p-6 max-w-3xl mx-auto">
       <h1 className="text-xl font-semibold mb-5">Recompositions</h1>
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-3">
         <input className={inputCls} placeholder="New recomposition title (e.g. Best confessions ever)…"
           value={newTitle} onChange={(e) => setNewTitle(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && create()} />
         <button className={btnCls} onClick={create}>Create</button>
       </div>
+      {smartAvail && (
+        <div className="flex gap-2 mb-6">
+          <input className={inputCls}
+            placeholder="✨ Compose from a prompt (e.g. an inspiring montage about perseverance)…"
+            value={prompt} onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && compose()} />
+          <button className={btnGhost} disabled={composing || !prompt.trim()} onClick={compose}>
+            {composing ? "Composing…" : "✨ Compose"}
+          </button>
+        </div>
+      )}
       <div className="space-y-2">
         {recomps.length === 0 && (
           <p className="text-zinc-500 text-sm text-center mt-10">No recompositions yet.</p>

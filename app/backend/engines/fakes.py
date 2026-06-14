@@ -48,6 +48,27 @@ class FakeTTSEngine:
         return TTSResult(audio_path=out_path, word_boundaries=boundaries)
 
 
+class FakeEmbeddingEngine:
+    """Deterministic bag-of-words hashing embedding: shared words → similar
+    vectors, so semantic-search ranking is meaningful in tests without a model."""
+
+    name = "fake-embed"
+    dim = 64
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        import math
+        import re
+        import zlib
+        out = []
+        for t in texts:
+            vec = [0.0] * self.dim
+            for w in re.findall(r"\w+", (t or "").lower()):
+                vec[zlib.crc32(w.encode()) % self.dim] += 1.0  # stable across processes
+            norm = math.sqrt(sum(v * v for v in vec)) or 1.0
+            out.append([v / norm for v in vec])
+        return out
+
+
 class FakeTranslateEngine:
     name = "fake"
 

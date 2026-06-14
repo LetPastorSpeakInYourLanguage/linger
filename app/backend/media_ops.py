@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import time
+import uuid
 from pathlib import Path
 
 MEDIA_ROOT = Path(os.environ.get(
@@ -27,6 +28,17 @@ def safe_unlink(path: Path):
 
 def have_ffmpeg() -> bool:
     return shutil.which("ffmpeg") is not None and shutil.which("ffprobe") is not None
+
+
+def sha256_file(path: Path) -> str:
+    """Streaming sha256 of a file — identifies a source so collaborators can
+    relink their own copy and prove it's the same media."""
+    import hashlib
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def probe(path: Path):
@@ -189,9 +201,9 @@ def _video_settings(quality: str):
     return w, h, fps, vf, v_args
 
 
-def _run_ffmpeg(cmd, check_cancel=None, timeout=3600):
+def _run_ffmpeg(cmd, check_cancel=None, timeout=3600, cwd=None):
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                            text=True)
+                            text=True, cwd=cwd)
     waited = 0.0
     while True:
         try:
@@ -249,21 +261,36 @@ def _clip_cmd(src: Path, start: float, dur: float, out: Path,
                    *v_args, *A_ARGS, str(out)]
 
 
+def _burn_overlays(src: Path, ass_path: Path, out: Path, quality: str,
+                   check_cancel=None):
+    """Burn an .ass overlay onto the video. The subtitles filter's path is hard
+    to escape on Windows, so we run with cwd = the .ass folder and reference it
+    by bare name. Video is re-encoded; audio is copied."""
+    _, _, _, _, v_args = _video_settings(quality)
+    _run_ffmpeg(["ffmpeg", "-y", "-i", str(src.resolve()),
+                 "-vf", f"subtitles={ass_path.name}",
+                 *v_args, "-c:a", "copy", "-movflags", "+faststart",
+                 str(out.resolve())], check_cancel, cwd=str(ass_path.parent))
+
+
 def export_recomposition(recomp_id: int, title: str, cuts: list[dict],
                          on_progress=None, check_cancel=None,
-                         quality: str = "720p", bg_layers: list[dict] | None = None) -> Path:
+                         quality: str = "720p", bg_layers: list[dict] | None = None,
+                         overlays: list[dict] | None = None) -> Path:
     """cuts: [{src, start_s, end_s, is_video}] in playback order.
-    Re-encodes every cut to identical parameters, concat-copies them, then (if
-    bg_layers) mixes dynamic-length background-audio beds over the result.
-    bg_layers: [{asset_path, from_pos, to_pos, gain, fit}].
-    on_progress(msg, percent). Returns the final path under media_store/exports/."""
+    Re-encodes every cut, concat-copies them, then (if bg_layers) mixes
+    dynamic-length beds over the result, then (if overlays + video) burns styled
+    .ass text. bg_layers: [{asset_path, from_pos, to_pos, gain, fit, ...}];
+    overlays: [{name, style, events}]. Returns the final media_store/exports/ path."""
     if not have_ffmpeg():
         raise RuntimeError("ffmpeg is required for export")
-    from . import compose  # lazy: compose imports media_ops
+    from . import ass_writer, compose  # lazy: compose imports media_ops
     EXPORT_DIR.mkdir(parents=True, exist_ok=True)
     has_video = any(c["is_video"] for c in cuts)
     ext = "mp4" if has_video else "wav"
-    stamp = time.strftime("%Y%m%d-%H%M%S")
+    # second-resolution time + a short random suffix so two exports of the same
+    # recomposition in the same second don't collide and overwrite each other
+    stamp = f"{time.strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:4]}"
     safe_title = "".join(ch if ch.isalnum() or ch in " -_" else "_" for ch in title).strip() or "recomposition"
     final = EXPORT_DIR / f"recomp{recomp_id}_{safe_title[:40]}_{stamp}.{ext}"
     tmp = EXPORT_DIR / f"tmp_{recomp_id}_{stamp}"
@@ -291,15 +318,18 @@ def export_recomposition(recomp_id: int, title: str, cuts: list[dict],
         listfile = tmp / "list.txt"
         listfile.write_text(
             "\n".join(f"file '{p.as_posix()}'" for p in clips), encoding="utf-8")
-        concat_out = (tmp / f"concat.{ext}") if bg_layers else final
+        burn = bool(overlays) and has_video
+        need_post = bool(bg_layers) or burn
+        concat_out = (tmp / f"concat.{ext}") if need_post else final
         _run_ffmpeg(["ffmpeg", "-y", "-f", "concat", "-safe", "0",
                      "-i", str(listfile), "-c", "copy",
                      *(["-movflags", "+faststart"] if has_video else []),
                      str(concat_out)], check_cancel)
+        cur = concat_out
 
         if bg_layers:
             if on_progress:
-                on_progress("adding background audio", 94)
+                on_progress("adding background audio", 92)
             segs = compose.timeline([max(0.05, c["end_s"] - c["start_s"]) for c in cuts])
             rendered = []
             for k, layer in enumerate(bg_layers):
@@ -313,8 +343,20 @@ def export_recomposition(recomp_id: int, title: str, cuts: list[dict],
                     fade_in=layer.get("fade_in", 0.0), fade_out=layer.get("fade_out", 0.0),
                     check_cancel=check_cancel)
                 rendered.append({"path": fitted, "start_s": start_s})
-            compose.apply_background(concat_out, has_video, rendered, final,
+            bg_out = tmp / f"withbg.{ext}"
+            compose.apply_background(cur, has_video, rendered, bg_out,
                                      check_cancel=check_cancel)
+            cur = bg_out
+
+        if burn:
+            if on_progress:
+                on_progress("burning text overlays", 96)
+            w, h, _, _, _ = _video_settings(quality)
+            ass_path = tmp / "overlay.ass"
+            ass_path.write_text(ass_writer.build_ass(overlays, w, h), encoding="utf-8")
+            _burn_overlays(cur, ass_path, final, quality, check_cancel)
+        elif cur != final:
+            shutil.move(str(cur), str(final))
         return final
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

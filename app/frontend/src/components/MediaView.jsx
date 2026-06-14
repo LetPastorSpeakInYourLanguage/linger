@@ -379,6 +379,18 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
     }
   };
 
+  const autoCut = async () => {
+    if (trackId == null) return;
+    if (!confirm("Auto-create cuts from this transcript? They land in an 'Auto-cuts' "
+                 + "folder, tagged 'auto', for you to review.")) return;
+    try {
+      const r = await api.post(`/api/media/${mediaId}/auto-cut`,
+                               { track_id: trackId, user_id: user.id });
+      refreshCuts();
+      alert(`Created ${r.created} cut(s) in the Auto-cuts folder.`);
+    } catch (e) { alert(e.message); }
+  };
+
   // arriving from a global search hit: select + scroll + seek (paused)
   useEffect(() => {
     if (!initialSeg || !segments.length) return;
@@ -573,6 +585,9 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
                 onClick={() => setEditMode(!editMode)}>
                 ✎ {editMode ? "editing" : "edit"}
               </button>
+              <button className={`${btnGhost} !px-2 !py-1 text-xs`}
+                title="Auto-create cuts from this transcript (pauses / sentences)"
+                onClick={autoCut}>✂ auto-cut</button>
               <button className="text-zinc-600 hover:text-red-400 text-xs px-1" title="Delete this track"
                 onClick={removeTrack}>🗑</button>
             </>

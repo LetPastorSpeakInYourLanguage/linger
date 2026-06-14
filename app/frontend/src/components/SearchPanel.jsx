@@ -53,11 +53,17 @@ export default function SearchPanel({ mediaId = null, trackId = null, onPick = n
                                       placeholder }) {
   const [q, setQ] = useState("");
   const [fuzzy, setFuzzy] = useState(true);
+  const [smart, setSmart] = useState(() => localStorage.getItem("search_smart") === "1");
+  const [smartAvail, setSmartAvail] = useState(false);
   const [results, setResults] = useState([]);
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(null);
   const debounce = useRef();
   const seq = useRef(0);
+
+  useEffect(() => {
+    api.get("/api/embed/status").then((s) => setSmartAvail(!!s.available)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     clearTimeout(debounce.current);
@@ -69,7 +75,9 @@ export default function SearchPanel({ mediaId = null, trackId = null, onPick = n
     debounce.current = setTimeout(async () => {
       const mine = ++seq.current;
       try {
-        const params = new URLSearchParams({ q: q.trim(), fuzzy: fuzzy ? "1" : "0", limit: "80" });
+        const params = new URLSearchParams({
+          q: q.trim(), fuzzy: fuzzy ? "1" : "0",
+          smart: smart && smartAvail ? "1" : "0", limit: "80" });
         if (mediaId != null) params.set("media_id", mediaId);
         if (mediaId != null && trackId != null) params.set("track_id", trackId);
         const rs = await api.get(`/api/search/segments?${params}`);
@@ -78,7 +86,9 @@ export default function SearchPanel({ mediaId = null, trackId = null, onPick = n
       if (mine === seq.current) setBusy(false);
     }, 250);
     return () => clearTimeout(debounce.current);
-  }, [q, fuzzy, mediaId, trackId]);
+  }, [q, fuzzy, smart, smartAvail, mediaId, trackId]);
+
+  const toggleSmart = (v) => { setSmart(v); localStorage.setItem("search_smart", v ? "1" : "0"); };
 
   return (
     <div className="h-full flex flex-col min-h-0">
@@ -89,14 +99,23 @@ export default function SearchPanel({ mediaId = null, trackId = null, onPick = n
             value={q} onChange={(e) => setQ(e.target.value)} />
           {busy && <Spinner />}
         </div>
-        <label className="flex items-center gap-2 text-xs text-zinc-400 cursor-pointer select-none">
-          <input type="checkbox" className="accent-indigo-500" checked={fuzzy}
-            onChange={(e) => setFuzzy(e.target.checked)} />
-          Fuzzy match (finds it even with typos)
+        <div className="flex items-center gap-3 text-xs text-zinc-400 select-none">
+          <label className="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" className="accent-indigo-500" checked={fuzzy}
+              onChange={(e) => setFuzzy(e.target.checked)} />
+            Fuzzy
+          </label>
+          <label className={`flex items-center gap-1.5 ${smartAvail ? "cursor-pointer" : "opacity-40 cursor-not-allowed"}`}
+            title={smartAvail ? "Semantic search — finds it by meaning, not just words"
+              : "Install sentence-transformers and build the index to enable semantic search"}>
+            <input type="checkbox" className="accent-indigo-500" checked={smart && smartAvail}
+              disabled={!smartAvail} onChange={(e) => toggleSmart(e.target.checked)} />
+            ✨ Smart (semantic)
+          </label>
           {q.trim() && !busy && (
             <span className="ml-auto text-zinc-500">{results.length} hit{results.length === 1 ? "" : "s"}</span>
           )}
-        </label>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
@@ -116,11 +135,15 @@ export default function SearchPanel({ mediaId = null, trackId = null, onPick = n
             className="rounded-lg border border-zinc-800 bg-zinc-900 hover:border-indigo-500/70 p-2.5 cursor-pointer group">
             <p className="text-sm leading-snug"><Highlight text={r.text} q={q} /></p>
             <div className="flex items-center gap-2 mt-1.5 text-xs text-zinc-500">
-              {r.match === "fuzzy" && (
+              {r.match === "fuzzy" && !r.methods && (
                 <span className="px-1.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30"
                   title="Fuzzy match — similarity score">
                   ~{Math.round(r.score * 100)}%
                 </span>
+              )}
+              {r.match === "semantic" && (
+                <span className="px-1.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/30"
+                  title="Found by meaning (semantic)">✨ semantic</span>
               )}
               <span>{fmtTime(r.start_s)}</span>
               {mediaId == null && <span className="truncate">· {r.media_title}</span>}

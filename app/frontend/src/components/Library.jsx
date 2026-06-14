@@ -246,13 +246,34 @@ export default function Library({ user, openMedia }) {
     catch (e) { alert(e.message); }
   };
 
+  const relink = async (m) => {
+    const path = prompt(
+      `"${m.title}" is unlinked on this computer.\nPaste the full path to your copy of the source file (verified by sha256):`);
+    if (!path || !path.trim()) return;
+    try {
+      await api.post(`/api/media/${m.id}/relink`, { path: path.trim(), user_id: user.id });
+      refresh();
+    } catch (e) { alert(e.message); }
+  };
+
+  const buildIndex = async () => {
+    try {
+      const r = await api.post("/api/embed/all");
+      alert(`Building semantic search index for ${r.queued.length} media in the background.`);
+    } catch (e) { alert(e.message); }
+  };
+
   const activeJobs = jobs.filter((j) => j.status === "queued" || j.status === "running");
 
   return (
     <div className="h-full overflow-y-auto p-6">
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-xl font-semibold">Library</h1>
-        <button className={btnCls} onClick={() => setShowAdd(true)}>+ Add media</button>
+        <div className="flex gap-2">
+          <button className={btnGhost} onClick={buildIndex}
+            title="Embed transcripts for semantic ('Smart') search">✨ Build search index</button>
+          <button className={btnCls} onClick={() => setShowAdd(true)}>+ Add media</button>
+        </div>
       </div>
 
       {activeJobs.length > 0 && (
@@ -294,6 +315,13 @@ export default function Library({ user, openMedia }) {
               <p className={`text-xs mt-1 ${color}`}>
                 {label}{busy && m.status_detail ? ` — ${m.status_detail}` : ""}
               </p>
+              {m.linked === false && !busy && (
+                <div className="mt-1">
+                  <span className="text-xs text-amber-400">⚠ unlinked on this PC</span>
+                  <button className={`${btnGhost} ml-2 text-xs`}
+                    onClick={(e) => { e.stopPropagation(); relink(m); }}>relink…</button>
+                </div>
+              )}
               {m.status === "error" && (
                 <p className="text-xs text-red-400/80 mt-1 line-clamp-2">{m.status_detail}</p>
               )}
