@@ -247,11 +247,15 @@ export default function Library({ user, openMedia }) {
   };
 
   const relink = async (m) => {
-    const path = prompt(
-      `"${m.title}" is unlinked on this computer.\nPaste the full path to your copy of the source file (verified by sha256):`);
-    if (!path || !path.trim()) return;
+    const ans = prompt(
+      `"${m.title}" is unlinked on this computer.\n\n`
+      + "Paste a LOCAL path to your copy (sha256-verified), or a URL to re-download:");
+    if (!ans || !ans.trim()) return;
+    const v = ans.trim();
+    const body = /^https?:\/\//i.test(v) ? { url: v, user_id: user.id }
+                                         : { path: v, user_id: user.id };
     try {
-      await api.post(`/api/media/${m.id}/relink`, { path: path.trim(), user_id: user.id });
+      await api.post(`/api/media/${m.id}/relink`, body);
       refresh();
     } catch (e) { alert(e.message); }
   };

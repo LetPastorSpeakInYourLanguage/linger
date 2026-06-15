@@ -136,7 +136,7 @@ export default function App() {
         {view.tab === "cuts" && <CutsPage user={user} openMedia={openMedia} />}
         {view.tab === "studio" && <Studio user={user} />}
         {view.tab === "audio" && <AudioStudio user={user} />}
-        {view.tab === "settings" && <Settings />}
+        {view.tab === "settings" && <Settings user={user} onUser={login} />}
       </main>
     </div>
   );

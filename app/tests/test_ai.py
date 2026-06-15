@@ -76,6 +76,91 @@ class _FakeLLM:
         return {"cut_ids": list(reversed(ids))}
 
 
+class _FakeCutLLM:
+    """Pretends to read 'idx: text' lines and returns two cut specs."""
+    name = "fake-cut-llm"
+
+    def complete_json(self, system, prompt):
+        import re
+        idxs = [int(x) for x in re.findall(r"^(\d+):", prompt, re.M)]
+        if not idxs:
+            return {"cuts": []}
+        return {"cuts": [
+            {"from_idx": idxs[0], "to_idx": idxs[0], "title": "Opening",
+             "tags": ["intro"], "folder": "AI scenes"},
+            {"from_idx": idxs[-1], "to_idx": idxs[-1], "title": "Finale",
+             "tags": ["ending", "emotional"], "folder": "AI scenes"},
+        ]}
+
+
+def test_ai_cut_plan_then_commit(client, user):
+    llm.set_llm_engine(_FakeCutLLM())
+    try:
+        mid, _ = _media(user, "AI cut clip", [
+            (0.0, 1.0, "Once upon a time"),
+            (1.0, 2.0, "things happened"),
+            (2.0, 3.0, "the end arrives"),
+        ])
+        # PLAN — proposes cuts, writes nothing yet
+        plan = client.post(f"/api/media/{mid}/ai-cut",
+                           json={"prompt": "opening and closing scenes"}).json()
+        assert len(plan["plan"]) == 2
+        assert client.get(f"/api/cuts?media_id={mid}").json() == []  # not committed
+
+        # COMMIT — the user confirmed
+        c = client.post(f"/api/media/{mid}/ai-cut/commit",
+                        json={"track_id": plan["track_id"], "plan": plan["plan"],
+                              "user_id": user["id"]})
+        assert c.status_code == 200 and c.json()["created"] == 2
+        cuts = client.get(f"/api/cuts?media_id={mid}").json()
+        assert {"Opening", "Finale"} <= {c["title"] for c in cuts}
+        finale = next(c for c in cuts if c["title"] == "Finale")
+        assert "emotional" in finale["tags"]
+        assert any(f["name"] == "AI scenes" for f in client.get("/api/folders").json())
+    finally:
+        llm.set_llm_engine(None)
+
+
+def test_ai_cut_requires_llm(client, user):
+    llm.set_llm_engine(None)
+    mid, _ = _media(user, "No LLM clip", [(0.0, 1.0, "hello")])
+    r = client.post(f"/api/media/{mid}/ai-cut", json={"prompt": "x", "user_id": user["id"]})
+    assert r.status_code == 503
+
+
+def test_compose_into_existing_recomp_at_position(client, user):
+    embeddings.set_embedding_engine(FakeEmbeddingEngine())
+    try:
+        mid, _ = _media(user, "Insert clip", [
+            (0.0, 1.0, "calm ocean waves at sunset"),
+            (1.0, 2.0, "a quiet forest stream"),
+        ])
+        client.post(f"/api/media/{mid}/embed")
+        wait_for(lambda: get_db().execute(
+            "SELECT COUNT(*) c FROM segment_embeddings WHERE media_id=?", (mid,)
+        ).fetchone()["c"] >= 2, timeout=30)
+        segs = client.get(f"/api/media/{mid}/segments").json()
+        cut_ids = []
+        for i in range(2):
+            cut_ids.append(client.post("/api/cuts", json={"media_id": mid, "title": f"x{i}",
+                           "segment_ids": [segs[i]["id"]], "user_id": user["id"]}).json()["id"])
+        # a recomp with two manual cuts
+        rec = client.post("/api/recompositions",
+                          json={"title": "Insert recomp", "user_id": user["id"]}).json()
+        client.put(f"/api/recompositions/{rec['id']}/cuts", json={"cut_ids": cut_ids})
+        before = len(client.get(f"/api/recompositions/{rec['id']}").json()["cuts"])
+        # compose into the SAME recomp, inserting after position 0
+        r = client.post("/api/ai/compose", json={
+            "prompt": "peaceful nature", "recomp_id": rec["id"], "insert_after": 0,
+            "media_ids": [mid]})
+        assert r.status_code == 200, r.text
+        assert r.json()["recomp_id"] == rec["id"]
+        after = client.get(f"/api/recompositions/{rec['id']}").json()["cuts"]
+        assert len(after) > before  # cuts were inserted, not replaced
+    finally:
+        embeddings.set_embedding_engine(None)
+
+
 def test_compose_semantic_then_llm_order(client, user):
     embeddings.set_embedding_engine(FakeEmbeddingEngine())
     llm.set_llm_engine(_FakeLLM())
@@ -94,7 +179,8 @@ def test_compose_semantic_then_llm_order(client, user):
             client.post("/api/cuts", json={"media_id": mid, "title": f"c{i}",
                         "segment_ids": [segs[i]["id"]], "user_id": user["id"]})
         r = client.post("/api/ai/compose", json={
-            "prompt": "relaxing scenes by the sea", "create": True, "user_id": user["id"]})
+            "prompt": "relaxing scenes by the sea", "create": True,
+            "media_ids": [mid], "user_id": user["id"]})
         assert r.status_code == 200, r.text
         body = r.json()
         assert body["used_llm"] is True

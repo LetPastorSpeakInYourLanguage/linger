@@ -54,3 +54,18 @@ def test_unlinked_then_relink_with_hash_check(client, user, sample_video, tmp_pa
     wait_for(lambda: client.get(f"/api/media/{mid}").json()["status"] == "ready", timeout=60)
     # now the bytes are in the store and the transcript was never touched
     assert client.get(f"/api/media/{mid}").json()["linked"] is True
+
+
+def test_relink_by_url_records_source(client, user):
+    """Relinking from a URL records a 'url' source and queues a re-download
+    (no hash gate — a re-encode may differ)."""
+    db = get_db()
+    mid = db.execute(
+        "INSERT INTO media (title, type, filename, status, added_by) "
+        "VALUES ('FromUrl','video','',' error',?)", (user["id"],)).lastrowid
+    db.commit()
+    r = client.post(f"/api/media/{mid}/relink",
+                    json={"url": "https://example.com/clip.mp4"})
+    assert r.status_code == 200 and r.json()["via"] == "url"
+    srcs = client.get(f"/api/media/{mid}/sources").json()
+    assert any(s["kind"] == "url" and "example.com" in s["locator"] for s in srcs)

@@ -263,6 +263,44 @@ function ReviewSection({ recompId, lang, user }) {
   );
 }
 
+/* Preview AI-found cuts before committing them to a (new/existing) sequence. */
+function ComposePreviewModal({ title, candidates, busy, onConfirm, onClose }) {
+  return (
+    <div data-modal className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+          <h2 className="font-semibold">{title}</h2>
+          <button onClick={onClose} className="text-zinc-400 hover:text-white text-xl leading-none">×</button>
+        </div>
+        <div className="p-4 overflow-y-auto">
+          <p className="text-xs text-zinc-500 mb-2">
+            {candidates.length} cut{candidates.length === 1 ? "" : "s"} proposed, in order. Review, then confirm.
+          </p>
+          <ol className="space-y-1.5">
+            {candidates.map((c, i) => (
+              <li key={c.cut_id} className="rounded-lg border border-zinc-800 bg-zinc-950 p-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-zinc-600 text-xs">{i + 1}.</span>
+                  <span className="text-sm font-medium truncate flex-1">{c.title}</span>
+                  {c.score != null && <span className="text-[10px] text-zinc-500">{Math.round(c.score * 100)}%</span>}
+                </div>
+                {c.text && <p className="text-xs text-zinc-500 truncate">{c.text}</p>}
+              </li>
+            ))}
+          </ol>
+        </div>
+        <div className="flex justify-end gap-2 px-4 py-3 border-t border-zinc-800">
+          <button className={btnGhost} onClick={onClose}>Cancel</button>
+          <button className={btnCls} disabled={busy} onClick={onConfirm}>
+            {busy ? "Adding…" : `Confirm ${candidates.length}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ExportModal({ recomp, user, exportJob, translationJob, onClose, onExport, onTranslate }) {
   const [languages, setLanguages] = useState([]);
   const [targetLang, setTargetLang] = useState("");
@@ -280,6 +318,15 @@ function ExportModal({ recomp, user, exportJob, translationJob, onClose, onExpor
       setLanguages(rows);
       setTargetLang((cur) =>
         cur || rows.find((l) => l.dub_capable && l.code !== "en")?.code || rows[0]?.code || "");
+    }).catch(() => {});
+    // prefill from the recomposition defaults set in Settings
+    api.get("/api/settings").then(({ values: v }) => {
+      if (v.default_audio_mode) setAudioMode(v.default_audio_mode);
+      if (v.default_export_quality) setQuality(v.default_export_quality);
+      setKeepAccompaniment(!!v.default_keep_accompaniment);
+      setKeepSourceVocals(!!v.default_keep_source_vocals);
+      if (v.default_recomp_language && v.default_recomp_language !== "en")
+        setTargetLang(v.default_recomp_language);
     }).catch(() => {});
   }, []);
 
@@ -583,7 +630,9 @@ function BackgroundAudioModal({ recomp, user, onClose }) {
   const [err, setErr] = useState("");
   const [saved, setSaved] = useState(false);
 
-  const loadAssets = () => api.get("/api/audio-assets").then(setAssets).catch(() => {});
+  const loadAssets = () => api.get("/api/audio-assets")
+    .then((rows) => setAssets(rows.filter((a) => a.filename)))  // ready beds only
+    .catch(() => {});
   useEffect(() => {
     loadAssets();
     api.get(`/api/recompositions/${recomp.id}/audio-layers`)
@@ -747,12 +796,44 @@ function RecompEditor({ user, recompId, back }) {
   const [showExport, setShowExport] = useState(false);
   const [showLayers, setShowLayers] = useState(false);
   const [showOverlays, setShowOverlays] = useState(false);
+  const [insertAfter, setInsertAfter] = useState(null);  // append point for new cuts
+  const [seqPrompt, setSeqPrompt] = useState("");
+  const [seqPlan, setSeqPlan] = useState(null);
+  const [aiEmbed, setAiEmbed] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
   const wasPlayingRef = useRef(false);
   const { refA, refB, activeEl, getPlayer, playingIdx, playFrom, stop, loop, setLoop } =
     useSequencePlayer(recomp?.cuts ?? []);
 
   const load = () => api.get(`/api/recompositions/${recompId}`).then(setRecomp);
-  useEffect(() => { load(); api.get("/api/folders").then(setFolders).catch(() => {}); }, [recompId]);
+  useEffect(() => {
+    load();
+    api.get("/api/folders").then(setFolders).catch(() => {});
+    api.get("/api/ai/status").then((s) => setAiEmbed(!!s.embeddings)).catch(() => {});
+  }, [recompId]);
+
+  const addByPrompt = async () => {
+    if (!seqPrompt.trim()) return;
+    setAiBusy(true);
+    try {
+      const r = await api.post("/api/ai/compose",
+                               { prompt: seqPrompt.trim(), create: false });  // plan only
+      if (!r.candidates?.length) alert("No matching cuts found.");
+      else setSeqPlan({ cut_ids: r.cut_ids, candidates: r.candidates });
+    } catch (e) { alert(e.message); }
+    setAiBusy(false);
+  };
+
+  const confirmSeqPlan = async () => {
+    setAiBusy(true);
+    try {
+      await api.post("/api/ai/compose/commit", {
+        cut_ids: seqPlan.cut_ids, recomp_id: recompId,
+        insert_after: insertAfter, user_id: user.id });
+      setSeqPlan(null); setSeqPrompt(""); await load();
+    } catch (e) { alert(e.message); }
+    setAiBusy(false);
+  };
 
   /* ---- export: start job, poll progress, list finished files */
   const [exports, setExports] = useState([]);
@@ -810,7 +891,16 @@ function RecompEditor({ user, recompId, back }) {
     saveOrder(ids);
   };
 
-  const addCut = (cut) => saveOrder([...recomp.cuts.map((c) => c.id), cut.id]);
+  const addCut = (cut) => {
+    const ids = recomp.cuts.map((c) => c.id);
+    if (insertAfter != null && insertAfter >= 0 && insertAfter < ids.length) {
+      ids.splice(insertAfter + 1, 0, cut.id);
+      setInsertAfter(insertAfter + 1);  // keep stacking after the last inserted
+    } else {
+      ids.push(cut.id);
+    }
+    saveOrder(ids);
+  };
 
   const translateRecomp = async (options) => {
     const res = await api.post(`/api/recompositions/${recompId}/translations`, {
@@ -835,9 +925,13 @@ function RecompEditor({ user, recompId, back }) {
   };
 
   /* Right-click a sequence item → drive the cut browser's filters from it. */
-  const menuItems = (cut) => {
+  const menuItems = (cut, idx) => {
     const folderName = folders.find((f) => f.id === cut.folder_id)?.name;
     const items = [
+      { header: "Sequence" },
+      { label: `▸ Insert added cuts after #${idx + 1}`,
+        onClick: () => setInsertAfter(idx) },
+      { divider: true },
       { header: "Filter the cut browser by…" },
       {
         label: `🎬 Same media: ${cut.media_title}`,
@@ -999,8 +1093,27 @@ function RecompEditor({ user, recompId, back }) {
         </div>
 
         <p className="px-4 py-1 text-[11px] text-zinc-600 border-b border-zinc-800/60 shrink-0">
-          space play/pause · ←/→ seek 5s · ↑/↓ previous/next cut · L loop current cut · right-click a cut for filters
+          space play/pause · ←/→ seek 5s · ↑/↓ previous/next cut · L loop current cut · right-click a cut for filters / insert point
         </p>
+
+        {insertAfter != null && (
+          <div className="px-4 py-1.5 text-xs bg-indigo-500/10 border-b border-indigo-500/30 text-indigo-300 flex items-center gap-2 shrink-0">
+            ▸ New cuts insert after #{insertAfter + 1}
+            <button className="ml-auto text-zinc-400 hover:text-white"
+              onClick={() => setInsertAfter(null)}>append to end instead</button>
+          </div>
+        )}
+
+        {aiEmbed && (
+          <div className="px-4 py-2 border-b border-zinc-800/60 shrink-0 flex gap-2">
+            <input className={`${inputCls} text-sm`}
+              placeholder={`✨ Find & add cuts by prompt${insertAfter != null ? ` (after #${insertAfter + 1})` : ""}…`}
+              value={seqPrompt} onChange={(e) => setSeqPrompt(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addByPrompt()} />
+            <button className={btnGhost} disabled={aiBusy || !seqPrompt.trim()}
+              onClick={addByPrompt}>{aiBusy ? "Searching…" : "✨ Add"}</button>
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {recomp.cuts.length === 0 && (
@@ -1013,7 +1126,7 @@ function RecompEditor({ user, recompId, back }) {
               onDragStart={() => setDragIdx(i)}
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => { if (dragIdx != null && dragIdx !== i) move(dragIdx, i); setDragIdx(null); }}
-              onContextMenu={(e) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY, cut: c }); }}
+              onContextMenu={(e) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY, cut: c, idx: i }); }}
               className={`rounded-lg border p-3 flex items-center gap-3 cursor-grab ${
                 playingIdx === i ? "border-amber-500 bg-amber-500/10" : "border-zinc-800 bg-zinc-900"}`}>
               <span className="text-zinc-600 text-sm w-6 text-right">{i + 1}.</span>
@@ -1044,7 +1157,7 @@ function RecompEditor({ user, recompId, back }) {
       </div>
 
       {menu && (
-        <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu.cut)}
+        <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu.cut, menu.idx)}
           onClose={() => setMenu(null)} />
       )}
       {showExport && (
@@ -1060,6 +1173,12 @@ function RecompEditor({ user, recompId, back }) {
       {showOverlays && (
         <OverlaysModal recomp={recomp} onClose={() => setShowOverlays(false)} />
       )}
+      {seqPlan && (
+        <ComposePreviewModal
+          title={`Add by prompt${insertAfter != null ? ` (after #${insertAfter + 1})` : ""}`}
+          candidates={seqPlan.candidates} busy={aiBusy}
+          onConfirm={confirmSeqPlan} onClose={() => setSeqPlan(null)} />
+      )}
     </div>
   );
 }
@@ -1070,6 +1189,7 @@ export default function Studio({ user }) {
   const [newTitle, setNewTitle] = useState("");
   const [prompt, setPrompt] = useState("");
   const [composing, setComposing] = useState(false);
+  const [composePlan, setComposePlan] = useState(null);
   const [smartAvail, setSmartAvail] = useState(false);
 
   const refresh = () => api.get("/api/recompositions").then(setRecomps);
@@ -1090,10 +1210,20 @@ export default function Studio({ user }) {
     setComposing(true);
     try {
       const r = await api.post("/api/ai/compose",
-                               { prompt: prompt.trim(), create: true, user_id: user.id });
-      setPrompt("");
-      if (r.recomp_id) { await refresh(); setOpenId(r.recomp_id); }
+                               { prompt: prompt.trim(), create: false });  // plan only
+      if (r.candidates?.length) setComposePlan({ cut_ids: r.cut_ids, candidates: r.candidates });
       else alert("No matching cuts found — build the search index and make some cuts first.");
+    } catch (e) { alert(e.message); }
+    setComposing(false);
+  };
+
+  const confirmComposePlan = async () => {
+    setComposing(true);
+    try {
+      const r = await api.post("/api/ai/compose/commit", {
+        cut_ids: composePlan.cut_ids, title: prompt.trim(), user_id: user.id });
+      setComposePlan(null); setPrompt("");
+      await refresh(); setOpenId(r.recomp_id);
     } catch (e) { alert(e.message); }
     setComposing(false);
   };
@@ -1151,6 +1281,11 @@ export default function Studio({ user }) {
           </div>
         ))}
       </div>
+      {composePlan && (
+        <ComposePreviewModal title="Compose a new recomposition"
+          candidates={composePlan.candidates} busy={composing}
+          onConfirm={confirmComposePlan} onClose={() => setComposePlan(null)} />
+      )}
     </div>
   );
 }

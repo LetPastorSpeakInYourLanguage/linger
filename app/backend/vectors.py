@@ -84,7 +84,7 @@ def cosine(a, b) -> float:
 
 
 def search(query_vec, limit: int = 60, media_ids: list[int] | None = None,
-           track_id: int | None = None) -> list[tuple[int, float]]:
+           track_id: int | None = None, lang: str | None = None) -> list[tuple[int, float]]:
     """Top-(segment_id, cosine) for a query vector via brute-force numpy."""
     db = get_db()
     q = np.asarray(query_vec, dtype=np.float32)
@@ -98,6 +98,10 @@ def search(query_vec, limit: int = 60, media_ids: list[int] | None = None,
     if track_id is not None:
         sql += " AND s.track_id = ?"
         params.append(track_id)
+    from .search import lang_cond  # restrict to one subtitle language
+    clause, cparams = lang_cond(lang)
+    sql += clause
+    params += cparams
     rows = db.execute(sql, params).fetchall()
     if not rows:
         return []

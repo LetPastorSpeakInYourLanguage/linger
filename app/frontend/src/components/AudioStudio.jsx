@@ -162,10 +162,17 @@ export default function AudioStudio({ user }) {
 
   const refresh = () => api.get("/api/audio-assets").then((rows) => {
     setAssets(rows); setLoaded(true);
-    setSelId((cur) => (rows.some((r) => r.id === cur) ? cur : rows[0]?.id ?? null));
+    setSelId((cur) => (rows.some((r) => r.id === cur && r.filename) ? cur
+      : rows.find((r) => r.filename)?.id ?? null));
   }).catch((e) => { setErr(e.message); setLoaded(true); });
 
   useEffect(() => { refresh(); }, []);
+  // poll while a cut→bed job is still rendering a bed (filename not set yet)
+  useEffect(() => {
+    if (!assets.some((a) => !a.filename)) return;
+    const t = setInterval(refresh, 2500);
+    return () => clearInterval(t);
+  }, [assets]);
 
   const upload = async (file) => {
     if (!file) return;
@@ -209,14 +216,16 @@ export default function AudioStudio({ user }) {
             </p>
           )}
           {assets.map((a) => (
-            <button key={a.id} onClick={() => setSelId(a.id)}
+            <button key={a.id} onClick={() => a.filename && setSelId(a.id)}
               className={`w-full text-left px-3 py-2 border-b border-zinc-900 group flex items-center gap-2 ${
-                a.id === selId ? "bg-zinc-800" : "hover:bg-zinc-900"}`}>
+                a.id === selId ? "bg-zinc-800" : "hover:bg-zinc-900"} ${
+                !a.filename ? "opacity-60" : ""}`}>
               <span className="text-lg">🎵</span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm">{a.name}</span>
                 <span className="block text-[11px] text-zinc-500">
-                  {a.duration_s ? `${a.duration_s.toFixed(1)}s` : ""} · {a.default_fit}
+                  {!a.filename ? "processing…"
+                    : `${a.duration_s ? a.duration_s.toFixed(1) + "s" : ""} · ${a.default_fit}`}
                 </span>
               </span>
               <span onClick={(e) => { e.stopPropagation(); remove(a.id); }}

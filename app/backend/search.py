@@ -82,7 +82,19 @@ BASE_SQL = """SELECT s.*, m.title AS media_title, m.type AS media_type
               WHERE {fts} MATCH ?"""
 
 
-def _fts(db, fts_table: str, match: str, media_id, limit: int, track_id=None):
+def lang_cond(lang: str | None, alias: str = "s") -> tuple[str, list]:
+    """SQL fragment restricting to one subtitle language. 'en' also keeps
+    untagged tracks (treated as the base content); 'all'/'' = no filter."""
+    lang = (lang or "").strip().lower()
+    if not lang or lang == "all":
+        return "", []
+    if lang == "en":
+        return (f" AND {alias}.track_id IN "
+                "(SELECT id FROM tracks WHERE lang_code IN ('en',''))", [])
+    return (f" AND {alias}.track_id IN (SELECT id FROM tracks WHERE lang_code=?)", [lang])
+
+
+def _fts(db, fts_table: str, match: str, media_id, limit: int, track_id=None, lang=None):
     sql = BASE_SQL.format(fts=fts_table)
     params: list = [match]
     if media_id is not None:
@@ -91,6 +103,9 @@ def _fts(db, fts_table: str, match: str, media_id, limit: int, track_id=None):
     if track_id is not None:
         sql += " AND s.track_id = ?"
         params.append(track_id)
+    clause, cparams = lang_cond(lang)
+    sql += clause
+    params += cparams
     sql += " ORDER BY rank LIMIT ?"
     params.append(limit)
     try:
@@ -110,25 +125,25 @@ def _rows_by_ids(db, ids: list[int]) -> dict[int, dict]:
     return {r["id"]: dict(r) for r in rows}
 
 
-def _exact_rows(db, q, qwords, media_id, track_id, limit) -> list[dict]:
-    rows = _fts(db, "segments_fts", _phrase_prefix(q), media_id, limit, track_id)
+def _exact_rows(db, q, qwords, media_id, track_id, limit, lang=None) -> list[dict]:
+    rows = _fts(db, "segments_fts", _phrase_prefix(q), media_id, limit, track_id, lang)
     if len(qwords) > 1:
         seen = {r["id"] for r in rows}
-        for r in _fts(db, "segments_fts", _and_words(qwords), media_id, limit, track_id):
+        for r in _fts(db, "segments_fts", _and_words(qwords), media_id, limit, track_id, lang):
             if r["id"] not in seen:
                 rows.append(r)
                 seen.add(r["id"])
     return rows
 
 
-def _fuzzy_scored(db, q, qwords, media_id, track_id, limit, exclude=()) -> list[tuple]:
+def _fuzzy_scored(db, q, qwords, media_id, track_id, limit, exclude=(), lang=None) -> list[tuple]:
     if not getattr(dbmod, "HAS_TRIGRAM", False):
         return []
     tq = _trigram_query(q)
     if not tq:
         return []
     scored = []
-    for r in _fts(db, "segments_tri", tq, media_id, FUZZY_CANDIDATES, track_id):
+    for r in _fts(db, "segments_tri", tq, media_id, FUZZY_CANDIDATES, track_id, lang):
         if r["id"] in exclude:
             continue
         s = _score(qwords, r["text"])
@@ -138,7 +153,7 @@ def _fuzzy_scored(db, q, qwords, media_id, track_id, limit, exclude=()) -> list[
     return scored[:limit]
 
 
-def _semantic_ranked(db, q, media_id, track_id, limit) -> list[tuple]:
+def _semantic_ranked(db, q, media_id, track_id, limit, lang=None) -> list[tuple]:
     """[(segment_id, cosine)] for the query, or [] when embeddings unavailable."""
     engine = embeddings.get_embedding_engine()
     if engine is None:
@@ -148,10 +163,10 @@ def _semantic_ranked(db, q, media_id, track_id, limit) -> list[tuple]:
     except Exception:
         return []
     media_ids = [media_id] if media_id is not None else None
-    return vectors.search(qv, limit=limit, media_ids=media_ids, track_id=track_id)
+    return vectors.search(qv, limit=limit, media_ids=media_ids, track_id=track_id, lang=lang)
 
 
-def smart_search(q: str, media_id=None, track_id=None, limit=60) -> list[dict]:
+def smart_search(q: str, media_id=None, track_id=None, limit=60, lang=None) -> list[dict]:
     """Blend exact + fuzzy + semantic with Reciprocal Rank Fusion."""
     db = get_db()
     q = q.strip()
@@ -161,9 +176,9 @@ def smart_search(q: str, media_id=None, track_id=None, limit=60) -> list[dict]:
     qwords = _words(q)
     pool = max(limit, 50)
 
-    exact_rows = _exact_rows(db, q, qwords, media_id, track_id, pool)
-    fuzzy = _fuzzy_scored(db, q, qwords, media_id, track_id, pool)
-    semantic = _semantic_ranked(db, q, media_id, track_id, pool)
+    exact_rows = _exact_rows(db, q, qwords, media_id, track_id, pool, lang)
+    fuzzy = _fuzzy_scored(db, q, qwords, media_id, track_id, pool, lang=lang)
+    semantic = _semantic_ranked(db, q, media_id, track_id, pool, lang)
 
     rrf: dict[int, float] = {}
     methods: dict[int, set] = {}
@@ -201,9 +216,10 @@ def smart_search(q: str, media_id=None, track_id=None, limit=60) -> list[dict]:
 
 
 def search_segments(q: str, media_id: int | None = None, track_id: int | None = None,
-                    limit: int = 60, fuzzy: bool = True, smart: bool = False) -> list[dict]:
+                    limit: int = 60, fuzzy: bool = True, smart: bool = False,
+                    lang: str | None = None) -> list[dict]:
     if smart:
-        return smart_search(q, media_id, track_id, limit)
+        return smart_search(q, media_id, track_id, limit, lang)
     db = get_db()
     q = q.strip()
     if not q:
@@ -223,17 +239,17 @@ def search_segments(q: str, media_id: int | None = None, track_id: int | None = 
             out.append(r)
 
     # 1) exact phrase (with prefix on the last word)
-    take(_fts(db, "segments_fts", _phrase_prefix(q), media_id, limit, track_id), "exact")
+    take(_fts(db, "segments_fts", _phrase_prefix(q), media_id, limit, track_id, lang), "exact")
 
     # 2) all words present (any order)
     if len(out) < limit and len(qwords) > 1:
-        take(_fts(db, "segments_fts", _and_words(qwords), media_id, limit, track_id), "exact")
+        take(_fts(db, "segments_fts", _and_words(qwords), media_id, limit, track_id, lang), "exact")
 
     # 3) fuzzy via trigram candidates + word-level re-rank
     if fuzzy and len(out) < limit and getattr(dbmod, "HAS_TRIGRAM", False):
         tq = _trigram_query(q)
         if tq:
-            cands = _fts(db, "segments_tri", tq, media_id, FUZZY_CANDIDATES, track_id)
+            cands = _fts(db, "segments_tri", tq, media_id, FUZZY_CANDIDATES, track_id, lang)
             scored = []
             for r in cands:
                 if r["id"] in seen:

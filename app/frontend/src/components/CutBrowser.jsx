@@ -4,6 +4,57 @@ import { Modal, inputCls, btnCls, btnGhost, Tag, Picker, useResizable, DragBar }
 import SearchPanel, { RangePreview } from "./SearchPanel";
 import TranslationPanel from "./TranslationPanel";
 
+/* Turn a cut into a reusable background-audio bed — whole audio or music-only. */
+function ToBedModal({ cut, user, onClose }) {
+  const [mode, setMode] = useState("full");
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const make = async () => {
+    setBusy(true); setErr("");
+    try {
+      await api.post(`/api/cuts/${cut.id}/to-bg-audio`,
+                     { mode, name: name.trim(), user_id: user.id });
+      onClose(true);
+    } catch (e) { setErr(e.message); setBusy(false); }
+  };
+
+  const opt = (val, title, desc) => (
+    <label className={`block rounded-lg border p-3 cursor-pointer ${
+      mode === val ? "border-indigo-500 bg-indigo-500/10" : "border-zinc-700 hover:border-zinc-500"}`}>
+      <div className="flex items-center gap-2">
+        <input type="radio" name="bedmode" className="accent-indigo-500"
+          checked={mode === val} onChange={() => setMode(val)} />
+        <span className="font-medium text-sm">{title}</span>
+      </div>
+      <p className="text-xs text-zinc-500 mt-1 ml-6">{desc}</p>
+    </label>
+  );
+
+  return (
+    <Modal title={`Make background bed — ${cut.title}`} onClose={() => onClose(false)}>
+      <div className="space-y-3">
+        {opt("full", "Full audio", "Use the whole cut's audio as the bed.")}
+        {opt("accompaniment", "Music only (remove vocals)",
+             "Separate with Demucs and keep just the music / ambience.")}
+        <input className={inputCls} placeholder="Bed name (optional)"
+          value={name} onChange={(e) => setName(e.target.value)} />
+        {err && <p className="text-sm text-red-400">{err}</p>}
+        <p className="text-xs text-zinc-500">
+          It renders in the background and appears in the <b>Audio</b> tab when ready.
+        </p>
+        <div className="flex justify-end gap-2">
+          <button className={btnGhost} onClick={() => onClose(false)}>Cancel</button>
+          <button className={btnCls} disabled={busy} onClick={make}>
+            {busy ? "Starting…" : "Create bed"}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 /* ------------------------------------------------------------ filters */
 
 export const EMPTY_FILTERS = { q: "", tags: [], folders: [], media: [] };
@@ -180,7 +231,11 @@ export default function CutBrowser({ user, embedded = false, onAdd,
   const [preview, setPreview] = useState(null);
   const [editing, setEditing] = useState(null);
   const [translating, setTranslating] = useState(null);
+  const [bedFor, setBedFor] = useState(null);
   const [selected, setSelected] = useState(new Set());
+  const [bulkTag, setBulkTag] = useState("");
+  const [bulkLang, setBulkLang] = useState("");
+  const [languages, setLanguages] = useState([]);
   const [showAddTo, setShowAddTo] = useState(false);
   const debounce = useRef();
 
@@ -188,6 +243,7 @@ export default function CutBrowser({ user, embedded = false, onAdd,
     api.get("/api/folders").then(setFolders).catch(() => {});
     api.get("/api/tags").then(setTags).catch(() => {});
     api.get("/api/media").then((m) => setMedia(m.filter((x) => x.status === "ready"))).catch(() => {});
+    api.get("/api/languages").then(setLanguages).catch(() => {});
   };
 
   const refresh = () => {
@@ -215,6 +271,7 @@ export default function CutBrowser({ user, embedded = false, onAdd,
     refresh();
   };
 
+
   const openPreview = (c) => { setPreview(c); onPreviewChange?.(c); };
   const closePreview = () => { setPreview(null); onPreviewChange?.(null); };
 
@@ -229,15 +286,94 @@ export default function CutBrowser({ user, embedded = false, onAdd,
     !filters.media.some((x) => x.id === c.media_id) &&
     setFilters({ ...filters, media: [...filters.media, { id: c.media_id, title: c.media_title }] });
 
+  const bulk = async (body, confirmMsg) => {
+    if (confirmMsg && !confirm(confirmMsg)) return;
+    try {
+      const r = await api.post("/api/cuts/bulk", { cut_ids: [...selected], ...body });
+      setSelected(new Set());
+      refresh(); onCutChanged?.();
+      return r;
+    } catch (e) { alert(e.message); }
+  };
+  const selectAll = () => setSelected(new Set(cuts.map((c) => c.id)));
+
   return (
     <div className="h-full flex flex-col min-w-0">
       <div className="p-3 border-b border-zinc-800 shrink-0">
         <FilterBar filters={filters} setFilters={setFilters}
           tags={tags} folders={folders} media={media} compact={embedded} />
+        {!embedded && cuts.length > 0 && (
+          <div className="mt-2 flex items-center gap-2 text-xs text-zinc-400">
+            <button className="hover:text-white underline-offset-2 hover:underline"
+              onClick={selectAll}>Select all {cuts.length}</button>
+            {selected.size > 0 && (
+              <button className="hover:text-white"
+                onClick={() => setSelected(new Set())}>clear ({selected.size})</button>
+            )}
+          </div>
+        )}
         {!embedded && selected.size > 0 && (
-          <button className={`${btnCls} mt-2`} onClick={() => setShowAddTo(true)}>
-            Add {selected.size} selected to recomposition
-          </button>
+          <div className="mt-2 rounded-lg border border-indigo-500/40 bg-indigo-500/5 p-2 space-y-2">
+            <p className="text-xs text-indigo-300">{selected.size} selected — bulk actions</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <button className={`${btnCls} !py-1`} onClick={() => setShowAddTo(true)}>
+                ＋ Recomposition
+              </button>
+              {/* add a tag to all */}
+              <div className="flex items-center gap-1">
+                <input className={`${inputCls} !py-1 w-28`} placeholder="tag…"
+                  value={bulkTag} onChange={(e) => setBulkTag(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && bulkTag.trim()) {
+                      bulk({ action: "add_tags", tags: [bulkTag.trim()] });
+                      setBulkTag("");
+                    }
+                  }} />
+                <button className={btnGhost} disabled={!bulkTag.trim()}
+                  onClick={() => { bulk({ action: "add_tags", tags: [bulkTag.trim()] }); setBulkTag(""); }}>
+                  tag
+                </button>
+              </div>
+              {/* move to folder */}
+              <select className={`${inputCls} !py-1 w-36`} defaultValue=""
+                onChange={(e) => {
+                  const v = e.target.value;
+                  e.target.value = "";
+                  if (v === "__new") {
+                    const name = prompt("New folder name:");
+                    if (name && name.trim()) bulk({ action: "set_folder", new_folder: name.trim() });
+                  } else if (v === "__clear") {
+                    bulk({ action: "clear_folder" });
+                  } else if (v) {
+                    bulk({ action: "set_folder", folder_id: Number(v) });
+                  }
+                }}>
+                <option value="">Move to folder…</option>
+                {folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                <option value="__new">＋ New folder…</option>
+                <option value="__clear">✕ Remove from folder</option>
+              </select>
+              {/* translate all to a language */}
+              <select className={`${inputCls} !py-1 w-32`} value={bulkLang}
+                onChange={(e) => setBulkLang(e.target.value)}>
+                <option value="">Translate to…</option>
+                {languages.filter((l) => l.code !== "en").map((l) => (
+                  <option key={l.code} value={l.code}>{l.name}</option>
+                ))}
+              </select>
+              {bulkLang && (
+                <button className={btnGhost}
+                  onClick={() => { bulk({ action: "translate", lang_code: bulkLang, user_id: user.id }); setBulkLang(""); }}>
+                  translate
+                </button>
+              )}
+              <button className="text-xs text-zinc-400 hover:text-red-400 ml-auto"
+                onClick={() => bulk({ action: "delete" },
+                  `Delete ${selected.size} cut(s)? This can't be undone.`)}>
+                delete selected
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
@@ -268,6 +404,8 @@ export default function CutBrowser({ user, embedded = false, onAdd,
               ) : (
                 <span className="opacity-0 group-hover:opacity-100 flex gap-2 text-xs">
                   <button className="text-zinc-400 hover:text-white" onClick={() => setTranslating(c)}>translate/dub</button>
+                  <button className="text-zinc-400 hover:text-white" onClick={() => setBedFor(c)}
+                    title="Make a reusable background-audio bed from this cut">🎵 bed</button>
                   <button className="text-zinc-400 hover:text-white" onClick={() => setEditing(c)}>edit</button>
                   <button className="text-zinc-400 hover:text-red-400" onClick={() => removeCut(c)}>delete</button>
                 </span>
@@ -314,6 +452,10 @@ export default function CutBrowser({ user, embedded = false, onAdd,
         <AddToRecompModal cutIds={[...selected]} user={user}
           onClose={() => setShowAddTo(false)}
           onDone={() => setSelected(new Set())} />
+      )}
+      {bedFor && (
+        <ToBedModal cut={bedFor} user={user}
+          onClose={(made) => { setBedFor(null); if (made) alert("Bed queued — see the Audio tab."); }} />
       )}
     </div>
   );

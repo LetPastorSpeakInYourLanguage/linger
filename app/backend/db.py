@@ -304,6 +304,16 @@ def _m6_background_audio(conn):
                  "ON recomp_audio_layers(recomp_id)")
 
 
+def _m11_app_settings(conn):
+    """Key/value store for app-wide settings managed from the Settings page."""
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS app_settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at TEXT DEFAULT (datetime('now'))
+        )""")
+
+
 def _m10_relinkable_media(conn):
     """Decouple media records from local files: a sha256 of the source so any
     copy can be verified, plus recorded source locations on this instance."""
@@ -407,6 +417,7 @@ MIGRATIONS = [
     _m8_overlay_tracks,
     _m9_segment_embeddings,
     _m10_relinkable_media,
+    _m11_app_settings,
 ]
 
 

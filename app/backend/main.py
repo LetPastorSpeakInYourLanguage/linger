@@ -12,8 +12,8 @@ from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import (ai_ops, ass_writer, jobs, media_ops, overlay_ops, quiet_logs,
-               search, storage, translation_ops, vectors)
+from . import (ai_ops, ass_writer, jobs, llm, media_ops, overlay_ops, quiet_logs,
+               search, settings, storage, translation_ops, vectors)
 from .db import get_db, init_db, rows_to_dicts
 from .srt_parser import parse_subtitles
 
@@ -251,7 +251,8 @@ def get_media(media_id: int):
 
 
 class RelinkIn(BaseModel):
-    path: str
+    path: str = ""
+    url: str = ""
     user_id: int | None = None
 
 
@@ -263,13 +264,27 @@ def media_sources(media_id: int):
 
 @app.post("/api/media/{media_id}/relink")
 def relink_media(media_id: int, body: RelinkIn):
-    """Point a media (whose bytes this instance lacks) at a local copy. The copy
-    is sha256-verified against the recorded hash, then prepared into media_store
-    so cuts/exports work — no re-transcription (the transcript is shared)."""
+    """Re-attach a media whose bytes this instance lacks, from any source:
+    a LOCAL path (sha256-verified against the recorded hash) or a URL
+    (re-downloaded). Either way it's prepared into media_store so cuts/exports
+    work again — no re-transcription, since the transcript is shared."""
     db = get_db()
     m = db.execute("SELECT * FROM media WHERE id=?", (media_id,)).fetchone()
     if not m:
         raise HTTPException(404)
+
+    if body.url.strip():
+        url = body.url.strip()
+        if not url.lower().startswith(("http://", "https://")):
+            raise HTTPException(400, "that doesn't look like a link")
+        db.execute("INSERT INTO media_sources (media_id, kind, locator, status) "
+                   "VALUES (?,?,?,?)", (media_id, "url", url, "ok"))
+        db.execute("UPDATE media SET status='downloading', status_detail='relinking' WHERE id=?",
+                   (media_id,))
+        db.commit()
+        job_id = jobs.enqueue("download", media_id, {"url": url, "then_transcribe": False})
+        return {"job_id": job_id, "status": "relinking", "via": "url"}
+
     src = Path(body.path.strip().strip('"'))
     if not src.is_file():
         raise HTTPException(400, f"file not found on the host: {src}")
@@ -287,7 +302,7 @@ def relink_media(media_id: int, body: RelinkIn):
     db.commit()
     job_id = jobs.enqueue("prepare", media_id,
                           {"src": str(src), "keep_src": True, "then_transcribe": False})
-    return {"job_id": job_id, "status": "relinking", "sha256": digest}
+    return {"job_id": job_id, "status": "relinking", "via": "local", "sha256": digest}
 
 
 @app.delete("/api/media/{media_id}")
@@ -355,7 +370,7 @@ def transcribe_options():
     """What the transcription UI can offer: models, default, detected device."""
     device, engine = _whisper_env()
     return {"models": WHISPER_MODELS,
-            "default_model": os.environ.get("RECOMPOSER_WHISPER_MODEL", "small"),
+            "default_model": settings.get("whisper_model"),
             "device": device,
             "engine": engine}
 
@@ -503,15 +518,26 @@ def media_tracks(media_id: int):
 async def add_subtitle_track(media_id: int,
                              file: UploadFile | None = File(None),
                              path: str = Form(""),
+                             url: str = Form(""),
                              name: str = Form(""),
                              lang_code: str = Form("")):
-    """Attach another subtitle file (upload or host path) as a NEW track."""
+    """Attach another subtitle file as a NEW track — from an upload, a host
+    path, or a URL (multiple sources for resilience)."""
     db = get_db()
     if not db.execute("SELECT 1 FROM media WHERE id=?", (media_id,)).fetchone():
         raise HTTPException(404)
     if file is not None and file.filename:
         raw = (await file.read()).decode("utf-8", errors="replace")
         default_name = Path(file.filename).stem
+    elif url.strip():
+        try:
+            import requests
+            resp = requests.get(url.strip(), timeout=30)
+            resp.raise_for_status()
+            raw = resp.text
+        except Exception as e:
+            raise HTTPException(400, f"could not fetch subtitle URL: {e}")
+        default_name = Path(url.split("?")[0]).stem or "Subtitles"
     elif path.strip():
         p = Path(path.strip().strip('"'))
         if not p.is_file():
@@ -519,7 +545,7 @@ async def add_subtitle_track(media_id: int,
         raw = p.read_text(encoding="utf-8", errors="replace")
         default_name = p.stem
     else:
-        raise HTTPException(400, "provide a subtitle file or a path")
+        raise HTTPException(400, "provide a subtitle file, a path, or a URL")
     if not _insert_subtitles(db, media_id, raw, name.strip() or default_name or "Subtitles",
                              _norm_lang_code_or_empty(lang_code)):
         raise HTTPException(400, "subtitle file could not be parsed")
@@ -887,12 +913,80 @@ def auto_cut(media_id: int, body: AutoCutIn):
     return {"created": created, "folder_id": folder_id}
 
 
+class CutToBgIn(BaseModel):
+    mode: str = "full"   # full | accompaniment
+    name: str = ""
+    user_id: int | None = None
+
+
+@app.post("/api/cuts/{cut_id}/to-bg-audio")
+def cut_to_bg_audio(cut_id: int, body: CutToBgIn):
+    """Turn a cut into a reusable background-audio bed — the whole cut audio, or
+    just the music/ambience (vocals removed). Appears in the Audio library."""
+    db = get_db()
+    cut = db.execute("SELECT * FROM cuts WHERE id=?", (cut_id,)).fetchone()
+    if not cut:
+        raise HTTPException(404)
+    mode = body.mode if body.mode in ("full", "accompaniment") else "full"
+    label = "music" if mode == "accompaniment" else "audio"
+    name = body.name.strip() or f"{cut['title']} ({label})"
+    asset_id = db.execute(
+        "INSERT INTO audio_assets (name, filename, added_by) VALUES (?,?,?)",
+        (name, "", body.user_id)).lastrowid
+    db.commit()
+    job_id = jobs.enqueue("cut_to_bg", cut["media_id"],
+                          {"asset_id": asset_id, "cut_id": cut_id, "mode": mode})
+    return {"asset_id": asset_id, "job_id": job_id, "mode": mode}
+
+
 @app.get("/api/cuts/{cut_id}/tag-suggestions")
 def cut_tag_suggestions(cut_id: int, limit: int = 6):
     db = get_db()
     if not db.execute("SELECT 1 FROM cuts WHERE id=?", (cut_id,)).fetchone():
         raise HTTPException(404)
     return {"suggestions": ai_ops.tag_suggestions(db, cut_id, limit=limit)}
+
+
+class AiCutIn(BaseModel):
+    prompt: str
+    track_id: int | None = None
+    user_id: int | None = None
+
+
+class AiCutCommitIn(BaseModel):
+    track_id: int
+    plan: list[dict]
+    user_id: int | None = None
+
+
+@app.post("/api/media/{media_id}/ai-cut")
+def ai_cut_media(media_id: int, body: AiCutIn):
+    """PLAN cuts from a goal (e.g. 'the most touching scenes') — returns proposed
+    cuts for the user to review; nothing is written until /ai-cut/commit."""
+    from . import llm
+    db = get_db()
+    if not db.execute("SELECT 1 FROM media WHERE id=?", (media_id,)).fetchone():
+        raise HTTPException(404)
+    if not body.prompt.strip():
+        raise HTTPException(400, "prompt is required")
+    if not llm.available():
+        raise HTTPException(503, "AI cut needs an LLM — configure a provider (see /api/ai/status)")
+    try:
+        return ai_ops.ai_cut_plan(db, media_id, body.prompt.strip(), track_id=body.track_id)
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/media/{media_id}/ai-cut/commit")
+def ai_cut_commit(media_id: int, body: AiCutCommitIn):
+    """Create the cuts from a plan the user reviewed and confirmed."""
+    db = get_db()
+    if not db.execute("SELECT 1 FROM media WHERE id=?", (media_id,)).fetchone():
+        raise HTTPException(404)
+    if not body.plan:
+        raise HTTPException(400, "no cuts to create")
+    return ai_ops.ai_cut_commit(db, media_id, body.track_id, body.plan,
+                                created_by=body.user_id)
 
 
 class ComposeIn(BaseModel):
@@ -902,30 +996,147 @@ class ComposeIn(BaseModel):
     media_ids: list[int] | None = None
     create: bool = True
     user_id: int | None = None
+    recomp_id: int | None = None   # add into this recomposition instead of creating
+    insert_after: int | None = None  # 0-based position to insert after (else append)
+
+
+def _apply_compose(db, cut_ids: list[int], recomp_id: int | None,
+                   insert_after: int | None, title: str, user_id, prompt: str = "") -> int:
+    """Write cut_ids into a recomposition — new one, or inserted into an existing
+    one at a position (preserving its order + audio modes). Returns recomp id."""
+    if recomp_id:
+        if not db.execute("SELECT 1 FROM recompositions WHERE id=?", (recomp_id,)).fetchone():
+            raise HTTPException(404, "recomposition not found")
+        existing = db.execute(
+            "SELECT cut_id, audio_mode, dub_id FROM recomp_cuts WHERE recomp_id=? "
+            "ORDER BY position", (recomp_id,)).fetchall()
+        items = [{"cut_id": r["cut_id"], "audio_mode": r["audio_mode"], "dub_id": r["dub_id"]}
+                 for r in existing]
+        at = len(items) if insert_after is None else max(0, min(insert_after + 1, len(items)))
+        for off, cid in enumerate(cut_ids):
+            items.insert(at + off, {"cut_id": cid, "audio_mode": "original", "dub_id": None})
+        db.execute("DELETE FROM recomp_cuts WHERE recomp_id=?", (recomp_id,))
+        for pos, it in enumerate(items):
+            db.execute("INSERT INTO recomp_cuts (recomp_id, cut_id, position, audio_mode, dub_id) "
+                       "VALUES (?,?,?,?,?)",
+                       (recomp_id, it["cut_id"], pos, it["audio_mode"], it["dub_id"]))
+        db.commit()
+        return recomp_id
+    rid = db.execute("INSERT INTO recompositions (title, created_by) VALUES (?,?)",
+                     (title.strip() or f"AI: {prompt[:40]}" or "AI recomposition", user_id)).lastrowid
+    for pos, cid in enumerate(cut_ids):
+        db.execute("INSERT INTO recomp_cuts (recomp_id, cut_id, position) VALUES (?,?,?)",
+                   (rid, cid, pos))
+    db.commit()
+    return rid
 
 
 @app.post("/api/ai/compose")
 def ai_compose(body: ComposeIn):
-    """Draft a recomposition from a natural-language goal: semantic retrieval of
-    related cuts, optional LLM ordering. With create=true, saves a recomposition."""
+    """PLAN a recomposition from a goal: semantic retrieval (+ optional LLM
+    ordering). By default returns candidates only (create=false) so the user can
+    confirm; pass create=true / recomp_id to commit immediately."""
     db = get_db()
     if not body.prompt.strip():
         raise HTTPException(400, "prompt is required")
     from .engines import embeddings
     if not embeddings.available():
-        raise HTTPException(503, "no embedding engine — pip install sentence-transformers")
-    result = ai_ops.compose(db, body.prompt.strip(), limit=body.limit,
-                            media_ids=body.media_ids)
-    if body.create and result["cut_ids"]:
-        title = body.title.strip() or f"AI: {body.prompt.strip()[:40]}"
-        rid = db.execute("INSERT INTO recompositions (title, created_by) VALUES (?,?)",
-                         (title, body.user_id)).lastrowid
-        for pos, cid in enumerate(result["cut_ids"]):
-            db.execute("INSERT INTO recomp_cuts (recomp_id, cut_id, position) VALUES (?,?,?)",
-                       (rid, cid, pos))
-        db.commit()
-        result["recomp_id"] = rid
+        raise HTTPException(503, "no embedding engine — install transformers (see /api/ai/status)")
+    result = ai_ops.compose(db, body.prompt.strip(), limit=body.limit, media_ids=body.media_ids)
+    new_ids = result["cut_ids"]
+    if new_ids and (body.recomp_id or body.create):
+        result["recomp_id"] = _apply_compose(db, new_ids, body.recomp_id, body.insert_after,
+                                             body.title, body.user_id, body.prompt.strip())
     return result
+
+
+class ComposeCommitIn(BaseModel):
+    cut_ids: list[int]
+    recomp_id: int | None = None
+    insert_after: int | None = None
+    title: str = ""
+    user_id: int | None = None
+
+
+@app.post("/api/ai/compose/commit")
+def ai_compose_commit(body: ComposeCommitIn):
+    """Commit an exact, user-confirmed set of cut_ids (from a compose preview)
+    into a new or existing recomposition — no AI re-run."""
+    db = get_db()
+    ids = [i for i in body.cut_ids if isinstance(i, int)]
+    if not ids:
+        raise HTTPException(400, "no cuts to add")
+    rid = _apply_compose(db, ids, body.recomp_id, body.insert_after, body.title, body.user_id)
+    return {"recomp_id": rid, "added": len(ids)}
+
+
+class BulkCutsIn(BaseModel):
+    cut_ids: list[int]
+    action: str   # add_tags | remove_tags | set_folder | clear_folder | delete | translate
+    tags: list[str] = []
+    folder_id: int | None = None
+    new_folder: str = ""
+    lang_code: str = ""
+    source_language: str = "auto"
+    user_id: int | None = None
+
+
+@app.post("/api/cuts/bulk")
+def bulk_cuts(b: BulkCutsIn):
+    """Apply one action to many cuts at once (the Cuts-page selection)."""
+    db = get_db()
+    ids = [i for i in b.cut_ids if isinstance(i, int)]
+    if not ids:
+        raise HTTPException(400, "no cuts selected")
+    rows = db.execute(
+        f"SELECT id FROM cuts WHERE id IN ({','.join('?' * len(ids))})", ids).fetchall()
+    ids = [r["id"] for r in rows]
+    if not ids:
+        raise HTTPException(404, "cuts not found")
+    ph = ",".join("?" * len(ids))
+
+    if b.action == "delete":
+        db.execute(f"DELETE FROM cuts WHERE id IN ({ph})", ids)
+    elif b.action == "clear_folder":
+        db.execute(f"UPDATE cuts SET folder_id=NULL WHERE id IN ({ph})", ids)
+    elif b.action == "set_folder":
+        folder_id = b.folder_id
+        if b.new_folder.strip():
+            folder_id = db.execute("INSERT INTO folders (name) VALUES (?)",
+                                   (b.new_folder.strip(),)).lastrowid
+        if folder_id is None:
+            raise HTTPException(400, "folder_id or new_folder required")
+        db.execute(f"UPDATE cuts SET folder_id=? WHERE id IN ({ph})", [folder_id, *ids])
+    elif b.action in ("add_tags", "remove_tags"):
+        tag_ids = _tag_ids(db, b.tags)
+        if not tag_ids:
+            raise HTTPException(400, "no tags given")
+        for cid in ids:
+            for tid in tag_ids:
+                if b.action == "add_tags":
+                    db.execute("INSERT OR IGNORE INTO cut_tags (cut_id, tag_id) VALUES (?,?)",
+                               (cid, tid))
+                else:
+                    db.execute("DELETE FROM cut_tags WHERE cut_id=? AND tag_id=?", (cid, tid))
+    elif b.action == "translate":
+        lang = _norm_lang_code(b.lang_code)
+        if not db.execute("SELECT 1 FROM languages WHERE code=?", (lang,)).fetchone():
+            raise HTTPException(404, f"language {lang} is not configured")
+        made = 0
+        for cid in ids:
+            try:
+                translation_ops.create_cut_translation(
+                    db, cid, lang, source="auto",
+                    source_language=b.source_language or "auto", created_by=b.user_id)
+                made += 1
+            except (ValueError, RuntimeError):
+                continue
+        db.commit()
+        return {"ok": True, "affected": len(ids), "translated": made}
+    else:
+        raise HTTPException(400, "unknown action")
+    db.commit()
+    return {"ok": True, "affected": len(ids)}
 
 
 def _csv_ints(s: str) -> list[int]:
@@ -1339,6 +1550,8 @@ def update_segment(seg_id: int, u: SegmentUpdate):
     if u.start_s is not None:  # order may have changed
         _reindex_track(db, row["track_id"])
     db.commit()
+    if u.text is not None:
+        jobs.enqueue_embed(row["media_id"])  # keep semantic index fresh
     return dict(db.execute("SELECT * FROM segments WHERE id=?", (seg_id,)).fetchone())
 
 
@@ -1357,6 +1570,7 @@ def create_segment(s: SegmentIn):
          s.text.strip() or "…"))
     _reindex_track(db, s.track_id)
     db.commit()
+    jobs.enqueue_embed(track["media_id"])
     return dict(db.execute("SELECT * FROM segments WHERE id=?", (cur.lastrowid,)).fetchone())
 
 
@@ -1428,6 +1642,10 @@ def batch_segments(track_id: int, b: BatchOp):
     if deleted:
         _reindex_track(db, track_id)
     db.commit()
+    if changed or deleted:
+        trow = db.execute("SELECT media_id FROM tracks WHERE id=?", (track_id,)).fetchone()
+        if trow:
+            jobs.enqueue_embed(trow["media_id"])
     return {"count": len(matched), "changed": changed, "deleted": deleted,
             "cuts_deleted": dropped}
 
@@ -1436,12 +1654,14 @@ def batch_segments(track_id: int, b: BatchOp):
 
 @app.get("/api/search/segments")
 def search_segments(q: str, media_id: int | None = None, track_id: int | None = None,
-                    limit: int = 60, fuzzy: int = 1, smart: int = 0):
+                    limit: int = 60, fuzzy: int = 1, smart: int = 0, lang: str = "en"):
     """Exact (FTS5) + fuzzy (trigram) search; with smart=1 also blends semantic
-    (embedding) similarity via Reciprocal Rank Fusion. Results carry
-    match='exact'|'fuzzy'|'semantic' (+ a `methods` list in smart mode)."""
+    (embedding) similarity via Reciprocal Rank Fusion. `lang` scopes to one
+    subtitle language — default 'en' (incl. untagged tracks); 'all' = no filter.
+    Results carry match='exact'|'fuzzy'|'semantic' (+ `methods` in smart mode)."""
     return search.search_segments(q, media_id=media_id, track_id=track_id,
-                                  limit=limit, fuzzy=bool(fuzzy), smart=bool(smart))
+                                  limit=limit, fuzzy=bool(fuzzy), smart=bool(smart),
+                                  lang=lang)
 
 
 # -------------------------------------------------- semantic index (P6.1)
@@ -1453,6 +1673,98 @@ def embed_status():
     return {"available": engine is not None,
             "engine": engine.name if engine else None,
             **vectors.stats()}
+
+
+@app.get("/api/ai/status")
+def ai_status():
+    """What AI features are usable right now: semantic (embeddings) and LLM,
+    plus which LLM provider is active and which are configured."""
+    from .engines import embeddings
+    return {"embeddings": embeddings.available(), "llm": llm.available(),
+            **{f"llm_{k}": v for k, v in llm.status().items() if k != "available"}}
+
+
+@app.post("/api/ai/test")
+def ai_test():
+    """Send a tiny JSON prompt to the configured LLM to verify it works."""
+    eng = llm.get_llm_engine()
+    if eng is None:
+        return {"ok": False, "error": "no LLM configured — pick a provider above"}
+    try:
+        sample = eng.complete_json(
+            "You reply only with JSON.",
+            'Return exactly {"ok": true, "hello": "world"}.')
+        return {"ok": True, "provider": eng.provider, "model": eng.name, "sample": sample}
+    except Exception as e:
+        return {"ok": False, "provider": getattr(eng, "provider", None),
+                "model": getattr(eng, "name", None), "error": str(e)[:400]}
+
+
+# ----------------------------------------------------- settings & stats
+
+@app.get("/api/settings")
+def get_settings():
+    """Effective settings (DB → env → default) + schema for rendering."""
+    schema = [{"key": k, **{f: v for f, v in spec.items() if f != "env"}}
+              for k, spec in settings.SCHEMA.items()]
+    return {"values": settings.all_effective(), "schema": schema}
+
+
+class SettingsIn(BaseModel):
+    values: dict
+
+
+@app.put("/api/settings")
+def put_settings(body: SettingsIn):
+    values = settings.set_many(body.values or {})
+    llm.reset()  # provider/model/ollama may have changed → re-resolve next use
+    return {"values": values}
+
+
+@app.get("/api/stats")
+def stats():
+    db = get_db()
+    one = lambda sql: db.execute(sql).fetchone()[0]
+    exports = 0
+    if media_ops.EXPORT_DIR.exists():
+        exports = sum(1 for f in media_ops.EXPORT_DIR.glob("recomp*_*") if f.is_file())
+    return {
+        "media": one("SELECT COUNT(*) FROM media"),
+        "media_ready": one("SELECT COUNT(*) FROM media WHERE status='ready'"),
+        "segments": one("SELECT COUNT(*) FROM segments"),
+        "tracks": one("SELECT COUNT(*) FROM tracks"),
+        "cuts": one("SELECT COUNT(*) FROM cuts"),
+        "recompositions": one("SELECT COUNT(*) FROM recompositions"),
+        "folders": one("SELECT COUNT(*) FROM folders"),
+        "tags": one("SELECT COUNT(*) FROM tags"),
+        "translations": one("SELECT COUNT(*) FROM cut_translations"),
+        "dubs": one("SELECT COUNT(*) FROM dubs WHERE status='done'"),
+        "audio_assets": one("SELECT COUNT(*) FROM audio_assets WHERE filename<>''"),
+        "embedded": one("SELECT COUNT(*) FROM segment_embeddings"),
+        "exports": exports,
+        "users": one("SELECT COUNT(*) FROM users"),
+    }
+
+
+class UserUpdate(BaseModel):
+    name: str | None = None
+    color: str | None = None
+
+
+@app.patch("/api/users/{user_id}")
+def update_user(user_id: int, u: UserUpdate):
+    db = get_db()
+    if not db.execute("SELECT 1 FROM users WHERE id=?", (user_id,)).fetchone():
+        raise HTTPException(404)
+    if u.name is not None and u.name.strip():
+        try:
+            db.execute("UPDATE users SET name=? WHERE id=?", (u.name.strip(), user_id))
+        except sqlite3.IntegrityError:
+            raise HTTPException(409, "that name is taken")
+    if u.color is not None:
+        db.execute("UPDATE users SET color=? WHERE id=?", (u.color, user_id))
+    db.commit()
+    return dict(db.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone())
 
 
 @app.post("/api/media/{media_id}/embed")

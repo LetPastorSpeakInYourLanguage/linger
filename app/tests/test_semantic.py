@@ -79,6 +79,58 @@ def test_embed_only_reembeds_changed(client, user):
         embeddings.set_embedding_engine(None)
 
 
+class _BoomEmbed:
+    name = "boom"
+    dim = 8
+
+    def embed(self, texts):
+        raise RuntimeError("libtorchcodec boom")
+
+
+def test_failed_embed_keeps_media_playable(client, user):
+    """A crashing embed engine must fail only the job — never flip the media to
+    'error' and lock it out of the Library."""
+    embeddings.set_embedding_engine(_BoomEmbed())
+    try:
+        mid = _media_with_segments(user, "Resilient clip", [(0.0, 1.0, "hello world")])
+        jid = client.post(f"/api/media/{mid}/embed").json()["job_id"]
+        wait_for(lambda: _job(client, jid)["status"] == "failed", timeout=30)
+        assert client.get(f"/api/media/{mid}").json()["status"] == "ready"
+    finally:
+        embeddings.set_embedding_engine(None)
+
+
+def test_search_language_scope_excludes_other_languages(client, user):
+    """Searching must scope to one subtitle language (default English + untagged),
+    not surface translated/other-language tracks."""
+    db = get_db()
+    mid = db.execute(
+        "INSERT INTO media (title, type, filename, duration, status, added_by) "
+        "VALUES ('Lang clip', 'video', 'source.mp4', 30.0, 'ready', ?)", (user["id"],)).lastrowid
+    en = db.execute("INSERT INTO tracks (media_id, name, lang_code) VALUES (?, 'EN', 'en')",
+                    (mid,)).lastrowid
+    es = db.execute("INSERT INTO tracks (media_id, name, lang_code) VALUES (?, 'ES', 'es')",
+                    (mid,)).lastrowid
+    db.execute("INSERT INTO segments (media_id, track_id, idx, start_s, end_s, text) "
+               "VALUES (?,?,0,0,1,'the brave knight rides')", (mid, en))
+    db.execute("INSERT INTO segments (media_id, track_id, idx, start_s, end_s, text) "
+               "VALUES (?,?,0,0,1,'el valiente caballero brave cabalga')", (mid, es))
+    db.commit()
+
+    # default en → only the English track line
+    res = client.get("/api/search/segments", params={"q": "brave", "media_id": mid}).json()
+    tracks = {r["track_id"] for r in res}
+    assert en in tracks and es not in tracks
+    # explicit es → only the Spanish track
+    res_es = client.get("/api/search/segments",
+                        params={"q": "brave", "media_id": mid, "lang": "es"}).json()
+    assert {r["track_id"] for r in res_es} == {es}
+    # all → both
+    res_all = client.get("/api/search/segments",
+                         params={"q": "brave", "media_id": mid, "lang": "all"}).json()
+    assert {en, es} <= {r["track_id"] for r in res_all}
+
+
 def test_smart_search_without_engine_falls_back(client, user):
     embeddings.set_embedding_engine(None)  # no engine → smart degrades, no crash
     _media_with_segments(user, "Fallback clip", [(0.0, 1.0, "unique falconry term")])

@@ -26,7 +26,7 @@ import traceback
 from pathlib import Path
 
 from . import gender as gender_mod
-from . import media_ops, overlay_ops, translation_ops, vectors
+from . import media_ops, overlay_ops, settings, storage, translation_ops, vectors
 from .db import get_db
 from .engines import embeddings, separation, tts
 
@@ -38,6 +38,10 @@ LEASE_SECONDS = 180          # a running job must report/heartbeat within this
 POLL_SECONDS = 3.0           # fallback poll when the wake event is missed
 
 HANDLERS: dict = {}
+
+# Only these own media.status; auxiliary jobs (embed, separate, dub, cut_to_bg,
+# export, social, translate*) must never flip a media to 'error' when they fail.
+PIPELINE_KINDS = {"download", "prepare", "transcribe"}
 
 
 class JobCancelled(Exception):
@@ -296,9 +300,16 @@ def _run_embed(ctx: JobContext, payload: dict):
 
 
 def enqueue_embed(media_id: int):
-    """Queue an embed pass if an engine is available (no-op otherwise)."""
-    if embeddings.available():
-        enqueue("embed", media_id, priority=-1)  # low priority, behind user work
+    """Queue an embed pass if an engine is available (no-op otherwise). Deduped:
+    skips when one is already queued/running for this media, so rapid segment
+    edits don't pile up — the embed job only re-embeds changed lines anyway."""
+    if not embeddings.available():
+        return
+    db = get_db()
+    if db.execute("SELECT 1 FROM jobs WHERE kind='embed' AND media_id=? "
+                  "AND status IN ('queued','running') LIMIT 1", (media_id,)).fetchone():
+        return
+    enqueue("embed", media_id, priority=-1)  # low priority, behind user work
 
 
 # ------------------------------------------------------------- separate
@@ -312,6 +323,58 @@ def _run_separate(ctx: JobContext, payload: dict):
     if cache["exists"]:
         ctx.report("cached stems ready", progress=100)
         return
+
+
+# --------------------------------------------------- cut → background bed
+
+@handler("cut_to_bg")
+def _run_cut_to_bg(ctx: JobContext, payload: dict):
+    """Turn a cut's audio into a reusable background-audio bed: either the whole
+    cut audio ('full') or just the music/ambience with vocals removed
+    ('accompaniment')."""
+    asset_id = int(payload["asset_id"])
+    cut_id = int(payload["cut_id"])
+    mode = payload.get("mode", "full")
+    db = get_db()
+    row = db.execute("""
+        SELECT c.media_id, m.filename, MIN(s.start_s) AS a, MAX(s.end_s) AS b
+        FROM cuts c JOIN media m ON m.id = c.media_id
+        JOIN cut_segments cs ON cs.cut_id = c.id
+        JOIN segments s ON s.id = cs.segment_id
+        WHERE c.id=? GROUP BY c.id""", (cut_id,)).fetchone()
+    if not row or row["a"] is None:
+        raise RuntimeError("cut not found or has no segments")
+    start, end = float(row["a"]), float(row["b"])
+    dur = max(0.05, end - start)
+    media_ops.BG_AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+    out = media_ops.bg_audio_path(f"{asset_id}.wav")
+    try:
+        if mode == "accompaniment":
+            ctx.report("separating vocals / accompaniment", progress=20)
+            cache = _ensure_cut_stems(ctx, cut_id, 3.0)
+            offset = max(0.0, start - float(cache["start_s"]))
+            media_ops._run_ffmpeg([
+                "ffmpeg", "-y", "-ss", f"{offset:.3f}", "-t", f"{dur:.3f}",
+                "-i", str(cache["accompaniment"]),
+                "-ar", "44100", "-ac", "2", "-c:a", "pcm_s16le", str(out),
+            ], check_cancel=ctx.check_cancel, timeout=7200)
+        else:  # full cut audio
+            src = storage.local_file(row["media_id"]) or (
+                media_ops.media_dir(row["media_id"]) / row["filename"])
+            if not Path(src).exists():
+                raise RuntimeError("source media file not found")
+            ctx.report("extracting cut audio", progress=40)
+            media_ops.extract_audio_window(Path(src), start, end, out,
+                                           check_cancel=ctx.check_cancel)
+        d = media_ops.duration(out) or dur
+        db.execute("UPDATE audio_assets SET filename=?, duration_s=? WHERE id=?",
+                   (f"{asset_id}.wav", d, asset_id))
+        db.commit()
+        ctx.report("bed ready", progress=100)
+    except JobCancelled:
+        db.execute("DELETE FROM audio_assets WHERE id=? AND filename=''", (asset_id,))
+        db.commit()
+        raise
 
 
 # ---------------------------------------------------------------- dub
@@ -663,10 +726,9 @@ def _replace_track(db, media_id: int, track_name: str, lang_code: str = "") -> i
 
 
 def _whisper_settings():
-    """Env config: RECOMPOSER_WHISPER_MODEL / _DEVICE / _COMPUTE."""
-    return (os.environ.get("RECOMPOSER_WHISPER_MODEL", "small"),
-            os.environ.get("RECOMPOSER_WHISPER_DEVICE", "auto"),
-            os.environ.get("RECOMPOSER_WHISPER_COMPUTE", "auto"))
+    """Defaults from the Settings page (DB → env → default)."""
+    return (settings.get("whisper_model"), settings.get("whisper_device"),
+            settings.get("whisper_compute"))
 
 
 @handler("transcribe")
@@ -1220,7 +1282,7 @@ def _execute(job):
     except JobCancelled:
         log(f"job {job_id} ({job['kind']}) cancelled")
         _finish(job_id, "cancelled", "cancelled by user")
-        if job["media_id"]:
+        if job["media_id"] and job["kind"] in PIPELINE_KINDS:
             _restore_media_after_stop(job["media_id"])
     except Exception as e:
         traceback.print_exc()
@@ -1238,7 +1300,9 @@ def _execute(job):
         else:
             log(f"JOB FAILED ({job['kind']}): {e}")
             _finish(job_id, "failed", str(e)[:500])
-            if job["media_id"]:
+            # only the ingestion pipeline owns media status; auxiliary jobs
+            # (embed, separate, dub, cut_to_bg, export…) must not error the media
+            if job["media_id"] and job["kind"] in PIPELINE_KINDS:
                 _set_media(job["media_id"], "error", str(e)[:500])
 
 
@@ -1258,6 +1322,11 @@ def start_worker():
         return
     _started = True
     db = get_db()
+    # heal media wrongly errored by a failed auxiliary job (e.g. an embed crash):
+    # if it has a prepared file and segments, it's perfectly playable
+    db.execute("""UPDATE media SET status='ready', status_detail=''
+                  WHERE status='error' AND filename<>''
+                    AND id IN (SELECT DISTINCT media_id FROM segments)""")
     # jobs that kept getting interrupted are dead; everything else re-runs
     db.execute("UPDATE jobs SET status='failed', detail='interrupted too many times', "
                "finished_at=datetime('now') WHERE status IN ('queued','running') "

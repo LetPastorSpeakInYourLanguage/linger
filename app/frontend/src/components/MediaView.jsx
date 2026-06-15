@@ -11,6 +11,7 @@ function AddTrackModal({ mediaId, tracks, onClose, onDone }) {
   const [mode, setMode] = useState("upload");
   const [file, setFile] = useState(null);
   const [path, setPath] = useState("");
+  const [url, setUrl] = useState("");
   const [name, setName] = useState("");
   const [langCode, setLangCode] = useState("");
   const [err, setErr] = useState("");
@@ -57,6 +58,9 @@ function AddTrackModal({ mediaId, tracks, onClose, onDone }) {
         if (mode === "upload") {
           if (!file) return;
           fd.append("file", file);
+        } else if (mode === "url") {
+          if (!url.trim()) return;
+          fd.append("url", url.trim());
         } else {
           if (!path.trim()) return;
           fd.append("path", path);
@@ -82,6 +86,7 @@ function AddTrackModal({ mediaId, tracks, onClose, onDone }) {
       <div className="space-y-3">
         <div className="flex gap-2">
           {tab("upload", "Upload file")}{tab("path", "From this PC")}
+          {tab("url", "From URL")}
           {tab("whisper", "Generate (Whisper)")}{tab("translate", "Translate")}
         </div>
         {mode === "upload" && (
@@ -91,6 +96,10 @@ function AddTrackModal({ mediaId, tracks, onClose, onDone }) {
         {mode === "path" && (
           <input className={inputCls} placeholder={"D:\\movies\\notebook.en.srt"}
             value={path} onChange={(e) => setPath(e.target.value)} />
+        )}
+        {mode === "url" && (
+          <input className={inputCls} placeholder="https://example.com/subs.srt"
+            value={url} onChange={(e) => setUrl(e.target.value)} />
         )}
         {mode === "whisper" && (
           <>
@@ -304,6 +313,8 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
   const [translating, setTranslating] = useState(null);
   const [trackTranslateJob, setTrackTranslateJob] = useState(null);
   const [matched, setMatched] = useState(new Set());
+  const [aiLlm, setAiLlm] = useState(false);
+  const [aiPlan, setAiPlan] = useState(null);
   const playerRef = useRef();
   const stopAtRef = useRef(null);
   const segEls = useRef({});
@@ -311,6 +322,10 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
 
   const refreshCuts = () =>
     api.get(`/api/cuts?media_id=${mediaId}`).then(setCuts).catch(() => {});
+
+  useEffect(() => {
+    api.get("/api/ai/status").then((s) => setAiLlm(!!s.llm)).catch(() => {});
+  }, []);
 
   const refreshTracks = () =>
     api.get(`/api/media/${mediaId}/tracks`).then((ts) => {
@@ -388,6 +403,29 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
                                { track_id: trackId, user_id: user.id });
       refreshCuts();
       alert(`Created ${r.created} cut(s) in the Auto-cuts folder.`);
+    } catch (e) { alert(e.message); }
+  };
+
+  const aiCut = async () => {
+    if (trackId == null) return;
+    const prompt = window.prompt(
+      "Describe the cuts to create from this transcript:\n"
+      + "e.g. 'the most touching scenes', or 'summarize the plot in the fewest cuts'");
+    if (!prompt || !prompt.trim()) return;
+    try {
+      const r = await api.post(`/api/media/${mediaId}/ai-cut`,
+                               { prompt: prompt.trim(), track_id: trackId });  // plan only
+      if (!r.plan?.length) { alert("The AI proposed no cuts for that."); return; }
+      setAiPlan({ ...r, prompt: prompt.trim() });
+    } catch (e) { alert(e.message); }
+  };
+
+  const commitAiCut = async () => {
+    try {
+      const r = await api.post(`/api/media/${mediaId}/ai-cut/commit`,
+                               { track_id: aiPlan.track_id, plan: aiPlan.plan, user_id: user.id });
+      setAiPlan(null); refreshCuts();
+      alert(`Created ${r.created} cut(s), filed into folders with tags.`);
     } catch (e) { alert(e.message); }
   };
 
@@ -588,6 +626,11 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
               <button className={`${btnGhost} !px-2 !py-1 text-xs`}
                 title="Auto-create cuts from this transcript (pauses / sentences)"
                 onClick={autoCut}>✂ auto-cut</button>
+              {aiLlm && (
+                <button className={`${btnGhost} !px-2 !py-1 text-xs`}
+                  title="Create cuts from a prompt (e.g. 'the most touching scenes') — AI files & tags them"
+                  onClick={aiCut}>✨ AI cut</button>
+              )}
               <button className="text-zinc-600 hover:text-red-400 text-xs px-1" title="Delete this track"
                 onClick={removeTrack}>🗑</button>
             </>
@@ -731,6 +774,34 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
             }
             refreshTracks();
           }} />
+      )}
+      {aiPlan && (
+        <Modal title="Review AI cuts" onClose={() => setAiPlan(null)} wide>
+          <p className="text-sm text-zinc-400 mb-1">"{aiPlan.prompt}"</p>
+          <p className="text-xs text-zinc-500 mb-3">
+            {aiPlan.plan.length} proposed cut{aiPlan.plan.length === 1 ? "" : "s"} — nothing is
+            created until you confirm.
+          </p>
+          <div className="space-y-1.5 max-h-[50vh] overflow-y-auto">
+            {aiPlan.plan.map((p, i) => (
+              <div key={i} className="rounded-lg border border-zinc-800 bg-zinc-950 p-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-zinc-600 text-xs">{i + 1}.</span>
+                  <span className="text-sm font-medium truncate flex-1">{p.title}</span>
+                  <span className="text-[10px] text-zinc-500">📁 {p.folder} · {p.lines} line{p.lines === 1 ? "" : "s"}</span>
+                </div>
+                {p.tags?.length > 0 && (
+                  <p className="text-[11px] text-indigo-300/80 mt-0.5">{p.tags.map((t) => `#${t}`).join(" ")}</p>
+                )}
+                {p.preview && <p className="text-xs text-zinc-500 truncate mt-0.5">{p.preview}</p>}
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2 mt-3">
+            <button className={btnGhost} onClick={() => setAiPlan(null)}>Cancel</button>
+            <button className={btnCls} onClick={commitAiCut}>Create {aiPlan.plan.length} cuts</button>
+          </div>
+        </Modal>
       )}
     </div>
   );

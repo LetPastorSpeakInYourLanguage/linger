@@ -15,14 +15,24 @@ mtranslate
 # Optional: speaker-embedding gender detection for dubbing (nearest male/female
 # reference voice). If absent, dubbing falls back to pitch-based gender. The app
 # works without it; install for better automatic male/female voice matching.
-resemblyzer
-# Optional (P6 AI): semantic 'Smart' search, auto-tag, and prompt-compose use
-# sentence-transformers embeddings (multilingual MiniLM). Without it, search
-# stays exact+fuzzy and AI features are disabled. numpy powers the vector store.
-sentence-transformers
+# resemblyzer
+# Optional (P6 AI): semantic 'Smart' search etc. use multilingual MiniLM
+# embeddings. The app prefers a transformers+torch backend (mean pooling) and
+# only falls back to sentence-transformers — recent sentence-transformers pulls
+# in `torchcodec`, whose DLL fails to load on many Windows installs. So
+# `transformers` + `torch` is the recommended/sufficient install; numpy powers
+# the vector store. Without any of these, search stays exact+fuzzy.
+transformers
 numpy
-# Optional (P6.4): LLM ordering/titling for prompt-compose via the Anthropic SDK
-# (needs ANTHROPIC_API_KEY). Compose still works without it (semantic order).
-anthropic
-# Optional (P8.3): the standalone executor (executor/worker.py) uses requests.
+# (sentence-transformers is supported as a fallback but not required)
+# LLM features (AI cut creation, compose ordering) use a provider-agnostic
+# operator over HTTP via `requests` — pick one with RECOMPOSER_LLM_PROVIDER:
+#   anthropic  ANTHROPIC_API_KEY
+#   openai     OPENAI_API_KEY (+ optional OPENAI_BASE_URL for compatible servers)
+#   gemini     GEMINI_API_KEY or GOOGLE_API_KEY
+#   ollama     local, RECOMPOSER_OLLAMA_URL (default http://localhost:11434) — no key
+#   gpt4all    local, `pip install gpt4all` + RECOMPOSER_GPT4ALL_MODEL
+# 'auto' (default) uses the first configured provider. requests is the only
+# hard dep here; gpt4all is the only one needing an extra package.
 requests
+gpt4all  # optional — only for the local GPT4All provider
