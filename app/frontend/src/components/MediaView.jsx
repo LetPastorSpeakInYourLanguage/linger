@@ -294,7 +294,7 @@ function MediaCuts({ cuts, folders, onPlay, onShow, onEdit, onDelete, onTranslat
   );
 }
 
-export default function MediaView({ user, mediaId, back, initialSeg = null }) {
+export default function MediaView({ user, mediaId, back, initialSeg = null, openCutter }) {
   const [media, setMedia] = useState(null);
   const [segments, setSegments] = useState([]);
   const [tracks, setTracks] = useState([]);
@@ -623,8 +623,11 @@ export default function MediaView({ user, mediaId, back, initialSeg = null }) {
                 onClick={() => setEditMode(!editMode)}>
                 ✎ {editMode ? "editing" : "edit"}
               </button>
+              <button className="!px-2 !py-1 text-xs rounded-lg border border-indigo-600/60 text-indigo-300 hover:border-indigo-500 hover:text-indigo-200"
+                title="Open the Cutter: the engine proposes cuts by meaning — preview, sculpt boundaries, tune sensitivity, then commit"
+                onClick={() => openCutter?.(mediaId, trackId)}>⚡ topic cuts</button>
               <button className={`${btnGhost} !px-2 !py-1 text-xs`}
-                title="Auto-create cuts from this transcript (pauses / sentences)"
+                title="Quick heuristic cuts from this transcript (pauses / sentences)"
                 onClick={autoCut}>✂ auto-cut</button>
               {aiLlm && (
                 <button className={`${btnGhost} !px-2 !py-1 text-xs`}

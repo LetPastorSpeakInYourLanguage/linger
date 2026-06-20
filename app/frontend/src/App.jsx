@@ -3,6 +3,7 @@ import { api } from "./api";
 import Library from "./components/Library";
 import MediaView from "./components/MediaView";
 import { CutsPage } from "./components/CutBrowser";
+import Cutter from "./components/Cutter";
 import Studio from "./components/Studio";
 import AudioStudio from "./components/AudioStudio";
 import JobsPanel from "./components/JobsPanel";
@@ -56,6 +57,7 @@ function Login({ onLogin }) {
 
 const TABS = [
   { id: "library", label: "Library" },
+  { id: "cutter", label: "⚡ Cutter" },
   { id: "cuts", label: "Cuts" },
   { id: "studio", label: "Studio" },
   { id: "audio", label: "Audio" },
@@ -71,6 +73,7 @@ export default function App() {
   const [showJobs, setShowJobs] = useState(false);
   const [activeJobs, setActiveJobs] = useState(0);
   const openMedia = (id, seg = null) => setView({ tab: "media", mediaId: id, seg });
+  const openCutter = (mediaId = null, trackId = null) => setView({ tab: "cutter", mediaId, trackId });
 
   useEffect(() => {
     if (!user) return;
@@ -131,7 +134,10 @@ export default function App() {
         )}
         {view.tab === "media" && (
           <MediaView user={user} mediaId={view.mediaId} initialSeg={view.seg}
-            back={() => setView({ tab: "library" })} />
+            back={() => setView({ tab: "library" })} openCutter={openCutter} />
+        )}
+        {view.tab === "cutter" && (
+          <Cutter user={user} mediaId={view.mediaId} trackId={view.trackId} openMedia={openMedia} />
         )}
         {view.tab === "cuts" && <CutsPage user={user} openMedia={openMedia} />}
         {view.tab === "studio" && <Studio user={user} />}

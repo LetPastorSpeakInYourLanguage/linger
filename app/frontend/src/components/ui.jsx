@@ -1,7 +1,10 @@
 /* Tiny shared UI primitives. */
 import { useEffect, useRef, useState } from "react";
 
-export function Modal({ title, onClose, children, wide }) {
+/* size: undefined|"wide"(legacy `wide` prop)|"full". For "full" the body fills
+ * the dialog and the child owns its own scroll regions (pass bodyClass to drop
+ * the default padding/scroll). */
+export function Modal({ title, onClose, children, wide, size, bodyClass }) {
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") { e.stopPropagation(); onClose(); }
@@ -10,17 +13,23 @@ export function Modal({ title, onClose, children, wide }) {
     return () => window.removeEventListener("keydown", onKey, true);
   }, [onClose]);
 
+  const full = size === "full";
+  const shape = full
+    ? "w-[95vw] max-w-[1240px] h-[90vh]"
+    : `w-full ${wide ? "max-w-3xl" : "max-w-md"} max-h-[85vh]`;
+
   return (
     <div data-modal className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl w-full ${
-        wide ? "max-w-3xl" : "max-w-md"} max-h-[85vh] flex flex-col`}>
-        <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+      <div className={`bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl flex flex-col ${shape}`}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 shrink-0">
           <h2 className="font-semibold">{title}</h2>
           <button onClick={onClose} className="text-zinc-400 hover:text-white text-xl leading-none"
             title="Close (Esc)">×</button>
         </div>
-        <div className="p-4 overflow-y-auto">{children}</div>
+        <div className={bodyClass ?? (full ? "flex-1 min-h-0 flex" : "p-4 overflow-y-auto")}>
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -51,6 +60,27 @@ export function Tag({ name, onClick, active, prefix = "#" }) {
 
 export function Spinner() {
   return <div className="w-5 h-5 border-2 border-zinc-600 border-t-indigo-400 rounded-full animate-spin" />;
+}
+
+/* Labelled range slider with a live numeric readout. Familiar native <input
+ * type=range> under the hood, accent-tinted to match the app. */
+export function Slider({ label, value, min, max, step = 1, onChange, fmt, hint }) {
+  return (
+    <label className="block select-none">
+      <div className="flex items-baseline justify-between mb-1">
+        <span className="text-xs text-zinc-300 font-medium">
+          {label}
+          {hint && <span className="text-zinc-600 ml-1 font-normal">{hint}</span>}
+        </span>
+        <span className="text-xs text-zinc-400 tabular-nums font-mono">
+          {fmt ? fmt(value) : value}
+        </span>
+      </div>
+      <input type="range" min={min} max={max} step={step} value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="w-full h-1.5 appearance-none rounded-full bg-zinc-700 accent-indigo-500 cursor-pointer" />
+    </label>
+  );
 }
 
 /* ----------------------------------------------------- resizable panels */

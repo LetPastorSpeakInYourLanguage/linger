@@ -332,6 +332,28 @@ def _m10_relinkable_media(conn):
                  "ON media_sources(media_id)")
 
 
+def _m12_cut_clusters(conn):
+    """Cross-reference theme clusters: a cluster groups cuts that are about the
+    same thing even when far apart in time (Louvain over cut embeddings). The
+    clustering params are stored so a pass is reproducible / comparable."""
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS cut_clusters (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL DEFAULT 'Theme',
+            params_json TEXT NOT NULL DEFAULT '{}',
+            created_at TEXT DEFAULT (datetime('now'))
+        )""")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS cluster_cuts (
+            cluster_id INTEGER NOT NULL REFERENCES cut_clusters(id) ON DELETE CASCADE,
+            cut_id INTEGER NOT NULL REFERENCES cuts(id) ON DELETE CASCADE,
+            rank INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (cluster_id, cut_id)
+        )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_cluster_cuts_cut "
+                 "ON cluster_cuts(cut_id)")
+
+
 def _m9_segment_embeddings(conn):
     """Vector store for semantic search — one float32 BLOB per segment."""
     conn.execute("""
@@ -418,6 +440,7 @@ MIGRATIONS = [
     _m9_segment_embeddings,
     _m10_relinkable_media,
     _m11_app_settings,
+    _m12_cut_clusters,
 ]
 
 

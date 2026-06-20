@@ -25,6 +25,9 @@ mtranslate
 transformers
 numpy
 # (sentence-transformers is supported as a fallback but not required)
+# Algorithmic recomposition (P6-R): topic segmentation reuses the numpy vector
+# store; theme clustering uses networkx's built-in Louvain community detection.
+networkx
 # LLM features (AI cut creation, compose ordering) use a provider-agnostic
 # operator over HTTP via `requests` — pick one with RECOMPOSER_LLM_PROVIDER:
 #   anthropic  ANTHROPIC_API_KEY

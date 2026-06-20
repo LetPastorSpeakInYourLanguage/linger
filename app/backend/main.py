@@ -13,7 +13,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from . import (ai_ops, ass_writer, jobs, llm, media_ops, overlay_ops, quiet_logs,
-               search, settings, storage, translation_ops, vectors)
+               search, segmentation, settings, storage, themes, translation_ops,
+               vectors)
 from .db import get_db, init_db, rows_to_dicts
 from .srt_parser import parse_subtitles
 
@@ -911,6 +912,113 @@ def auto_cut(media_id: int, body: AutoCutIn):
         created += 1
     db.commit()
     return {"created": created, "folder_id": folder_id}
+
+
+class SegmentPreviewIn(BaseModel):
+    track_id: int | None = None
+    preset: str | None = "balanced"
+    params: dict | None = None   # per-knob overrides from the live-tune sliders
+
+
+class SegmentCommitIn(BaseModel):
+    track_id: int
+    plan: list[dict]             # the (possibly hand-adjusted) proposed cuts
+    folder: str | None = None    # override the folder for the whole batch
+    user_id: int | None = None
+
+
+def _segment_track_id(db, media_id: int, track_id: int | None) -> int:
+    if track_id is not None:
+        return track_id
+    row = db.execute("SELECT id FROM tracks WHERE media_id=? ORDER BY id LIMIT 1",
+                     (media_id,)).fetchone()
+    if not row:
+        raise HTTPException(400, "this media has no subtitle track")
+    return row["id"]
+
+
+@app.post("/api/media/{media_id}/segment/preview")
+def segment_preview(media_id: int, body: SegmentPreviewIn):
+    """Algorithmic topic segmentation — propose cuts WITHOUT writing anything.
+
+    Cheap on cached embeddings, so the front end can re-run it live as the
+    hyperparameter sliders move. The plan is then hand-adjustable (expand/shrink
+    cuts into neighbouring lines) before /segment/commit."""
+    db = get_db()
+    if not db.execute("SELECT 1 FROM media WHERE id=?", (media_id,)).fetchone():
+        raise HTTPException(404)
+    track_id = _segment_track_id(db, media_id, body.track_id)
+    cfg = segmentation.config_from(body.preset, body.params)
+    try:
+        return segmentation.propose(db, media_id, track_id, cfg)
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/media/{media_id}/segment/commit")
+def segment_commit(media_id: int, body: SegmentCommitIn):
+    """Create cuts from a reviewed/adjusted topic-segmentation plan."""
+    db = get_db()
+    if not db.execute("SELECT 1 FROM media WHERE id=?", (media_id,)).fetchone():
+        raise HTTPException(404)
+    if not body.plan:
+        raise HTTPException(400, "no cuts to create")
+    plan = body.plan
+    if body.folder:
+        plan = [{**spec, "folder": body.folder} for spec in plan]
+    return ai_ops.ai_cut_commit(db, media_id, body.track_id, plan, created_by=body.user_id)
+
+
+class ClusterPreviewIn(BaseModel):
+    media_ids: list[int] | None = None   # scope: these media …
+    cut_ids: list[int] | None = None     # … or these exact cuts (else: whole library)
+    preset: str | None = "balanced"
+    params: dict | None = None           # per-knob overrides from the live sliders
+
+
+class ClusterCommitIn(BaseModel):
+    clusters: list[dict]                 # the reviewed/edited themes ([{name, cut_ids}])
+    params: dict | None = None
+    replace: bool = False                # wipe existing clusters first
+
+
+@app.post("/api/clusters/preview")
+def clusters_preview(body: ClusterPreviewIn):
+    """Cross-reference theme clustering — group related cuts WITHOUT writing.
+
+    Cheap on cached cut embeddings, so the clustering knobs can be live-tuned.
+    Re-running with looser/tighter params surfaces links a prior pass missed."""
+    db = get_db()
+    scope = themes.cut_ids_for_scope(db, body.media_ids, body.cut_ids)
+    cfg = themes.config_from(body.preset, body.params)
+    try:
+        return themes.cluster(db, scope, cfg)
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/clusters/commit")
+def clusters_commit(body: ClusterCommitIn):
+    """Persist reviewed theme clusters."""
+    db = get_db()
+    if not body.clusters:
+        raise HTTPException(400, "no clusters to save")
+    return themes.commit(db, body.clusters, params=body.params, replace=body.replace)
+
+
+@app.get("/api/clusters")
+def clusters_list():
+    return {"clusters": themes.list_clusters(get_db())}
+
+
+@app.delete("/api/clusters/{cluster_id}")
+def clusters_delete(cluster_id: int):
+    db = get_db()
+    if not db.execute("SELECT 1 FROM cut_clusters WHERE id=?", (cluster_id,)).fetchone():
+        raise HTTPException(404)
+    db.execute("DELETE FROM cut_clusters WHERE id=?", (cluster_id,))
+    db.commit()
+    return {"deleted": cluster_id}
 
 
 class CutToBgIn(BaseModel):
