@@ -271,7 +271,7 @@ function ComposePreviewModal({ title, candidates, busy, onConfirm, onClose }) {
       <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col">
         <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
           <h2 className="font-semibold">{title}</h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-white text-xl leading-none">×</button>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-50 text-xl leading-none">×</button>
         </div>
         <div className="p-4 overflow-y-auto">
           <p className="text-xs text-zinc-500 mb-2">
@@ -365,7 +365,7 @@ function ExportModal({ recomp, user, exportJob, translationJob, onClose, onExpor
         showReview && dubMode ? "max-w-3xl" : "max-w-lg"} max-h-[85vh] flex flex-col`}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
           <h2 className="font-semibold">Export {recomp.title}</h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-white text-xl leading-none">×</button>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-50 text-xl leading-none">×</button>
         </div>
         <div className="p-4 space-y-4 overflow-y-auto">
           <div className="grid grid-cols-2 gap-3">
@@ -446,7 +446,7 @@ function ExportModal({ recomp, user, exportJob, translationJob, onClose, onExpor
                 </p>
               )}
               <div className="pt-2 border-t border-zinc-800">
-                <button className="text-xs text-zinc-300 hover:text-white"
+                <button className="text-xs text-zinc-300 hover:text-zinc-50"
                   onClick={() => setShowReview((v) => !v)}>
                   {showReview ? "▾" : "▸"} Advanced — review &amp; confirm translation text + voices
                 </button>
@@ -534,7 +534,7 @@ function OverlaysModal({ recomp, onClose }) {
       <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
         <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
           <h2 className="font-semibold">Text overlays — {recomp.title}</h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-white text-xl leading-none">×</button>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-50 text-xl leading-none">×</button>
         </div>
         <div className="p-4 space-y-3 overflow-y-auto">
           <div className="flex items-center justify-between">
@@ -687,7 +687,7 @@ function BackgroundAudioModal({ recomp, user, onClose }) {
       <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
         <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
           <h2 className="font-semibold">Background audio — {recomp.title}</h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-white text-xl leading-none">×</button>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-50 text-xl leading-none">×</button>
         </div>
         <div className="p-4 space-y-4 overflow-y-auto">
           <section>
@@ -836,7 +836,7 @@ function AssembleModal({ cuts, inSeq, insertAfter, onAddIds, onClose }) {
   const tabBtn = (id, label) => (
     <button onClick={() => setTab(id)}
       className={`px-3 py-1.5 text-sm border-b-2 -mb-px ${
-        tab === id ? "border-indigo-500 text-white" : "border-transparent text-zinc-400 hover:text-white"}`}>{label}</button>
+        tab === id ? "border-indigo-500 text-zinc-50" : "border-transparent text-zinc-400 hover:text-zinc-50"}`}>{label}</button>
   );
 
   return (
@@ -868,10 +868,10 @@ function AssembleModal({ cuts, inSeq, insertAfter, onAddIds, onClose }) {
                 <div className="flex items-center gap-2 text-xs text-zinc-400">
                   <span>Select</span>
                   {[5, 10, 20].map((n) => (
-                    <button key={n} className="hover:text-white underline-offset-2 hover:underline"
+                    <button key={n} className="hover:text-zinc-50 underline-offset-2 hover:underline"
                       onClick={() => setSel(new Set(ranked.slice(0, n).map((r) => r.cut_id)))}>top {n}</button>
                   ))}
-                  {sel.size > 0 && <button className="hover:text-white" onClick={() => setSel(new Set())}>clear ({sel.size})</button>}
+                  {sel.size > 0 && <button className="hover:text-zinc-50" onClick={() => setSel(new Set())}>clear ({sel.size})</button>}
                 </div>
                 <div className="max-h-[44vh] overflow-y-auto space-y-1 pr-1">
                   {ranked.map((r) => (
@@ -917,7 +917,7 @@ function AssembleModal({ cuts, inSeq, insertAfter, onAddIds, onClose }) {
                   return (
                     <div key={ci} className="rounded-lg border border-zinc-800 bg-zinc-900/60">
                       <div className="flex items-center gap-2 px-2.5 py-2">
-                        <button className="text-zinc-500 hover:text-white text-xs w-4"
+                        <button className="text-zinc-500 hover:text-zinc-50 text-xs w-4"
                           onClick={() => setExpanded((s) => { const n = new Set(s); n.has(ci) ? n.delete(ci) : n.add(ci); return n; })}>
                           {open ? "▾" : "▸"}
                         </button>
@@ -1192,7 +1192,7 @@ function RecompEditor({ user, recompId, back }) {
       {/* right: sequence + player */}
       <div className="flex-1 flex flex-col min-w-0 border-l border-zinc-800">
         <div className="flex items-center gap-3 px-4 py-2 border-b border-zinc-800 shrink-0">
-          <button onClick={back} className="text-zinc-400 hover:text-white text-sm">← Studio</button>
+          <button onClick={back} className="text-zinc-400 hover:text-zinc-50 text-sm">← Studio</button>
           <h1 className="font-semibold truncate">{recomp.title}</h1>
           <span className="text-xs text-zinc-500 whitespace-nowrap">{recomp.cuts.length} cuts · {fmtTime(total)}</span>
           <div className="ml-auto flex gap-2 items-center">
@@ -1272,7 +1272,7 @@ function RecompEditor({ user, recompId, back }) {
         {insertAfter != null && (
           <div className="px-4 py-1.5 text-xs bg-indigo-500/10 border-b border-indigo-500/30 text-indigo-300 flex items-center gap-2 shrink-0">
             ▸ New cuts insert after #{insertAfter + 1}
-            <button className="ml-auto text-zinc-400 hover:text-white"
+            <button className="ml-auto text-zinc-400 hover:text-zinc-50"
               onClick={() => setInsertAfter(null)}>append to end instead</button>
           </div>
         )}
@@ -1320,8 +1320,8 @@ function RecompEditor({ user, recompId, back }) {
                 </p>
               </div>
               <div className="flex flex-col">
-                <button className="text-zinc-500 hover:text-white text-xs" onClick={() => move(i, i - 1)}>▲</button>
-                <button className="text-zinc-500 hover:text-white text-xs" onClick={() => move(i, i + 1)}>▼</button>
+                <button className="text-zinc-500 hover:text-zinc-50 text-xs" onClick={() => move(i, i - 1)}>▲</button>
+                <button className="text-zinc-500 hover:text-zinc-50 text-xs" onClick={() => move(i, i + 1)}>▼</button>
               </div>
               <button className="text-zinc-500 hover:text-red-400 text-sm" onClick={() => removeAt(i)}>✕</button>
             </div>

@@ -79,10 +79,10 @@ function Stepper({ label, onMinus, onPlus, minusOk, plusOk, minusTip, plusTip })
       <span className="text-[10px] uppercase tracking-wide text-zinc-500 w-8">{label}</span>
       <button disabled={!minusOk} onClick={onMinus} title={minusTip}
         className="w-6 h-6 rounded-md border border-zinc-700 text-zinc-300 enabled:hover:border-zinc-500
-                   enabled:hover:text-white disabled:opacity-30">−</button>
+                   enabled:hover:text-zinc-50 disabled:opacity-30">−</button>
       <button disabled={!plusOk} onClick={onPlus} title={plusTip}
         className="w-6 h-6 rounded-md border border-zinc-700 text-zinc-300 enabled:hover:border-zinc-500
-                   enabled:hover:text-white disabled:opacity-30">+</button>
+                   enabled:hover:text-zinc-50 disabled:opacity-30">+</button>
     </div>
   );
 }
@@ -470,7 +470,7 @@ function Workspace({ media, trackId, segments, user, onCommitted }) {
                       on ? "border-indigo-500 bg-indigo-500/5" : "border-zinc-800 hover:border-zinc-700"}`}>
                     <div className="flex items-center gap-2 px-3 py-1.5 border-b border-zinc-800/70">
                       <span className="text-[11px] font-mono text-zinc-500">{String(k + 1).padStart(2, "0")}</span>
-                      <span className={`text-sm font-medium truncate ${on ? "text-white" : "text-zinc-300"}`}>{r.title}</span>
+                      <span className={`text-sm font-medium truncate ${on ? "text-zinc-50" : "text-zinc-300"}`}>{r.title}</span>
                       {cutStretched && <span className="text-amber-400 text-[11px] shrink-0" title="Timing stretched into silence">⟷</span>}
                       <span className="text-[11px] text-zinc-600 font-mono shrink-0">{r.count}L · {fmtTime(r.end_s - r.start_s)}</span>
                       <span className="ml-auto shrink-0">
@@ -647,7 +647,7 @@ function HelpOverlay({ onClose }) {
         onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold">Shortcuts &amp; mouse</h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-white text-xl leading-none">×</button>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-50 text-xl leading-none">×</button>
         </div>
         <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
           <div>
@@ -735,7 +735,7 @@ export default function Cutter({ user, mediaId: initialMediaId, trackId: initial
           </select>
         )}
         {media && (
-          <button className="text-xs text-zinc-500 hover:text-white" onClick={() => openMedia?.(media.id)}>
+          <button className="text-xs text-zinc-500 hover:text-zinc-50" onClick={() => openMedia?.(media.id)}>
             open in Library →
           </button>
         )}

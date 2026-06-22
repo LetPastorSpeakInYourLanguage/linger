@@ -282,9 +282,9 @@ function MediaCuts({ cuts, folders, onPlay, onShow, onEdit, onDelete, onTranslat
             )}
             {c.tags.map((t) => <Tag key={t} name={t} />)}
             <span className="ml-auto flex gap-2 text-xs opacity-0 group-hover:opacity-100">
-              <button className="text-zinc-400 hover:text-white" onClick={() => onShow(c)}>show in transcript</button>
-              <button className="text-zinc-400 hover:text-white" onClick={() => onTranslate(c)}>translate/dub</button>
-              <button className="text-zinc-400 hover:text-white" onClick={() => onEdit(c)}>edit</button>
+              <button className="text-zinc-400 hover:text-zinc-50" onClick={() => onShow(c)}>show in transcript</button>
+              <button className="text-zinc-400 hover:text-zinc-50" onClick={() => onTranslate(c)}>translate/dub</button>
+              <button className="text-zinc-400 hover:text-zinc-50" onClick={() => onEdit(c)}>edit</button>
               <button className="text-zinc-400 hover:text-red-400" onClick={() => onDelete(c)}>delete</button>
             </span>
           </div>
@@ -590,7 +590,7 @@ export default function MediaView({ user, mediaId, back, initialSeg = null, open
   const tabBtn = (id, label) => (
     <button onClick={() => setPanelTab(id)}
       className={`px-3 py-1.5 text-sm rounded-t-lg border-b-2 ${
-        panelTab === id ? "border-indigo-500 text-white" : "border-transparent text-zinc-400 hover:text-white"}`}>
+        panelTab === id ? "border-indigo-500 text-zinc-50" : "border-transparent text-zinc-400 hover:text-zinc-50"}`}>
       {label}
     </button>
   );
@@ -598,7 +598,7 @@ export default function MediaView({ user, mediaId, back, initialSeg = null, open
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center gap-3 px-4 py-2 border-b border-zinc-800 shrink-0 flex-wrap">
-        <button onClick={back} className="text-zinc-400 hover:text-white text-sm">← Library</button>
+        <button onClick={back} className="text-zinc-400 hover:text-zinc-50 text-sm">← Library</button>
         <h1 className="font-semibold truncate">{media.title}</h1>
 
         <div className="flex items-center gap-1.5 ml-2">
@@ -684,7 +684,7 @@ export default function MediaView({ user, mediaId, back, initialSeg = null, open
                   onClick={() => extendSel(1)}>⊕ next</button>
                 <button className={btnGhost} onClick={playSelection}>▶ Play selection</button>
                 <button className={btnCls} onClick={() => setShowSave(true)}>Save as Cut (s)</button>
-                <button className="text-zinc-500 hover:text-white" onClick={() => { setAnchor(null); setExtent(null); }}>
+                <button className="text-zinc-500 hover:text-zinc-50" onClick={() => { setAnchor(null); setExtent(null); }}>
                   clear (esc)
                 </button>
               </>

@@ -125,10 +125,10 @@ export default function JobsPage() {
         </div>
         {j.status === "queued" && (
           <div className="flex items-center gap-1 text-xs text-zinc-400 shrink-0">
-            <button title="To top" className="hover:text-white px-1" onClick={() => move(j, "top")}>⤒</button>
-            <button title="Up" className="hover:text-white px-1" onClick={() => move(j, "up")}>▲</button>
-            <button title="Down" className="hover:text-white px-1" onClick={() => move(j, "down")}>▼</button>
-            <button title="To bottom" className="hover:text-white px-1" onClick={() => move(j, "bottom")}>⤓</button>
+            <button title="To top" className="hover:text-zinc-50 px-1" onClick={() => move(j, "top")}>⤒</button>
+            <button title="Up" className="hover:text-zinc-50 px-1" onClick={() => move(j, "up")}>▲</button>
+            <button title="Down" className="hover:text-zinc-50 px-1" onClick={() => move(j, "down")}>▼</button>
+            <button title="To bottom" className="hover:text-zinc-50 px-1" onClick={() => move(j, "bottom")}>⤓</button>
             <span className="text-[10px] text-zinc-600 w-8 text-center" title="priority">p{j.priority}</span>
           </div>
         )}
@@ -190,7 +190,7 @@ export default function JobsPage() {
                 <>{s}{counts[s] ? <span className="opacity-60 ml-1">{counts[s]}</span> : null}</>))}
             </div>
             {statusSel.size > 0 && (
-              <button className="text-[11px] text-zinc-500 hover:text-white mt-1.5" onClick={() => setStatusSel(new Set())}>
+              <button className="text-[11px] text-zinc-500 hover:text-zinc-50 mt-1.5" onClick={() => setStatusSel(new Set())}>
                 clear status filter
               </button>
             )}
@@ -214,7 +214,7 @@ export default function JobsPage() {
               <input type="checkbox" className="accent-indigo-500" checked={auto} onChange={(e) => setAuto(e.target.checked)} />
               auto-refresh
             </label>
-            <button className="text-xs text-zinc-400 hover:text-white block" onClick={refresh}>↻ refresh now</button>
+            <button className="text-xs text-zinc-400 hover:text-zinc-50 block" onClick={refresh}>↻ refresh now</button>
             <button className="text-xs text-zinc-400 hover:text-red-400 block" onClick={clearHistory}>🗑 clear finished history</button>
           </div>
         </div>

@@ -25,7 +25,7 @@ export function Modal({ title, onClose, children, wide, size, bodyClass }) {
       <div className={`bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl flex flex-col ${shape}`}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 shrink-0">
           <h2 className="font-semibold">{title}</h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-white text-xl leading-none"
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-50 text-xl leading-none"
             title="Close (Esc)">×</button>
         </div>
         <div className={bodyClass ?? (full ? "flex-1 min-h-0 flex" : "p-4 overflow-y-auto")}>
@@ -43,7 +43,7 @@ export const inputCls =
   "w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500";
 
 export const btnCls =
-  "px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed";
+  "px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed";
 
 export const btnGhost =
   "px-3 py-1.5 rounded-lg border border-zinc-700 hover:border-zinc-500 text-sm";
@@ -185,7 +185,7 @@ export function Picker({ label, icon, items, onPick, align = "left" }) {
     <div className="relative inline-block">
       <button ref={btnRef} onClick={() => { setOpen(!open); setQ(""); }}
         className={`text-xs px-2 py-1 rounded-lg border whitespace-nowrap ${
-          open ? "border-indigo-500 text-white" : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-white"}`}>
+          open ? "border-indigo-500 text-zinc-50" : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-50"}`}>
         {icon} {label} ▾
       </button>
       {open && pos && createPortal(

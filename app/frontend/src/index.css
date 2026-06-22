@@ -2,36 +2,106 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================ TOKENS
+ * The design handoff's token system. Tailwind's `zinc` and `indigo` scales are
+ * mapped (in tailwind.config.js) to these CSS variables as
+ * rgb(var(--z-NN) / <alpha-value>), so flipping data-theme / data-accent on
+ * <html> re-skins every utility class live — opacity modifiers included.
+ * Values are RGB channel triplets (space-separated) for the /<alpha> syntax.
+ * ========================================================================= */
+
+/* ---- DARK (default) ---- */
+:root, :root[data-theme="dark"] {
+  --z-50: 250 250 251;
+  --z-100: 244 244 246;   /* primary text */
+  --z-200: 228 228 233;
+  --z-300: 201 201 209;
+  --z-400: 166 166 176;   /* secondary text */
+  --z-500: 116 116 127;   /* tertiary text */
+  --z-600: 85 85 94;      /* faint text */
+  --z-700: 46 46 54;      /* control lines */
+  --z-800: 35 35 41;      /* borders / active */
+  --z-850: 28 28 33;
+  --z-900: 22 22 26;      /* panels */
+  --z-925: 15 15 18;
+  --z-950: 10 10 12;      /* deepest background */
+  color-scheme: dark;
+}
+
+/* ---- LIGHT (the zinc ramp inverts: deepest bg → lightest, text → darkest) ---- */
+:root[data-theme="light"] {
+  --z-50: 12 12 16;
+  --z-100: 22 22 26;      /* primary text (near-black) */
+  --z-200: 39 39 44;
+  --z-300: 63 63 70;
+  --z-400: 82 82 91;      /* secondary text */
+  --z-500: 138 138 148;   /* tertiary text */
+  --z-600: 174 174 182;   /* faint text */
+  --z-700: 215 215 222;   /* control lines */
+  --z-800: 231 231 236;   /* borders / active */
+  --z-850: 241 241 244;
+  --z-900: 255 255 255;   /* panels (white) */
+  --z-925: 255 255 255;
+  --z-950: 243 243 245;   /* app background (soft gray) */
+  color-scheme: light;
+}
+
+/* ---- ACCENTS (indigo default). 300 = "accent text" shade, tuned per theme. ---- */
+:root, :root[data-accent="indigo"] {
+  --i-200: 195 201 255; --i-400: 129 140 248; --i-500: 99 102 241; --i-600: 84 87 230; --i-700: 65 68 201;
+  --i-300: 165 176 255;
+}
+:root[data-theme="light"][data-accent="indigo"] { --i-300: 79 70 229; --i-400: 99 102 241; }
+
+:root[data-accent="violet"] {
+  --i-200: 221 214 254; --i-400: 167 139 250; --i-500: 139 92 246; --i-600: 124 58 237; --i-700: 109 40 217;
+  --i-300: 196 181 253;
+}
+:root[data-theme="light"][data-accent="violet"] { --i-300: 109 40 217; --i-400: 124 58 237; }
+
+:root[data-accent="cyan"] {
+  --i-200: 165 243 252; --i-400: 34 211 238; --i-500: 6 182 212; --i-600: 8 145 178; --i-700: 14 116 144;
+  --i-300: 95 227 245;
+}
+:root[data-theme="light"][data-accent="cyan"] { --i-300: 14 116 144; --i-400: 8 145 178; }
+
+:root[data-accent="emerald"] {
+  --i-200: 167 243 208; --i-400: 52 211 153; --i-500: 16 185 129; --i-600: 5 150 105; --i-700: 4 120 87;
+  --i-300: 110 231 183;
+}
+:root[data-theme="light"][data-accent="emerald"] { --i-300: 4 120 87; --i-400: 5 150 105; }
+
+:root[data-accent="rose"] {
+  --i-200: 254 205 211; --i-400: 251 113 133; --i-500: 244 63 94; --i-600: 225 29 72; --i-700: 190 18 60;
+  --i-300: 253 164 175;
+}
+:root[data-theme="light"][data-accent="rose"] { --i-300: 190 18 60; --i-400: 225 29 72; }
+
+/* ---- DENSITY (root font-size scales rem-based spacing & type) ---- */
+:root[data-density="comfortable"] { font-size: 16px; }
+:root[data-density="dense"] { font-size: 14px; }
+
+/* ============================================================ BASE ====== */
 html, body, #root { height: 100%; }
 body {
   @apply bg-zinc-950 text-zinc-100 antialiased;
   font-feature-settings: "cv02", "cv03", "cv04";
   text-rendering: optimizeLegibility;
 }
-
-/* tabular figures for the many timecodes / counts in mono spans */
 .font-mono { font-feature-settings: "tnum" 1; }
 
-/* refined scrollbars (design-handoff feel): thin, inset, accent on hover */
+/* refined scrollbars (handoff feel): thin, inset, accent-neutral on hover */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
   @apply bg-zinc-700;
-  border-radius: 99px;
-  border: 3px solid transparent;
-  background-clip: padding-box;
+  border-radius: 99px; border: 3px solid transparent; background-clip: padding-box;
 }
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-zinc-600;
-  background-clip: padding-box;
-  border: 3px solid transparent;
-}
+::-webkit-scrollbar-thumb:hover { @apply bg-zinc-600; background-clip: padding-box; border: 3px solid transparent; }
 
-/* keyboard-only focus ring in the accent */
-:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }
-::selection { background: rgba(99, 102, 241, 0.28); }
+:focus-visible { outline: 2px solid rgb(var(--i-500)); outline-offset: 2px; }
+::selection { background: rgb(var(--i-500) / 0.28); }
 
-/* gentle app entrance */
 #root { animation: appfade 0.4s cubic-bezier(0.4, 0, 0.2, 1) both; }
 @keyframes appfade { from { opacity: 0; } to { opacity: 1; } }
 

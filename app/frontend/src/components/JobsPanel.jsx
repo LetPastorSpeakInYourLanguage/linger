@@ -45,7 +45,7 @@ export default function JobsPanel({ onClose }) {
       <div className="flex items-center justify-between px-4 h-12 border-b border-zinc-800 shrink-0">
         <h2 className="font-semibold text-sm">Background jobs</h2>
         <button onClick={onClose} title="Close (Esc)"
-          className="text-zinc-400 hover:text-white text-xl leading-none">×</button>
+          className="text-zinc-400 hover:text-zinc-50 text-xl leading-none">×</button>
       </div>
       {err && <p className="text-xs text-red-400 px-4 py-2">{err}</p>}
       <div className="flex-1 overflow-y-auto divide-y divide-zinc-900">

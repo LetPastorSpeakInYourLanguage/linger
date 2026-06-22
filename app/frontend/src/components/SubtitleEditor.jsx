@@ -209,7 +209,7 @@ export default function SubtitleEditor({ trackId, segments, getTime, playRange, 
                 )}
                 <button className="text-indigo-400 hover:text-indigo-300" title="Play this line"
                   onClick={(e) => { e.stopPropagation(); playRange(s.start_s, s.end_s); }}>▶</button>
-                <button className="text-zinc-400 hover:text-white" title={gapAfter ? "Fill the gap after with a [gap] caption line" : "Insert a line after this one"}
+                <button className="text-zinc-400 hover:text-zinc-50" title={gapAfter ? "Fill the gap after with a [gap] caption line" : "Insert a line after this one"}
                   onClick={(e) => { e.stopPropagation(); insertAfter(s); }}>＋</button>
                 <button className="text-zinc-400 hover:text-red-400" title="Delete this line"
                   onClick={(e) => { e.stopPropagation(); remove(s); }}>✕</button>

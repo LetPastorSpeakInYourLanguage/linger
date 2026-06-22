@@ -419,12 +419,12 @@ export default function Assembler({ user, openStudio }) {
           <input value={c.title || ""} onChange={(e) => setCutTitle(id, e.target.value)} onBlur={() => saveCutTitle(id)}
             onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
             className="flex-1 bg-transparent text-sm font-medium outline-none focus:bg-zinc-950 rounded px-1 py-0.5 min-w-0" />
-          <button onClick={() => toggleSegs(id)} className="shrink-0 text-zinc-500 hover:text-white text-xs" title="Segments">{open ? "▾" : "▸"}</button>
+          <button onClick={() => toggleSegs(id)} className="shrink-0 text-zinc-500 hover:text-zinc-50 text-xs" title="Segments">{open ? "▾" : "▸"}</button>
           {draftRow ? (
             <>
               <div className="flex flex-col">
-                <button className="text-zinc-500 hover:text-white text-[10px] leading-3" onClick={() => moveDraft(idx, idx - 1)}>▲</button>
-                <button className="text-zinc-500 hover:text-white text-[10px] leading-3" onClick={() => moveDraft(idx, idx + 1)}>▼</button>
+                <button className="text-zinc-500 hover:text-zinc-50 text-[10px] leading-3" onClick={() => moveDraft(idx, idx - 1)}>▲</button>
+                <button className="text-zinc-500 hover:text-zinc-50 text-[10px] leading-3" onClick={() => moveDraft(idx, idx + 1)}>▼</button>
               </div>
               <button className="shrink-0 text-zinc-500 hover:text-indigo-300 text-xs" title="Forge a modified cut"
                 onClick={async () => { const full = c.segments ? c : await api.get(`/api/cuts/${id}`); mergeCache([full]); setForgeCut(full); }}>✂</button>
@@ -449,7 +449,7 @@ export default function Assembler({ user, openStudio }) {
               <button key={s.id} onClick={() => { const p = playerRef.current; if (!p) return; queue.current = []; setNowId(id); stopAt.current = c.end_s;
                   const go = () => { p.currentTime = s.start_s; p.play().catch(() => {}); };
                   if (String(c.media_id) !== p.dataset.media) { p.dataset.media = String(c.media_id); p.src = streamUrl(c.media_id); p.onloadedmetadata = go; } else go(); }}
-                className="block w-full text-left text-xs text-zinc-400 hover:text-white hover:bg-zinc-800/60 rounded px-1.5 py-0.5">
+                className="block w-full text-left text-xs text-zinc-400 hover:text-zinc-50 hover:bg-zinc-800/60 rounded px-1.5 py-0.5">
                 <span className="font-mono text-[10px] text-zinc-600 mr-1.5">{fmtTime(s.start_s)}</span>{s.text}
               </button>
             ))}
@@ -466,7 +466,7 @@ export default function Assembler({ user, openStudio }) {
       <div className="flex gap-1 px-2 pt-2 border-b border-zinc-800 shrink-0">
         {[["scope", "Scope"], ["created", `Created${created.length ? ` (${created.length})` : ""}`]].map(([id, lbl]) => (
           <button key={id} onClick={() => setLeftTab(id)}
-            className={`px-3 py-1.5 text-sm border-b-2 -mb-px ${leftTab === id ? "border-indigo-500 text-white" : "border-transparent text-zinc-400 hover:text-white"}`}>{lbl}</button>
+            className={`px-3 py-1.5 text-sm border-b-2 -mb-px ${leftTab === id ? "border-indigo-500 text-zinc-50" : "border-transparent text-zinc-400 hover:text-zinc-50"}`}>{lbl}</button>
         ))}
       </div>
       {leftTab === "scope" ? (
@@ -550,8 +550,8 @@ export default function Assembler({ user, openStudio }) {
           <div className="shrink-0 px-2 py-1.5 border-b border-zinc-800 flex items-center gap-1.5">
             <input value={d.title} onChange={(e) => renameDraft(e.target.value)} onBlur={saveDraft}
               className="flex-1 bg-transparent text-sm font-semibold outline-none focus:bg-zinc-950 rounded px-1 py-0.5 min-w-0" />
-            <button className="text-zinc-400 hover:text-white disabled:opacity-30" disabled={!d.hist.length} onClick={undo} title="Undo">↶</button>
-            <button className="text-zinc-400 hover:text-white disabled:opacity-30" disabled={!d.future.length} onClick={redo} title="Redo">↷</button>
+            <button className="text-zinc-400 hover:text-zinc-50 disabled:opacity-30" disabled={!d.hist.length} onClick={undo} title="Undo">↶</button>
+            <button className="text-zinc-400 hover:text-zinc-50 disabled:opacity-30" disabled={!d.future.length} onClick={redo} title="Redo">↷</button>
             <button className="text-zinc-400 hover:text-indigo-300" disabled={!d.cutIds.length} onClick={() => playSeq(d.cutIds)} title="Play draft">▶</button>
             <button className={`text-xs ${d.dirty ? "text-amber-400" : "text-emerald-400"}`} onClick={saveDraft} title="Save">{d.dirty ? "● save" : "✓"}</button>
             {d.status === "draft"
@@ -578,7 +578,7 @@ export default function Assembler({ user, openStudio }) {
           className="ml-auto bg-zinc-900 border border-zinc-700 rounded px-1 py-0.5 outline-none" title="How many to suggest">
           {[10, 15, 25, 40].map((n) => <option key={n} value={n}>{n}</option>)}
         </select>
-        <button className="text-zinc-400 hover:text-white" onClick={loadRecs} title="Refresh">{recsBusy ? "…" : "↻"}</button>
+        <button className="text-zinc-400 hover:text-zinc-50" onClick={loadRecs} title="Refresh">{recsBusy ? "…" : "↻"}</button>
         <button className="text-indigo-300 hover:text-indigo-200 disabled:opacity-30" disabled={!d || !recs.length}
           onClick={() => addToDraft(recs.map((r) => r.cut_id))} title="Add all to the active draft">＋ all</button>
       </div>
@@ -677,7 +677,7 @@ export default function Assembler({ user, openStudio }) {
             return (
               <div key={ci} className="rounded-lg border border-zinc-800 bg-zinc-900/40">
                 <div className="flex items-center gap-2 px-2.5 py-2">
-                  <button className="text-zinc-500 hover:text-white text-xs w-4"
+                  <button className="text-zinc-500 hover:text-zinc-50 text-xs w-4"
                     onClick={() => setOpenClusters((s) => { const n = new Set(s); n.has(ci) ? n.delete(ci) : n.add(ci); return n; })}>{open ? "▾" : "▸"}</button>
                   <span className="text-sm font-medium truncate flex-1">🧩 {cl.name}</span>
                   <span className="text-[11px] text-zinc-500 shrink-0">{cl.size}</span>
@@ -714,10 +714,10 @@ export default function Assembler({ user, openStudio }) {
     <div className="shrink-0 flex items-center gap-1 px-2 py-1 border-b border-zinc-800 bg-zinc-950/50 text-[11px]">
       <span className="font-medium text-zinc-400 truncate">{PANEL_TITLE[id]}</span>
       <div className="ml-auto flex items-center gap-0.5 text-zinc-500">
-        <button title="Move to the column on the left" onClick={() => movePanel(id, "left")} className="hover:text-white px-1">◀</button>
-        <button title="Move up in this column" disabled={ri <= 0} onClick={() => movePanel(id, "up")} className="hover:text-white disabled:opacity-20 px-1">▲</button>
-        <button title="Move down in this column" disabled={ri >= colLen - 1} onClick={() => movePanel(id, "down")} className="hover:text-white disabled:opacity-20 px-1">▼</button>
-        <button title="Move to the column on the right" onClick={() => movePanel(id, "right")} className="hover:text-white px-1">▶</button>
+        <button title="Move to the column on the left" onClick={() => movePanel(id, "left")} className="hover:text-zinc-50 px-1">◀</button>
+        <button title="Move up in this column" disabled={ri <= 0} onClick={() => movePanel(id, "up")} className="hover:text-zinc-50 disabled:opacity-20 px-1">▲</button>
+        <button title="Move down in this column" disabled={ri >= colLen - 1} onClick={() => movePanel(id, "down")} className="hover:text-zinc-50 disabled:opacity-20 px-1">▼</button>
+        <button title="Move to the column on the right" onClick={() => movePanel(id, "right")} className="hover:text-zinc-50 px-1">▶</button>
         {id === "player" && <button title="Detach into a floating window" onClick={detachToggle} className="hover:text-indigo-300 px-1">⧉</button>}
         <button title="Hide panel" onClick={() => toggleHide(id)} className="hover:text-red-400 px-1">✕</button>
       </div>

@@ -128,7 +128,7 @@ export function FilterBar({ filters, setFilters, tags, folders, media, compact }
               #{t} ×
             </button>
           ))}
-          <button className="text-zinc-500 hover:text-white ml-1"
+          <button className="text-zinc-500 hover:text-zinc-50 ml-1"
             onClick={() => setFilters({ ...EMPTY_FILTERS, q: filters.q })}>
             clear all
           </button>
@@ -312,8 +312,8 @@ function FoldersModal({ folders, onClose, onChanged }) {
                 )}
                 <span className="text-[11px] text-zinc-600">{f.cut_count}</span>
                 <span className="ml-auto opacity-0 group-hover:opacity-100 flex gap-2.5 text-xs">
-                  <button className="text-zinc-400 hover:text-white" title="New sub-folder" onClick={() => addSub(f)}>＋</button>
-                  <button className="text-zinc-400 hover:text-white" onClick={() => beginRename(f)}>rename</button>
+                  <button className="text-zinc-400 hover:text-zinc-50" title="New sub-folder" onClick={() => addSub(f)}>＋</button>
+                  <button className="text-zinc-400 hover:text-zinc-50" onClick={() => beginRename(f)}>rename</button>
                   <button className="text-zinc-400 hover:text-red-400" onClick={() => del(f)}>delete</button>
                 </span>
               </div>
@@ -421,14 +421,14 @@ export default function CutBrowser({ user, embedded = false, onAdd,
         {!embedded && (
           <div className="mt-2 flex items-center gap-3 text-xs text-zinc-400">
             {cuts.length > 0 && (
-              <button className="hover:text-white underline-offset-2 hover:underline"
+              <button className="hover:text-zinc-50 underline-offset-2 hover:underline"
                 onClick={selectAll}>Select all {cuts.length}</button>
             )}
             {selected.size > 0 && (
-              <button className="hover:text-white"
+              <button className="hover:text-zinc-50"
                 onClick={() => setSelected(new Set())}>clear ({selected.size})</button>
             )}
-            <button className="ml-auto hover:text-white" onClick={() => setShowFolders(true)}>📁 Folders</button>
+            <button className="ml-auto hover:text-zinc-50" onClick={() => setShowFolders(true)}>📁 Folders</button>
           </div>
         )}
         {!embedded && selected.size > 0 && (
@@ -522,15 +522,15 @@ export default function CutBrowser({ user, embedded = false, onAdd,
                 <button className={`${btnCls} py-0.5`} onClick={() => onAdd(c)}>+ Add</button>
               ) : (
                 <span className="opacity-0 group-hover:opacity-100 flex gap-2 text-xs">
-                  <button className="text-zinc-400 hover:text-white" onClick={() => setTranslating(c)}>translate/dub</button>
-                  <button className="text-zinc-400 hover:text-white" onClick={() => setBedFor(c)}
+                  <button className="text-zinc-400 hover:text-zinc-50" onClick={() => setTranslating(c)}>translate/dub</button>
+                  <button className="text-zinc-400 hover:text-zinc-50" onClick={() => setBedFor(c)}
                     title="Make a reusable background-audio bed from this cut">🎵 bed</button>
-                  <button className="text-zinc-400 hover:text-white" onClick={() => setEditing(c)}>edit</button>
+                  <button className="text-zinc-400 hover:text-zinc-50" onClick={() => setEditing(c)}>edit</button>
                   <button className="text-zinc-400 hover:text-red-400" onClick={() => removeCut(c)}>delete</button>
                 </span>
               )}
               {embedded && (
-                <button className="text-xs text-zinc-400 hover:text-white"
+                <button className="text-xs text-zinc-400 hover:text-zinc-50"
                   onClick={() => setTranslating(c)}>
                   dub
                 </button>

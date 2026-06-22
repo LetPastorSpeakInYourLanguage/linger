@@ -12,28 +12,29 @@ export default {
         mono: ['"IBM Plex Mono"', "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       colors: {
+        // mapped to index.css token variables → live theme/accent switching
         zinc: {
-          50: "#fafafb",
-          100: "#f4f4f6",   // --text
-          200: "#e4e4e9",
-          300: "#c9c9d1",
-          400: "#a6a6b0",   // --text-1
-          500: "#74747f",   // --text-2
-          600: "#55555e",   // --text-3
-          700: "#2e2e36",   // input / control lines
-          800: "#232329",   // --bg-4 (borders, active)
-          850: "#1c1c21",   // --bg-3
-          900: "#16161a",   // --bg-2 (panels)
-          925: "#0f0f12",   // --bg-1
-          950: "#0a0a0c",   // --bg (deepest)
+          50: "rgb(var(--z-50) / <alpha-value>)",
+          100: "rgb(var(--z-100) / <alpha-value>)",
+          200: "rgb(var(--z-200) / <alpha-value>)",
+          300: "rgb(var(--z-300) / <alpha-value>)",
+          400: "rgb(var(--z-400) / <alpha-value>)",
+          500: "rgb(var(--z-500) / <alpha-value>)",
+          600: "rgb(var(--z-600) / <alpha-value>)",
+          700: "rgb(var(--z-700) / <alpha-value>)",
+          800: "rgb(var(--z-800) / <alpha-value>)",
+          850: "rgb(var(--z-850) / <alpha-value>)",
+          900: "rgb(var(--z-900) / <alpha-value>)",
+          925: "rgb(var(--z-925) / <alpha-value>)",
+          950: "rgb(var(--z-950) / <alpha-value>)",
         },
         indigo: {
-          200: "#c3c9ff",
-          300: "#a5b0ff",   // --accent-text (dark)
-          400: "#818cf8",   // --accent-2
-          500: "#6366f1",   // --accent
-          600: "#5457e6",   // button base
-          700: "#4144c9",
+          200: "rgb(var(--i-200) / <alpha-value>)",
+          300: "rgb(var(--i-300) / <alpha-value>)",
+          400: "rgb(var(--i-400) / <alpha-value>)",
+          500: "rgb(var(--i-500) / <alpha-value>)",
+          600: "rgb(var(--i-600) / <alpha-value>)",
+          700: "rgb(var(--i-700) / <alpha-value>)",
         },
       },
       boxShadow: {

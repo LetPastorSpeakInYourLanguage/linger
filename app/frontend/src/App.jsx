@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "./api";
+import { ACCENTS, ACCENT_SWATCH, DENSITIES, getAppearance, setAppearance } from "./appearance";
 import Library from "./components/Library";
 import MediaView from "./components/MediaView";
 import { CutsPage } from "./components/CutBrowser";
@@ -53,6 +54,65 @@ function Login({ onLogin }) {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Segmented({ value, options, onChange }) {
+  return (
+    <div className="flex rounded-md border border-zinc-700 overflow-hidden">
+      {options.map((o) => (
+        <button key={o.v} onClick={() => onChange(o.v)}
+          className={`flex-1 px-2 py-1 text-xs capitalize ${value === o.v ? "bg-indigo-600 text-white" : "text-zinc-400 hover:text-zinc-50"}`}>
+          {o.label ?? o.v}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* Live theme / accent / density switcher (writes <html> data-* via appearance.js). */
+function AppearanceMenu() {
+  const [open, setOpen] = useState(false);
+  const [a, setA] = useState(getAppearance);
+  const ref = useRef();
+  const update = (patch) => setA(setAppearance(patch));
+  useEffect(() => {
+    if (!open) return;
+    const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const esc = (e) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", esc); };
+  }, [open]);
+  return (
+    <div className="relative" ref={ref}>
+      <button onClick={() => setOpen((v) => !v)} title="Appearance — theme, accent, density"
+        className={`px-2 py-1 rounded-md ${open ? "bg-zinc-800 text-zinc-50" : "hover:text-zinc-50"}`}>🎨</button>
+      {open && (
+        <div className="absolute right-0 mt-2 w-60 z-50 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl p-3 space-y-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-wide text-zinc-500 mb-1.5">Theme</p>
+            <Segmented value={a.theme} onChange={(v) => update({ theme: v })}
+              options={[{ v: "dark", label: "🌙 Dark" }, { v: "light", label: "☀ Light" }]} />
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wide text-zinc-500 mb-1.5">Accent</p>
+            <div className="flex gap-2">
+              {ACCENTS.map((ac) => (
+                <button key={ac} onClick={() => update({ accent: ac })} title={ac}
+                  style={{ background: ACCENT_SWATCH[ac] }}
+                  className={`w-7 h-7 rounded-full border-2 transition-transform hover:scale-110 ${a.accent === ac ? "border-zinc-100" : "border-transparent"}`} />
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wide text-zinc-500 mb-1.5">Density</p>
+            <Segmented value={a.density} onChange={(v) => update({ density: v })}
+              options={DENSITIES.map((dd) => ({ v: dd }))} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -111,14 +171,15 @@ export default function App() {
           <button key={t.id} onClick={() => setView({ tab: t.id })}
             className={`px-3 py-1.5 rounded-md text-sm ${
               view.tab === t.id || (t.id === "library" && view.tab === "media")
-                ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-white"}`}>
+                ? "bg-zinc-800 text-zinc-50" : "text-zinc-400 hover:text-zinc-50"}`}>
             {t.label}
           </button>
         ))}
         <div className="ml-auto flex items-center gap-2 text-sm text-zinc-400">
+          <AppearanceMenu />
           <button onClick={() => setShowJobs((v) => !v)}
             className={`relative px-2 py-1 rounded-md text-sm ${
-              showJobs ? "bg-zinc-800 text-white" : "hover:text-white"}`}
+              showJobs ? "bg-zinc-800 text-zinc-50" : "hover:text-zinc-50"}`}
             title="Background jobs">
             ⚙ jobs
             {activeJobs > 0 && (
@@ -129,7 +190,7 @@ export default function App() {
           </button>
           <span className="w-2.5 h-2.5 rounded-full" style={{ background: user.color }} />
           {user.name}
-          <button onClick={logout} className="ml-2 text-xs hover:text-white">switch</button>
+          <button onClick={logout} className="ml-2 text-xs hover:text-zinc-50">switch</button>
         </div>
       </header>
       {showJobs && <JobsPanel onClose={() => setShowJobs(false)} />}

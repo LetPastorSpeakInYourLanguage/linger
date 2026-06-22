@@ -56,7 +56,7 @@ function TagInput({ tags, onChange }) {
       {tags.map((t) => (
         <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/15 border border-indigo-500/40 text-indigo-300">
           #{t}
-          <button className="ml-1 hover:text-white" onClick={() => onChange(tags.filter((x) => x !== t))}>×</button>
+          <button className="ml-1 hover:text-zinc-50" onClick={() => onChange(tags.filter((x) => x !== t))}>×</button>
         </span>
       ))}
       <input className="bg-zinc-950 border border-zinc-700 rounded-md px-2 py-0.5 text-xs outline-none focus:border-indigo-500 w-24"

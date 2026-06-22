@@ -168,10 +168,10 @@ export default function SearchPanel({ mediaId = null, trackId = null, onPick = n
               <span>{fmtTime(r.start_s)}</span>
               {mediaId == null && <span className="truncate">· {r.media_title}</span>}
               <span className="ml-auto flex gap-2 opacity-0 group-hover:opacity-100">
-                <button className="hover:text-white"
+                <button className="hover:text-zinc-50"
                   onClick={(e) => { e.stopPropagation(); setPreview(r); }}>▶ preview</button>
                 {onOpenMedia && (
-                  <button className="hover:text-white"
+                  <button className="hover:text-zinc-50"
                     onClick={(e) => { e.stopPropagation(); onOpenMedia(r); }}>open media ↗</button>
                 )}
               </span>
