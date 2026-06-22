@@ -215,6 +215,52 @@ def import_path(body: PathImport):
     return dict(row)
 
 
+class ScanFolderIn(BaseModel):
+    path: str
+    kind: str = "media"          # 'media' | 'audio'
+
+
+@app.get("/api/scan-folders")
+def list_scan_folders():
+    db = get_db()
+    rows = rows_to_dicts(db.execute("SELECT * FROM scan_folders ORDER BY id"))
+    for d in rows:
+        d["exists"] = Path(d["path"]).is_dir()
+        d["ingested"] = db.execute(
+            "SELECT COUNT(*) AS n FROM scanned_files WHERE path LIKE ?",
+            (d["path"].rstrip("/\\") + "%",)).fetchone()["n"]
+    return rows
+
+
+@app.post("/api/scan-folders")
+def add_scan_folder(body: ScanFolderIn):
+    path = body.path.strip().strip('"')
+    if not Path(path).is_dir():
+        raise HTTPException(400, f"folder not found on the host: {path}")
+    kind = body.kind if body.kind in ("media", "audio") else "media"
+    db = get_db()
+    cur = db.execute("INSERT INTO scan_folders (path, kind) VALUES (?,?)", (path, kind))
+    db.commit()
+    return {"id": cur.lastrowid, "path": path, "kind": kind}
+
+
+@app.delete("/api/scan-folders/{folder_id}")
+def delete_scan_folder(folder_id: int):
+    db = get_db()
+    db.execute("DELETE FROM scan_folders WHERE id=?", (folder_id,))
+    db.commit()
+    return {"ok": True}
+
+
+@app.post("/api/scan-folders/{folder_id}/scan")
+def trigger_scan(folder_id: int):
+    db = get_db()
+    if not db.execute("SELECT 1 FROM scan_folders WHERE id=?", (folder_id,)).fetchone():
+        raise HTTPException(404)
+    job_id = jobs.enqueue("scan_folder", None, {"folder_id": folder_id})
+    return {"job_id": job_id}
+
+
 class UrlImport(BaseModel):
     url: str
     title: str = ""
@@ -685,12 +731,31 @@ def stream(media_id: int, request: Request):
 # ---------------------------------------------------------------- jobs
 
 @app.get("/api/jobs")
-def list_jobs():
+def list_jobs(limit: int = 60):
     rows = get_db().execute("""
         SELECT j.*, m.title AS media_title FROM jobs j
         LEFT JOIN media m ON m.id = j.media_id
-        ORDER BY j.id DESC LIMIT 50""")
+        ORDER BY j.id DESC LIMIT ?""", (max(1, min(limit, 500)),))
     return rows_to_dicts(rows)
+
+
+class JobPriority(BaseModel):
+    priority: int
+
+
+@app.patch("/api/jobs/{job_id}")
+def set_job_priority(job_id: int, body: JobPriority):
+    """Reprioritise a queued job (worker claims highest priority, then oldest)."""
+    db = get_db()
+    row = db.execute("SELECT status FROM jobs WHERE id=?", (job_id,)).fetchone()
+    if not row:
+        raise HTTPException(404)
+    if row["status"] != "queued":
+        raise HTTPException(409, "only queued jobs can be reprioritised")
+    db.execute("UPDATE jobs SET priority=?, updated_at=datetime('now') WHERE id=?",
+               (int(body.priority), job_id))
+    db.commit()
+    return {"ok": True, "priority": int(body.priority)}
 
 
 @app.post("/api/jobs/{job_id}/cancel")
@@ -709,31 +774,148 @@ def retry_job(job_id: int):
     return res
 
 
+@app.post("/api/jobs/{job_id}/pause")
+def pause_job(job_id: int):
+    res = jobs.request_pause(job_id)
+    if "error" in res:
+        raise HTTPException(409, res["error"])
+    return res
+
+
+@app.post("/api/jobs/{job_id}/resume")
+def resume_job(job_id: int):
+    res = jobs.resume(job_id)
+    if "error" in res:
+        raise HTTPException(409, res["error"])
+    return res
+
+
+@app.post("/api/jobs/clear")
+def clear_jobs(status: str = ""):
+    """Clear finished jobs from history. `status` (csv) limits which terminal
+    states are cleared; default clears done + failed + cancelled."""
+    wanted = [s.strip() for s in status.split(",") if s.strip()] \
+        or ["done", "failed", "cancelled"]
+    wanted = [s for s in wanted if s in ("done", "failed", "cancelled")]
+    if not wanted:
+        return {"cleared": 0}
+    db = get_db()
+    ph = ",".join("?" * len(wanted))
+    cur = db.execute(f"DELETE FROM jobs WHERE status IN ({ph})", wanted)
+    db.commit()
+    return {"cleared": cur.rowcount}
+
+
 # ------------------------------------------------------- folders & tags
 
 class FolderIn(BaseModel):
     name: str
-    parent_id: int | None = None
+    parent_id: int | None = None   # legacy; hierarchy now lives in the '/'-path name
+
+
+class FolderRename(BaseModel):
+    name: str
+
+
+# --- Nested folders: a folder's `name` is a '/'-separated path (e.g.
+# "Movies/Action/Heist"). Flat names still work. Hierarchy is the string, so no
+# tree tables — selecting a folder includes its descendants by path prefix. ---
+
+def _norm_folder_path(name: str) -> str:
+    return "/".join(p for p in (s.strip() for s in (name or "").split("/")) if p)
+
+
+def _ensure_folder(db, name: str) -> int | None:
+    """Get-or-create a folder by full path, materialising ancestor rows too so
+    the tree is complete and pickable. Returns the leaf folder id."""
+    path = _norm_folder_path(name)
+    if not path:
+        return None
+    fid, cur = None, ""
+    for seg in path.split("/"):
+        cur = f"{cur}/{seg}" if cur else seg
+        row = db.execute("SELECT id FROM folders WHERE name=?", (cur,)).fetchone()
+        fid = row["id"] if row else db.execute(
+            "INSERT INTO folders (name) VALUES (?)", (cur,)).lastrowid
+    return fid
+
+
+def _expand_folder_ids(db, ids: list[int]) -> list[int]:
+    """Expand selected folders to include every descendant (nested filtering)."""
+    if not ids:
+        return ids
+    out = set(ids)
+    for fid in ids:
+        row = db.execute("SELECT name FROM folders WHERE id=?", (fid,)).fetchone()
+        if not row:
+            continue
+        for r in db.execute("SELECT id FROM folders WHERE name=? OR name LIKE ?",
+                            (row["name"], row["name"] + "/%")):
+            out.add(r["id"])
+    return list(out)
 
 
 @app.get("/api/folders")
 def list_folders():
-    return rows_to_dicts(get_db().execute("SELECT * FROM folders ORDER BY name"))
+    db = get_db()
+    rows = db.execute("""
+        SELECT f.*, (SELECT COUNT(*) FROM cuts c WHERE c.folder_id=f.id) AS cut_count
+        FROM folders f ORDER BY f.name""").fetchall()
+    out = rows_to_dicts(rows)
+    for d in out:
+        name = d["name"] or ""
+        d["depth"] = name.count("/")
+        d["leaf"] = name.split("/")[-1] if name else name
+    return out
 
 
 @app.post("/api/folders")
 def create_folder(f: FolderIn):
     db = get_db()
-    cur = db.execute("INSERT INTO folders (name, parent_id) VALUES (?,?)",
-                     (f.name.strip(), f.parent_id))
+    fid = _ensure_folder(db, f.name)
+    if fid is None:
+        raise HTTPException(400, "folder name required")
     db.commit()
-    return {"id": cur.lastrowid, "name": f.name.strip(), "parent_id": f.parent_id}
+    return dict(db.execute("SELECT * FROM folders WHERE id=?", (fid,)).fetchone())
+
+
+@app.patch("/api/folders/{folder_id}")
+def rename_folder(folder_id: int, body: FolderRename):
+    """Rename a folder path, cascading to descendants. Cuts stay linked (they
+    reference folder_id, not the name). Colliding targets merge."""
+    db = get_db()
+    row = db.execute("SELECT name FROM folders WHERE id=?", (folder_id,)).fetchone()
+    if not row:
+        raise HTTPException(404)
+    old = row["name"]
+    new = _norm_folder_path(body.name)
+    if not new:
+        raise HTTPException(400, "folder name required")
+    for r in db.execute("SELECT id, name FROM folders WHERE name=? OR name LIKE ?",
+                        (old, old + "/%")).fetchall():
+        updated = new + r["name"][len(old):]
+        clash = db.execute("SELECT id FROM folders WHERE name=? AND id<>?",
+                           (updated, r["id"])).fetchone()
+        if clash:                                  # merge into the existing folder
+            db.execute("UPDATE cuts SET folder_id=? WHERE folder_id=?", (clash["id"], r["id"]))
+            db.execute("DELETE FROM folders WHERE id=?", (r["id"],))
+        else:
+            db.execute("UPDATE folders SET name=? WHERE id=?", (updated, r["id"]))
+    db.commit()
+    return {"ok": True, "name": new}
 
 
 @app.delete("/api/folders/{folder_id}")
-def delete_folder(folder_id: int):
+def delete_folder(folder_id: int, recursive: int = 0):
     db = get_db()
-    db.execute("DELETE FROM folders WHERE id=?", (folder_id,))
+    row = db.execute("SELECT name FROM folders WHERE id=?", (folder_id,)).fetchone()
+    if not row:
+        return {"ok": True}
+    if recursive:                                  # drop this folder + all descendants
+        db.execute("DELETE FROM folders WHERE name=? OR name LIKE ?",
+                   (row["name"], row["name"] + "/%"))
+    else:
+        db.execute("DELETE FROM folders WHERE id=?", (folder_id,))
     db.commit()
     return {"ok": True}
 
@@ -1006,6 +1188,38 @@ def clusters_commit(body: ClusterCommitIn):
     return themes.commit(db, body.clusters, params=body.params, replace=body.replace)
 
 
+class RankCutsIn(BaseModel):
+    prompt: str
+    cut_ids: list[int] = []
+    limit: int = 60
+
+
+@app.post("/api/cuts/rank")
+def cuts_rank(body: RankCutsIn):
+    """Rank a given set of cuts by similarity to a prompt (Studio assembly)."""
+    db = get_db()
+    if not body.prompt.strip():
+        raise HTTPException(400, "prompt is required")
+    try:
+        return ai_ops.rank_cuts(db, body.cut_ids, body.prompt.strip(), limit=body.limit)
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+
+
+class SimilarCutsIn(BaseModel):
+    seed_cut_ids: list[int] = []
+    cut_ids: list[int] = []       # candidate pool to recommend from
+    exclude: list[int] = []
+    limit: int = 20
+
+
+@app.post("/api/cuts/similar")
+def cuts_similar(body: SimilarCutsIn):
+    """Recommend cuts from the pool most like the seed cuts (the draft)."""
+    return ai_ops.similar_cuts(get_db(), body.seed_cut_ids, body.cut_ids,
+                               limit=body.limit, exclude=body.exclude)
+
+
 @app.get("/api/clusters")
 def clusters_list():
     return {"clusters": themes.list_clusters(get_db())}
@@ -1210,8 +1424,7 @@ def bulk_cuts(b: BulkCutsIn):
     elif b.action == "set_folder":
         folder_id = b.folder_id
         if b.new_folder.strip():
-            folder_id = db.execute("INSERT INTO folders (name) VALUES (?)",
-                                   (b.new_folder.strip(),)).lastrowid
+            folder_id = _ensure_folder(db, b.new_folder)   # nested path, ancestors materialised
         if folder_id is None:
             raise HTTPException(400, "folder_id or new_folder required")
         db.execute(f"UPDATE cuts SET folder_id=? WHERE id IN ({ph})", [folder_id, *ids])
@@ -1256,51 +1469,57 @@ def _csv_ints(s: str) -> list[int]:
     return out
 
 
-@app.get("/api/cuts")
-def list_cuts(q: str = "", folder_id: int | None = None, tag: str = "",
-              media_id: int | None = None,
-              tags: str = "", folder_ids: str = "", media_ids: str = ""):
-    """Filters: multi-value CSV params (tags/folder_ids/media_ids) are OR within
-    a category, AND across categories. Single-value params kept for compat."""
-    db = get_db()
+def _cut_filter_sql(db, q="", folder_ids="", media_ids="", tags="",
+                    folder_id=None, tag="", media_id=None):
+    """Shared cut-filter → (where_clauses, params). OR within a category, AND
+    across categories. Folder filters are descendant-aware (nested)."""
     where, params = [], []
-
     fids = _csv_ints(folder_ids)
     if folder_id is not None:
         fids.append(folder_id)
     if fids:
+        fids = _expand_folder_ids(db, fids)
         where.append(f"c.folder_id IN ({','.join('?' * len(fids))})")
         params.extend(fids)
-
     mids = _csv_ints(media_ids)
     if media_id is not None:
         mids.append(media_id)
     if mids:
         where.append(f"c.media_id IN ({','.join('?' * len(mids))})")
         params.extend(mids)
-
     tag_names = [t.strip().lstrip("#").lower() for t in (tags.split(",") if tags else [])]
     if tag:
         tag_names.append(tag.strip().lstrip("#").lower())
     tag_names = [t for t in tag_names if t]
     if tag_names:
         where.append(f"""c.id IN (SELECT ct.cut_id FROM cut_tags ct
-            JOIN tags t ON t.id=ct.tag_id
-            WHERE t.name IN ({','.join('?' * len(tag_names))}))""")
+            JOIN tags t ON t.id=ct.tag_id WHERE t.name IN ({','.join('?' * len(tag_names))}))""")
         params.extend(tag_names)
-
     if q.strip():
         safe = '"' + q.strip().replace('"', '""') + '"*'
         where.append("""(c.title LIKE '%' || ? || '%' OR c.id IN (
             SELECT cs.cut_id FROM cut_segments cs
             WHERE cs.segment_id IN (SELECT rowid FROM segments_fts WHERE segments_fts MATCH ?)))""")
         params.extend([q.strip(), safe])
+    return where, params
+
+
+@app.get("/api/cuts")
+def list_cuts(q: str = "", folder_id: int | None = None, tag: str = "",
+              media_id: int | None = None, tags: str = "", folder_ids: str = "",
+              media_ids: str = "", limit: int = 500):
+    """Filtered cut list. `limit` is caller-controlled (default 500; pass a big
+    number or 0 for "all in scope")."""
+    db = get_db()
+    where, params = _cut_filter_sql(db, q, folder_ids, media_ids, tags, folder_id, tag, media_id)
     sql = """SELECT c.*, m.title AS media_title, m.type AS media_type, u.name AS created_by_name
              FROM cuts c JOIN media m ON m.id = c.media_id
              LEFT JOIN users u ON u.id = c.created_by"""
     if where:
         sql += " WHERE " + " AND ".join(where)
-    sql += " ORDER BY c.id DESC LIMIT 200"
+    sql += " ORDER BY c.id DESC"
+    if limit and limit > 0:
+        sql += f" LIMIT {int(limit)}"
     out = []
     for row in db.execute(sql, params):
         cut = _cut_payload(db, row)
@@ -1309,6 +1528,77 @@ def list_cuts(q: str = "", folder_id: int | None = None, tag: str = "",
         cut["created_by_name"] = row["created_by_name"]
         out.append(cut)
     return out
+
+
+class ScopeIn(BaseModel):
+    q: str = ""
+    folder_ids: str = ""
+    media_ids: str = ""
+    tags: str = ""
+
+
+@app.post("/api/assembler/scope")
+def assembler_scope(body: ScopeIn):
+    """Dashboard for the Assembler's candidate pool: every in-scope cut id (no
+    cap) plus breakdowns by folder / tag / media and a utilisation count."""
+    db = get_db()
+    where, params = _cut_filter_sql(db, body.q, body.folder_ids, body.media_ids, body.tags)
+    wsql = (" WHERE " + " AND ".join(where)) if where else ""
+    ids = [r["id"] for r in db.execute(f"SELECT c.id FROM cuts c{wsql} ORDER BY c.id DESC", params)]
+    if not ids:
+        return {"total": 0, "cut_ids": [], "by_folder": [], "by_tag": [], "by_media": [],
+                "used": 0, "unused": 0}
+    ph = ",".join("?" * len(ids))
+    by_folder = rows_to_dicts(db.execute(
+        f"""SELECT COALESCE(f.name,'(unfiled)') AS name, f.id AS folder_id, COUNT(*) AS count
+            FROM cuts c LEFT JOIN folders f ON f.id=c.folder_id
+            WHERE c.id IN ({ph}) GROUP BY c.folder_id ORDER BY count DESC""", ids))
+    by_media = rows_to_dicts(db.execute(
+        f"""SELECT m.id AS media_id, m.title AS media_title, COUNT(*) AS count
+            FROM cuts c JOIN media m ON m.id=c.media_id
+            WHERE c.id IN ({ph}) GROUP BY c.media_id ORDER BY count DESC""", ids))
+    by_tag = rows_to_dicts(db.execute(
+        f"""SELECT t.name, COUNT(*) AS count FROM cut_tags ct
+            JOIN tags t ON t.id=ct.tag_id WHERE ct.cut_id IN ({ph})
+            GROUP BY t.name ORDER BY count DESC LIMIT 40""", ids))
+    used = db.execute(
+        f"SELECT COUNT(DISTINCT cut_id) AS n FROM recomp_cuts WHERE cut_id IN ({ph})", ids).fetchone()["n"]
+    return {"total": len(ids), "cut_ids": ids, "by_folder": by_folder, "by_tag": by_tag,
+            "by_media": by_media, "used": used, "unused": len(ids) - used}
+
+
+@app.post("/api/assembler/sample")
+def assembler_sample(body: ScopeIn, n: int = 8):
+    """A handful of full cut payloads from the scope, for preview."""
+    db = get_db()
+    where, params = _cut_filter_sql(db, body.q, body.folder_ids, body.media_ids, body.tags)
+    wsql = (" WHERE " + " AND ".join(where)) if where else ""
+    rows = db.execute(
+        f"""SELECT c.*, m.title AS media_title, m.type AS media_type
+            FROM cuts c JOIN media m ON m.id=c.media_id{wsql}
+            ORDER BY RANDOM() LIMIT ?""", [*params, max(1, min(n, 40))]).fetchall()
+    out = []
+    for row in rows:
+        cut = _cut_payload(db, row)
+        cut["media_title"] = row["media_title"]; cut["media_type"] = row["media_type"]
+        out.append(cut)
+    return out
+
+
+@app.get("/api/cuts/{cut_id}")
+def get_cut(cut_id: int):
+    db = get_db()
+    row = db.execute(
+        "SELECT c.*, m.title AS media_title, m.type AS media_type, u.name AS created_by_name "
+        "FROM cuts c JOIN media m ON m.id=c.media_id LEFT JOIN users u ON u.id=c.created_by "
+        "WHERE c.id=?", (cut_id,)).fetchone()
+    if not row:
+        raise HTTPException(404)
+    cut = _cut_payload(db, row)
+    cut["media_title"] = row["media_title"]
+    cut["media_type"] = row["media_type"]
+    cut["created_by_name"] = row["created_by_name"]
+    return cut
 
 
 @app.patch("/api/cuts/{cut_id}")
@@ -1900,6 +2190,8 @@ def embed_all():
 class RecompIn(BaseModel):
     title: str
     user_id: int
+    status: str = "final"          # "draft" (Assembler) | "final" (created)
+    cut_ids: list[int] | None = None   # optional initial cuts
 
 
 class RecompCutItem(BaseModel):
@@ -1914,23 +2206,35 @@ class RecompCuts(BaseModel):
 
 
 @app.get("/api/recompositions")
-def list_recomps():
+def list_recomps(status: str = "final"):
+    """Default to 'final' so the Studio never shows Assembler drafts. Pass
+    status='draft' for drafts, or status='all' for everything."""
     db = get_db()
-    rows = db.execute("""
+    where, params = "", []
+    if status and status != "all":
+        where = "WHERE r.status=?"
+        params.append(status)
+    rows = db.execute(f"""
         SELECT r.*, u.name AS created_by_name,
                (SELECT COUNT(*) FROM recomp_cuts rc WHERE rc.recomp_id = r.id) AS cut_count
         FROM recompositions r LEFT JOIN users u ON u.id = r.created_by
-        ORDER BY r.id DESC""")
+        {where} ORDER BY r.id DESC""", params)
     return rows_to_dicts(rows)
 
 
 @app.post("/api/recompositions")
 def create_recomp(r: RecompIn):
     db = get_db()
-    cur = db.execute("INSERT INTO recompositions (title, created_by) VALUES (?,?)",
-                     (r.title.strip() or "Untitled", r.user_id))
+    status = "draft" if r.status == "draft" else "final"
+    cur = db.execute("INSERT INTO recompositions (title, created_by, status) VALUES (?,?,?)",
+                     (r.title.strip() or "Untitled", r.user_id, status))
+    rid = cur.lastrowid
+    if r.cut_ids:
+        for pos, cid in enumerate(r.cut_ids):
+            db.execute("INSERT INTO recomp_cuts (recomp_id, cut_id, position) VALUES (?,?,?)",
+                       (rid, cid, pos))
     db.commit()
-    return {"id": cur.lastrowid, "title": r.title.strip(), "cut_count": 0}
+    return {"id": rid, "title": r.title.strip(), "status": status, "cut_count": len(r.cut_ids or [])}
 
 
 @app.get("/api/recompositions/{recomp_id}")
@@ -2012,7 +2316,8 @@ def set_recomp_cuts(recomp_id: int, body: RecompCuts):
 
 
 class RecompUpdate(BaseModel):
-    title: str
+    title: str | None = None
+    status: str | None = None      # set "final" to promote a draft
 
 
 class RecompTranslateIn(BaseModel):
@@ -2025,7 +2330,10 @@ class RecompTranslateIn(BaseModel):
 @app.patch("/api/recompositions/{recomp_id}")
 def rename_recomp(recomp_id: int, u: RecompUpdate):
     db = get_db()
-    db.execute("UPDATE recompositions SET title=? WHERE id=?", (u.title.strip(), recomp_id))
+    if u.title is not None:
+        db.execute("UPDATE recompositions SET title=? WHERE id=?", (u.title.strip(), recomp_id))
+    if u.status in ("draft", "final"):
+        db.execute("UPDATE recompositions SET status=? WHERE id=?", (u.status, recomp_id))
     db.commit()
     return {"ok": True}
 
@@ -2171,16 +2479,72 @@ def delete_export(filename: str):
 
 # --------------------------------------------- background audio (P3)
 
+def _audio_tags(db, asset_id: int) -> list[str]:
+    return [r["name"] for r in db.execute(
+        "SELECT t.name FROM audio_tags at JOIN tags t ON t.id=at.tag_id "
+        "WHERE at.asset_id=? ORDER BY t.name", (asset_id,))]
+
+
 @app.get("/api/audio-assets")
-def list_audio_assets():
+def list_audio_assets(q: str = "", folder: str = "", tags: str = ""):
+    """Beds, optionally filtered by name (q), folder path (descendant-aware),
+    and tags (OR)."""
+    db = get_db()
+    where, params = [], []
+    if folder.strip():
+        fp = _norm_folder_path(folder)
+        where.append("(a.folder=? OR a.folder LIKE ?)")
+        params += [fp, fp + "/%"]
+    tag_names = [t.strip().lstrip("#").lower() for t in tags.split(",") if t.strip()]
+    if tag_names:
+        where.append(f"""a.id IN (SELECT at.asset_id FROM audio_tags at
+            JOIN tags t ON t.id=at.tag_id WHERE t.name IN ({','.join('?' * len(tag_names))}))""")
+        params += tag_names
+    if q.strip():
+        where.append("a.name LIKE '%' || ? || '%'")
+        params.append(q.strip())
+    wsql = (" WHERE " + " AND ".join(where)) if where else ""
+    rows = db.execute(f"""SELECT a.*, u.name AS added_by_name FROM audio_assets a
+        LEFT JOIN users u ON u.id = a.added_by{wsql} ORDER BY a.id DESC""", params).fetchall()
+    out = rows_to_dicts(rows)
+    for d in out:
+        d["tags"] = _audio_tags(db, d["id"])
+    return out
+
+
+@app.get("/api/audio-folders")
+def list_audio_folders():
+    """Distinct bed folders (+ materialised ancestors) with counts, for the tree."""
+    db = get_db()
+    counts = {}
+    for r in db.execute("SELECT folder, COUNT(*) AS n FROM audio_assets GROUP BY folder"):
+        path = (r["folder"] or "").strip("/")
+        if not path:
+            continue
+        # count attributes to the exact folder; ancestors appear with 0 own-count
+        counts[path] = counts.get(path, 0) + r["n"]
+        cur = ""
+        for seg in path.split("/"):
+            cur = f"{cur}/{seg}" if cur else seg
+            counts.setdefault(cur, 0)
+    out = [{"name": p, "depth": p.count("/"), "leaf": p.split("/")[-1], "count": counts[p]}
+           for p in sorted(counts)]
+    return out
+
+
+@app.get("/api/audio-tags")
+def list_audio_tags():
+    """Tags actually applied to beds, with usage counts — for the Audio filter."""
     return rows_to_dicts(get_db().execute("""
-        SELECT a.*, u.name AS added_by_name FROM audio_assets a
-        LEFT JOIN users u ON u.id = a.added_by ORDER BY a.id DESC"""))
+        SELECT t.id, t.name, COUNT(at.asset_id) AS usage FROM tags t
+        JOIN audio_tags at ON at.tag_id = t.id
+        GROUP BY t.id ORDER BY t.name"""))
 
 
 @app.post("/api/audio-assets")
 async def upload_audio_asset(file: UploadFile = File(...),
                              name: str = Form(""),
+                             folder: str = Form(""),
                              user_id: int = Form(...)):
     """Upload a background-audio bed (music/ambience) for use as a layer."""
     media_ops.BG_AUDIO_DIR.mkdir(parents=True, exist_ok=True)
@@ -2188,8 +2552,8 @@ async def upload_audio_asset(file: UploadFile = File(...),
     title = name.strip() or Path(file.filename or "audio").stem
     suffix = Path(file.filename or "a.mp3").suffix.lower() or ".mp3"
     cur = db.execute(
-        "INSERT INTO audio_assets (name, filename, added_by) VALUES (?,?,?)",
-        (title, "", user_id))
+        "INSERT INTO audio_assets (name, filename, added_by, folder) VALUES (?,?,?,?)",
+        (title, "", user_id, _norm_folder_path(folder)))
     asset_id = cur.lastrowid
     stored = f"{asset_id}{suffix}"
     dest = media_ops.bg_audio_path(stored)
@@ -2209,6 +2573,8 @@ async def upload_audio_asset(file: UploadFile = File(...),
 
 class AudioAssetUpdate(BaseModel):
     name: str | None = None
+    folder: str | None = None            # '/'-path; move the bed
+    tags: list[str] | None = None        # replace the bed's tags
     trim_start_s: float | None = None
     trim_end_s: float | None = None      # null clears (use end of file)
     loop_start_s: float | None = None
@@ -2230,6 +2596,12 @@ def update_audio_asset(asset_id: int, u: AudioAssetUpdate):
     sets, params = [], []
     if u.name is not None:
         sets.append("name=?"); params.append(u.name.strip() or "Bed")
+    if u.folder is not None:
+        sets.append("folder=?"); params.append(_norm_folder_path(u.folder))
+    if u.tags is not None:
+        db.execute("DELETE FROM audio_tags WHERE asset_id=?", (asset_id,))
+        for tid in _tag_ids(db, u.tags):
+            db.execute("INSERT OR IGNORE INTO audio_tags (asset_id, tag_id) VALUES (?,?)", (asset_id, tid))
     for col, val in (("trim_start_s", u.trim_start_s), ("fade_in_s", u.fade_in_s),
                      ("fade_out_s", u.fade_out_s), ("default_gain", u.default_gain)):
         if val is not None:

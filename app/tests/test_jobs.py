@@ -74,6 +74,37 @@ def test_cancel_queued_then_retry(client):
     wait_for(lambda: _job(client, queued)["status"] == "done")
 
 
+def test_pause_resume_running_job(client):
+    jid = jobs.enqueue("test_sleep", None, {"seconds": 30})
+    wait_for(lambda: _job(client, jid)["status"] == "running")
+    assert client.post(f"/api/jobs/{jid}/pause").json()["status"] == "pausing"
+    wait_for(lambda: _job(client, jid)["status"] == "paused")
+    assert _job(client, jid)["worker_id"] is None        # not held by a worker
+    assert client.post(f"/api/jobs/{jid}/resume").json()["status"] == "queued"
+    wait_for(lambda: _job(client, jid)["status"] == "running")
+    client.post(f"/api/jobs/{jid}/cancel")               # clean up
+    wait_for(lambda: _job(client, jid)["status"] == "cancelled")
+
+
+def test_pause_queued_job_instantly(client):
+    blocker = jobs.enqueue("test_sleep", None, {"seconds": 30})
+    wait_for(lambda: _job(client, blocker)["status"] == "running")
+    queued = jobs.enqueue("test_sleep", None, {"seconds": 0})
+    assert client.post(f"/api/jobs/{queued}/pause").json()["status"] == "paused"
+    assert _job(client, queued)["status"] == "paused"
+    assert client.post(f"/api/jobs/{queued}/resume").status_code == 200
+    client.post(f"/api/jobs/{blocker}/cancel")
+    wait_for(lambda: _job(client, queued)["status"] == "done")
+
+
+def test_clear_job_history(client):
+    jid = jobs.enqueue("test_sleep", None, {"seconds": 0})
+    wait_for(lambda: _job(client, jid)["status"] == "done")
+    r = client.post("/api/jobs/clear")
+    assert r.status_code == 200 and r.json()["cleared"] >= 1
+    assert all(j["id"] != jid for j in client.get("/api/jobs").json())
+
+
 def test_expired_lease_is_adopted(client):
     """A running job whose worker died (stale lease) gets re-claimed and run."""
     db = get_db()

@@ -71,7 +71,7 @@ export function filtersToParams(filters) {
 const hasFilters = (f) => f.q.trim() || f.tags.length || f.folders.length || f.media.length;
 
 /* Chips + searchable add-pickers. Scales: nothing is ever listed in full. */
-function FilterBar({ filters, setFilters, tags, folders, media, compact }) {
+export function FilterBar({ filters, setFilters, tags, folders, media, compact }) {
   const addTag = (name) =>
     !filters.tags.includes(name) &&
     setFilters({ ...filters, tags: [...filters.tags, name] });
@@ -92,7 +92,13 @@ function FilterBar({ filters, setFilters, tags, folders, media, compact }) {
           items={tags.map((t) => ({ key: t.id, label: t.name, icon: "#", hint: `(${t.usage})`, value: t }))}
           onPick={(i) => addTag(i.label)} />
         <Picker label="Folder" icon="📁" align={compact ? "right" : "left"}
-          items={folders.map((f) => ({ key: f.id, label: f.name, icon: "📁", value: f }))}
+          items={folders.map((f) => ({
+            key: f.id,
+            label: f.name,                                   // full path so search matches ancestors
+            icon: "📁",
+            hint: f.cut_count != null ? `(${f.cut_count})` : undefined,
+            value: f,
+          }))}
           onPick={(i) => addFolder(i.value)} />
         <Picker label="Media" icon="🎬" align="right"
           items={media.map((m) => ({ key: m.id, label: m.title, icon: m.type === "video" ? "🎬" : "🎙️", value: m }))}
@@ -211,6 +217,114 @@ function AddToRecompModal({ cutIds, onClose, onDone, user }) {
   );
 }
 
+/* Nested-folder manager with a desktop-file-manager feel: drag a folder onto
+ * another to nest it, "＋" to make a sub-folder, double-click to rename inline.
+ * Re-parenting is just a path change, so it rides on PATCH /api/folders (which
+ * cascades to descendants). */
+function FoldersModal({ folders, onClose, onChanged }) {
+  const [newPath, setNewPath] = useState("");
+  const [dragId, setDragId] = useState(null);
+  const [overId, setOverId] = useState(null);   // -1 = the root drop zone
+  const [editId, setEditId] = useState(null);
+  const [editVal, setEditVal] = useState("");
+
+  const create = async (path) => {
+    const p = (path ?? newPath).trim();
+    if (!p) return;
+    await api.post("/api/folders", { name: p });
+    setNewPath(""); onChanged();
+  };
+  const addSub = async (f) => {
+    const leaf = prompt(`New sub-folder inside “${f.name}”:`);
+    if (leaf && leaf.trim()) await create(`${f.name}/${leaf.trim()}`);
+  };
+  const beginRename = (f) => { setEditId(f.id); setEditVal(f.leaf); };
+  const commitRename = async (f) => {
+    const leaf = editVal.trim();
+    setEditId(null);
+    if (!leaf || leaf === f.leaf) return;
+    const parent = f.name.includes("/") ? f.name.slice(0, f.name.lastIndexOf("/") + 1) : "";
+    await api.patch(`/api/folders/${f.id}`, { name: parent + leaf }); onChanged();
+  };
+  const del = async (f) => {
+    const kids = folders.some((x) => x.name.startsWith(f.name + "/"));
+    if (!confirm(kids ? `Delete “${f.name}” and all its sub-folders? (Cuts are kept, just unfiled.)`
+                      : `Delete folder “${f.name}”? (Cuts are kept, just unfiled.)`)) return;
+    await api.del(`/api/folders/${f.id}?recursive=${kids ? 1 : 0}`); onChanged();
+  };
+
+  // a folder can't drop onto itself or its own descendant
+  const canDrop = (drag, target) => drag && (!target
+    || (drag.id !== target.id && target.name !== drag.name && !target.name.startsWith(drag.name + "/")
+        && drag.name.slice(0, drag.name.lastIndexOf("/") + 1) !== (target.name ? target.name + "/" : "")));
+  const drop = async (target) => {
+    const drag = folders.find((x) => x.id === dragId);
+    setOverId(null); setDragId(null);
+    if (!canDrop(drag, target)) return;
+    const newName = target ? `${target.name}/${drag.leaf}` : drag.leaf;   // null target = move to root
+    if (newName === drag.name) return;
+    await api.patch(`/api/folders/${drag.id}`, { name: newName }); onChanged();
+  };
+
+  return (
+    <Modal title="Folders" onClose={onClose}>
+      <div className="space-y-3">
+        <div className="flex gap-2">
+          <input className={inputCls} placeholder="New top-level folder, e.g. Movies"
+            value={newPath} onChange={(e) => setNewPath(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && create()} />
+          <button className={btnCls} onClick={() => create()}>Create</button>
+        </div>
+        <p className="text-xs text-zinc-500">
+          Drag a folder onto another to nest it · ＋ adds a sub-folder · double-click to rename ·
+          filtering a parent includes its sub-folders.
+        </p>
+
+        {/* root drop zone */}
+        <div onDragOver={(e) => { if (dragId) { e.preventDefault(); setOverId(-1); } }}
+          onDrop={() => drop(null)}
+          className={`text-[11px] rounded-md border border-dashed px-2 py-1 ${
+            overId === -1 ? "border-indigo-500 text-indigo-300 bg-indigo-500/10" : "border-zinc-800 text-zinc-600"}`}>
+          ⌂ top level (drop here to un-nest)
+        </div>
+
+        <div className="max-h-[50vh] overflow-y-auto -mx-1">
+          {folders.length === 0 && <p className="text-sm text-zinc-500 px-1">No folders yet.</p>}
+          {folders.map((f) => {
+            const drag = folders.find((x) => x.id === dragId);
+            const isOver = overId === f.id && canDrop(drag, f);
+            return (
+              <div key={f.id} draggable={editId !== f.id}
+                onDragStart={() => setDragId(f.id)} onDragEnd={() => { setDragId(null); setOverId(null); }}
+                onDragOver={(e) => { if (dragId && canDrop(drag, f)) { e.preventDefault(); setOverId(f.id); } }}
+                onDragLeave={() => setOverId((o) => (o === f.id ? null : o))}
+                onDrop={() => drop(f)}
+                className={`flex items-center gap-2 px-1 py-1 rounded group cursor-grab ${
+                  isOver ? "bg-indigo-500/20 ring-1 ring-indigo-500" : "hover:bg-zinc-800/60"}`}
+                style={{ marginLeft: f.depth * 16 }}>
+                <span className="text-zinc-600 text-xs select-none">⠿</span>
+                {editId === f.id ? (
+                  <input autoFocus className={`${inputCls} !py-0.5 !w-40`} value={editVal}
+                    onChange={(e) => setEditVal(e.target.value)} onBlur={() => commitRename(f)}
+                    onKeyDown={(e) => { if (e.key === "Enter") commitRename(f); if (e.key === "Escape") setEditId(null); }} />
+                ) : (
+                  <span className="text-sm truncate" onDoubleClick={() => beginRename(f)}>📁 {f.leaf}</span>
+                )}
+                <span className="text-[11px] text-zinc-600">{f.cut_count}</span>
+                <span className="ml-auto opacity-0 group-hover:opacity-100 flex gap-2.5 text-xs">
+                  <button className="text-zinc-400 hover:text-white" title="New sub-folder" onClick={() => addSub(f)}>＋</button>
+                  <button className="text-zinc-400 hover:text-white" onClick={() => beginRename(f)}>rename</button>
+                  <button className="text-zinc-400 hover:text-red-400" onClick={() => del(f)}>delete</button>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 /* ----------------------------------------------------------- browser */
 
 /**
@@ -219,7 +333,7 @@ function AddToRecompModal({ cutIds, onClose, onDone, user }) {
  */
 export default function CutBrowser({ user, embedded = false, onAdd,
                                      filters: extFilters, setFilters: setExtFilters,
-                                     onPreviewChange, onCutChanged }) {
+                                     onPreviewChange, onCutChanged, onCuts }) {
   const [intFilters, setIntFilters] = useState(EMPTY_FILTERS);
   const filters = extFilters ?? intFilters;
   const setFilters = setExtFilters ?? setIntFilters;
@@ -237,6 +351,7 @@ export default function CutBrowser({ user, embedded = false, onAdd,
   const [bulkLang, setBulkLang] = useState("");
   const [languages, setLanguages] = useState([]);
   const [showAddTo, setShowAddTo] = useState(false);
+  const [showFolders, setShowFolders] = useState(false);
   const debounce = useRef();
 
   const refreshMeta = () => {
@@ -247,7 +362,8 @@ export default function CutBrowser({ user, embedded = false, onAdd,
   };
 
   const refresh = () => {
-    api.get(`/api/cuts?${filtersToParams(filters)}`).then(setCuts).catch(() => {});
+    api.get(`/api/cuts?${filtersToParams(filters)}`)
+      .then((cs) => { setCuts(cs); onCuts?.(cs); }).catch(() => {});
   };
 
   useEffect(refreshMeta, []);
@@ -302,14 +418,17 @@ export default function CutBrowser({ user, embedded = false, onAdd,
       <div className="p-3 border-b border-zinc-800 shrink-0">
         <FilterBar filters={filters} setFilters={setFilters}
           tags={tags} folders={folders} media={media} compact={embedded} />
-        {!embedded && cuts.length > 0 && (
-          <div className="mt-2 flex items-center gap-2 text-xs text-zinc-400">
-            <button className="hover:text-white underline-offset-2 hover:underline"
-              onClick={selectAll}>Select all {cuts.length}</button>
+        {!embedded && (
+          <div className="mt-2 flex items-center gap-3 text-xs text-zinc-400">
+            {cuts.length > 0 && (
+              <button className="hover:text-white underline-offset-2 hover:underline"
+                onClick={selectAll}>Select all {cuts.length}</button>
+            )}
             {selected.size > 0 && (
               <button className="hover:text-white"
                 onClick={() => setSelected(new Set())}>clear ({selected.size})</button>
             )}
+            <button className="ml-auto hover:text-white" onClick={() => setShowFolders(true)}>📁 Folders</button>
           </div>
         )}
         {!embedded && selected.size > 0 && (
@@ -452,6 +571,11 @@ export default function CutBrowser({ user, embedded = false, onAdd,
         <AddToRecompModal cutIds={[...selected]} user={user}
           onClose={() => setShowAddTo(false)}
           onDone={() => setSelected(new Set())} />
+      )}
+      {showFolders && (
+        <FoldersModal folders={folders}
+          onClose={() => setShowFolders(false)}
+          onChanged={() => { refreshMeta(); refresh(); }} />
       )}
       {bedFor && (
         <ToBedModal cut={bedFor} user={user}

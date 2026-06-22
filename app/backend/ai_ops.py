@@ -164,6 +164,62 @@ def tag_suggestions(db, cut_id: int, limit: int = 6) -> list[dict]:
     return scored[:limit]
 
 
+def rank_cuts(db, cut_ids: list[int], prompt: str, limit: int = 60) -> dict:
+    """Rank a *given set* of cuts by cosine similarity of each cut's mean
+    embedding to a free-text prompt — the Studio's "assemble from this filtered
+    library by meaning" tool. No DB writes; the caller picks what to add."""
+    import numpy as np
+
+    from . import themes
+    engine = embeddings.get_embedding_engine()
+    if engine is None:
+        raise RuntimeError("no embedding engine — install transformers (see /api/ai/status)")
+    if not cut_ids:
+        return {"ranked": [], "considered": 0}
+    qv = np.asarray(engine.embed([prompt])[0], dtype="float32")
+    qn = float(np.linalg.norm(qv)) or 1.0
+    cuts, matrix = themes._cut_vectors(db, list(cut_ids))   # rows already L2-normalized
+    if not cuts:
+        return {"ranked": [], "considered": 0}
+    sims = (matrix @ qv) / qn
+    order = np.argsort(-sims)[:max(1, limit)]
+    return {"ranked": [_ranked_row(cuts[i], sims[i]) for i in order], "considered": len(cuts)}
+
+
+def similar_cuts(db, seed_cut_ids: list[int], candidate_cut_ids: list[int],
+                 limit: int = 20, exclude: list[int] | None = None) -> dict:
+    """Recommend cuts from a candidate pool that are most like a set of seed cuts
+    (e.g. the draft you're assembling) — ranks candidates by cosine to the seeds'
+    centroid. Seeds and `exclude` are never returned."""
+    import numpy as np
+
+    from . import themes
+    if not seed_cut_ids or not candidate_cut_ids:
+        return {"ranked": []}
+    if embeddings.get_embedding_engine() is None and not themes._cut_vectors(db, seed_cut_ids[:1])[0]:
+        return {"ranked": []}
+    seed_cuts, seed_mat = themes._cut_vectors(db, list(seed_cut_ids))
+    if not seed_cuts:
+        return {"ranked": []}
+    centroid = seed_mat.mean(axis=0)
+    centroid = centroid / (float(np.linalg.norm(centroid)) or 1.0)
+    skip = set(exclude or []) | set(seed_cut_ids)
+    cuts, matrix = themes._cut_vectors(db, [c for c in candidate_cut_ids if c not in skip])
+    if not cuts:
+        return {"ranked": []}
+    sims = matrix @ centroid
+    order = np.argsort(-sims)[:max(1, limit)]
+    return {"ranked": [_ranked_row(cuts[i], sims[i]) for i in order]}
+
+
+_RANK_FIELDS = ("cut_id", "title", "media_id", "media_title", "media_type", "start_s", "end_s")
+
+
+def _ranked_row(c: dict, score) -> dict:
+    return {**{k: c.get(k) for k in _RANK_FIELDS},
+            "score": round(float(score), 4), "text": c["text"][:200]}
+
+
 def compose(db, prompt: str, limit: int = 12, media_ids: list[int] | None = None) -> dict:
     """Retrieve candidate cuts semantically related to a prompt, then (if an LLM
     is configured) let it pick & order the best ones into a recomposition draft.

@@ -109,13 +109,22 @@ def _cut_vectors(db, cut_ids: list[int]) -> tuple[list[dict], np.ndarray]:
         vec = vectors.mean_vector(seg_ids)
         if vec is None:
             continue
-        row = db.execute("SELECT id, title FROM cuts WHERE id=?", (cid,)).fetchone()
+        row = db.execute(
+            "SELECT c.id, c.title, c.media_id, m.title AS media_title, m.type AS media_type "
+            "FROM cuts c JOIN media m ON m.id=c.media_id WHERE c.id=?", (cid,)).fetchone()
         if not row:
             continue
-        text = " ".join(r["text"] for r in db.execute(
-            "SELECT s.text FROM cut_segments cs JOIN segments s ON s.id=cs.segment_id "
-            "WHERE cs.cut_id=? ORDER BY cs.position", (cid,)))
-        cuts.append({"cut_id": int(row["id"]), "title": row["title"], "text": text})
+        segs = db.execute(
+            "SELECT s.start_s, s.end_s, s.text FROM cut_segments cs "
+            "JOIN segments s ON s.id=cs.segment_id WHERE cs.cut_id=? ORDER BY cs.position",
+            (cid,)).fetchall()
+        cuts.append({
+            "cut_id": int(row["id"]), "title": row["title"], "media_id": row["media_id"],
+            "media_title": row["media_title"], "media_type": row["media_type"],
+            "start_s": segs[0]["start_s"] if segs else None,
+            "end_s": segs[-1]["end_s"] if segs else None,
+            "text": " ".join(s["text"] for s in segs),
+        })
         mats.append(np.asarray(vec, dtype="float32"))
     if not mats:
         return [], np.zeros((0, 0), dtype="float32")
@@ -170,7 +179,8 @@ def cluster(db, scope_cut_ids: list[int], cfg: ThemeConfig) -> dict:
             "name": _label(" ".join(m["title"] + " " + m["text"][:120] for m in members)),
             "size": len(members),
             "cut_ids": [m["cut_id"] for m in members],
-            "members": [{"cut_id": m["cut_id"], "title": m["title"],
+            "members": [{**{k: m[k] for k in ("cut_id", "title", "media_id", "media_title",
+                                              "media_type", "start_s", "end_s")},
                          "preview": m["text"][:160]} for m in members],
         })
     clusters.sort(key=lambda c: -c["size"])

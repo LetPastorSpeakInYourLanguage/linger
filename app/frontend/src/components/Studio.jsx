@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, fmtTime, streamUrl } from "../api";
-import { inputCls, btnCls, btnGhost, modalOpen, useResizable, DragBar, ContextMenu } from "./ui";
+import { Modal, inputCls, btnCls, btnGhost, modalOpen, useResizable, DragBar, ContextMenu } from "./ui";
 import CutBrowser, { EMPTY_FILTERS } from "./CutBrowser";
 
 /* Sequenced playback across multiple source media files, with per-cut loop.
@@ -787,6 +787,167 @@ function BackgroundAudioModal({ recomp, user, onClose }) {
   );
 }
 
+/* Assemble a recomposition from the *filtered cut library* on the left — either
+ * by ranking those cuts against a prompt (cosine similarity), or by clustering
+ * them into cross-reference themes (Louvain). Both are algorithmic / no-LLM and
+ * add the cuts you pick into the sequence. */
+function AssembleModal({ cuts, inSeq, insertAfter, onAddIds, onClose }) {
+  const cutIds = cuts.map((c) => c.id);
+  const [tab, setTab] = useState("prompt");
+  const [prompt, setPrompt] = useState("");
+  const [ranked, setRanked] = useState(null);
+  const [sel, setSel] = useState(new Set());
+  const [preset, setPreset] = useState("balanced");
+  const [clusters, setClusters] = useState(null);
+  const [expanded, setExpanded] = useState(new Set());
+  const [added, setAdded] = useState(new Set());
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const runRank = async () => {
+    if (!prompt.trim()) return;
+    setBusy(true); setErr("");
+    try {
+      const r = await api.post("/api/cuts/rank", { prompt: prompt.trim(), cut_ids: cutIds, limit: 100 });
+      setRanked(r.ranked); setSel(new Set());
+      if (!r.ranked.length) setErr("No embeddable cuts in this set — build the search index in Settings.");
+    } catch (e) { setErr(e.message); }
+    setBusy(false);
+  };
+  const runCluster = async () => {
+    setBusy(true); setErr("");
+    try {
+      const r = await api.post("/api/clusters/preview", { cut_ids: cutIds, preset });
+      setClusters(r.clusters);
+      if (!r.clusters.length) setErr(`No themes found in ${r.considered} cut(s) — loosen the preset or widen the filter.`);
+    } catch (e) { setErr(e.message); }
+    setBusy(false);
+  };
+  const add = (ids) => { onAddIds(ids); setAdded((a) => new Set([...a, ...ids])); };
+  const toggle = (id) => setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const mark = (id) => added.has(id) ? <span className="text-emerald-400 text-[10px] shrink-0">added ✓</span>
+    : inSeq.has(id) ? <span className="text-zinc-600 text-[10px] shrink-0">in sequence</span> : null;
+
+  const Bar = ({ score }) => (
+    <span className="w-10 h-1.5 rounded-full bg-zinc-700 overflow-hidden shrink-0" title={`similarity ${(score * 100).toFixed(0)}%`}>
+      <span className="block h-full rounded-full bg-indigo-500" style={{ width: `${Math.max(0, Math.min(100, score * 100))}%` }} />
+    </span>
+  );
+  const tabBtn = (id, label) => (
+    <button onClick={() => setTab(id)}
+      className={`px-3 py-1.5 text-sm border-b-2 -mb-px ${
+        tab === id ? "border-indigo-500 text-white" : "border-transparent text-zinc-400 hover:text-white"}`}>{label}</button>
+  );
+
+  return (
+    <Modal title="Assemble from your filtered cut library" onClose={onClose} wide>
+      <div className="space-y-3">
+        <p className="text-xs text-zinc-500">
+          Working over <b className="text-zinc-300">{cutIds.length}</b> filtered cut{cutIds.length === 1 ? "" : "s"}
+          {insertAfter != null ? <> · adding after #{insertAfter + 1}</> : <> · appending to the end</>}.
+          Narrow the set with the filters on the left.
+        </p>
+        <div className="flex gap-2 border-b border-zinc-800">
+          {tabBtn("prompt", "🔎 By meaning")}
+          {tabBtn("theme", "🧩 By theme")}
+        </div>
+        {err && <p className="text-sm text-red-400">{err}</p>}
+
+        {tab === "prompt" ? (
+          <>
+            <div className="flex gap-2">
+              <input className={inputCls} autoFocus value={prompt} onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && runRank()}
+                placeholder="Describe the thread, e.g. moments about overcoming doubt…" />
+              <button className={btnCls} disabled={busy || !prompt.trim() || !cutIds.length} onClick={runRank}>
+                {busy ? "Ranking…" : "Rank"}
+              </button>
+            </div>
+            {ranked && ranked.length > 0 && (
+              <>
+                <div className="flex items-center gap-2 text-xs text-zinc-400">
+                  <span>Select</span>
+                  {[5, 10, 20].map((n) => (
+                    <button key={n} className="hover:text-white underline-offset-2 hover:underline"
+                      onClick={() => setSel(new Set(ranked.slice(0, n).map((r) => r.cut_id)))}>top {n}</button>
+                  ))}
+                  {sel.size > 0 && <button className="hover:text-white" onClick={() => setSel(new Set())}>clear ({sel.size})</button>}
+                </div>
+                <div className="max-h-[44vh] overflow-y-auto space-y-1 pr-1">
+                  {ranked.map((r) => (
+                    <label key={r.cut_id} className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/60 px-2 py-1.5 cursor-pointer">
+                      <input type="checkbox" className="accent-indigo-500" checked={sel.has(r.cut_id)} onChange={() => toggle(r.cut_id)} />
+                      <Bar score={r.score} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium truncate">{r.title}</span>
+                          {mark(r.cut_id)}
+                        </div>
+                        <p className="text-[11px] text-zinc-500 truncate">{r.text}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                <div className="flex justify-end">
+                  <button className={btnCls} disabled={!sel.size}
+                    onClick={() => add(ranked.filter((r) => sel.has(r.cut_id)).map((r) => r.cut_id))}>
+                    Add {sel.size} to sequence
+                  </button>
+                </div>
+              </>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-zinc-500">Granularity</span>
+              {["loose", "balanced", "tight"].map((p) => (
+                <button key={p} onClick={() => setPreset(p)}
+                  className={`px-2 py-1 rounded-md text-xs capitalize border ${
+                    preset === p ? "bg-indigo-600 border-indigo-500 text-white" : "border-zinc-700 text-zinc-400 hover:border-zinc-500"}`}>{p}</button>
+              ))}
+              <button className={`${btnCls} ml-auto`} disabled={busy || !cutIds.length} onClick={runCluster}>
+                {busy ? "Clustering…" : "Find themes"}
+              </button>
+            </div>
+            {clusters && clusters.length > 0 && (
+              <div className="max-h-[46vh] overflow-y-auto space-y-1.5 pr-1">
+                {clusters.map((cl, ci) => {
+                  const open = expanded.has(ci);
+                  return (
+                    <div key={ci} className="rounded-lg border border-zinc-800 bg-zinc-900/60">
+                      <div className="flex items-center gap-2 px-2.5 py-2">
+                        <button className="text-zinc-500 hover:text-white text-xs w-4"
+                          onClick={() => setExpanded((s) => { const n = new Set(s); n.has(ci) ? n.delete(ci) : n.add(ci); return n; })}>
+                          {open ? "▾" : "▸"}
+                        </button>
+                        <span className="text-sm font-medium truncate flex-1">🧩 {cl.name}</span>
+                        <span className="text-[11px] text-zinc-500 shrink-0">{cl.size} cuts</span>
+                        <button className={`${btnGhost} !py-0.5`} onClick={() => add(cl.cut_ids)}>＋ Add theme</button>
+                      </div>
+                      {open && (
+                        <div className="px-2.5 pb-2 space-y-1">
+                          {cl.members.map((m) => (
+                            <div key={m.cut_id} className="flex items-center gap-2 text-xs pl-5">
+                              <span className="truncate flex-1">{m.title}</span>
+                              {mark(m.cut_id)}
+                              <button className="text-indigo-400 hover:text-indigo-300" onClick={() => add([m.cut_id])}>＋ add</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
 function RecompEditor({ user, recompId, back }) {
   const [recomp, setRecomp] = useState(null);
   const [dragIdx, setDragIdx] = useState(null);
@@ -797,6 +958,8 @@ function RecompEditor({ user, recompId, back }) {
   const [showLayers, setShowLayers] = useState(false);
   const [showOverlays, setShowOverlays] = useState(false);
   const [insertAfter, setInsertAfter] = useState(null);  // append point for new cuts
+  const [libCuts, setLibCuts] = useState([]);            // the filtered cut library (from the browser)
+  const [showAssemble, setShowAssemble] = useState(false);
   const [seqPrompt, setSeqPrompt] = useState("");
   const [seqPlan, setSeqPlan] = useState(null);
   const [aiEmbed, setAiEmbed] = useState(false);
@@ -891,13 +1054,16 @@ function RecompEditor({ user, recompId, back }) {
     saveOrder(ids);
   };
 
-  const addCut = (cut) => {
+  const addCut = (cut) => addCutIds([cut.id]);
+
+  const addCutIds = (newIds) => {
+    if (!newIds.length) return;
     const ids = recomp.cuts.map((c) => c.id);
     if (insertAfter != null && insertAfter >= 0 && insertAfter < ids.length) {
-      ids.splice(insertAfter + 1, 0, cut.id);
-      setInsertAfter(insertAfter + 1);  // keep stacking after the last inserted
+      ids.splice(insertAfter + 1, 0, ...newIds);
+      setInsertAfter(insertAfter + newIds.length);  // keep stacking after the last inserted
     } else {
-      ids.push(cut.id);
+      ids.push(...newIds);
     }
     saveOrder(ids);
   };
@@ -1019,7 +1185,7 @@ function RecompEditor({ user, recompId, back }) {
         <CutBrowser user={user} embedded onAdd={addCut}
           filters={filters} setFilters={setFilters}
           onPreviewChange={onPreviewChange}
-          onCutChanged={load} />
+          onCutChanged={load} onCuts={setLibCuts} />
       </div>
       <DragBar onMouseDown={dragLeft} />
 
@@ -1030,6 +1196,13 @@ function RecompEditor({ user, recompId, back }) {
           <h1 className="font-semibold truncate">{recomp.title}</h1>
           <span className="text-xs text-zinc-500 whitespace-nowrap">{recomp.cuts.length} cuts · {fmtTime(total)}</span>
           <div className="ml-auto flex gap-2 items-center">
+            {aiEmbed && (
+              <button title="Assemble from the filtered cut library — rank by a prompt, or cluster into themes"
+                className={btnGhost} disabled={!libCuts.length}
+                onClick={() => setShowAssemble(true)}>
+                🧩 Assemble
+              </button>
+            )}
             <button title="Add background-audio beds over spans of cuts"
               className={btnGhost} disabled={!recomp.cuts.length}
               onClick={() => setShowLayers(true)}>
@@ -1179,13 +1352,19 @@ function RecompEditor({ user, recompId, back }) {
           candidates={seqPlan.candidates} busy={aiBusy}
           onConfirm={confirmSeqPlan} onClose={() => setSeqPlan(null)} />
       )}
+      {showAssemble && (
+        <AssembleModal cuts={libCuts} insertAfter={insertAfter}
+          inSeq={new Set(recomp.cuts.map((c) => c.id))}
+          onAddIds={addCutIds} onClose={() => setShowAssemble(false)} />
+      )}
     </div>
   );
 }
 
-export default function Studio({ user }) {
+export default function Studio({ user, initialRecompId = null }) {
   const [recomps, setRecomps] = useState([]);
-  const [openId, setOpenId] = useState(null);
+  const [openId, setOpenId] = useState(initialRecompId);
+  useEffect(() => { if (initialRecompId) setOpenId(initialRecompId); }, [initialRecompId]);
   const [newTitle, setNewTitle] = useState("");
   const [prompt, setPrompt] = useState("");
   const [composing, setComposing] = useState(false);

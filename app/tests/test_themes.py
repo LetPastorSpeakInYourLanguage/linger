@@ -92,6 +92,43 @@ def test_cluster_preview_commit_list_delete(client, user):
         embeddings.set_embedding_engine(None)
 
 
+def test_rank_cuts_by_prompt(client, user):
+    """The Studio 'assemble by meaning' tool ranks a filtered cut set against a
+    prompt — space cuts must outrank cooking cuts for a space query."""
+    embeddings.set_embedding_engine(FakeEmbeddingEngine())
+    try:
+        mid, expected = _two_theme_library(user)
+        db = get_db()
+        cut_ids = themes.cut_ids_for_scope(db, [mid], None)
+        r = client.post("/api/cuts/rank",
+                        json={"prompt": "rocket orbit space capsule", "cut_ids": cut_ids})
+        assert r.status_code == 200, r.text
+        ranked = r.json()["ranked"]
+        assert len(ranked) == 4
+        top_two = {ranked[0]["cut_id"], ranked[1]["cut_id"]}
+        assert top_two == expected["space"]
+    finally:
+        embeddings.set_embedding_engine(None)
+
+
+def test_similar_cuts_recommendation(client, user):
+    """Given a space cut as the seed, recommend the *other* space cut over the
+    cooking cuts (and never re-suggest the seed)."""
+    embeddings.set_embedding_engine(FakeEmbeddingEngine())
+    try:
+        mid, expected = _two_theme_library(user)
+        db = get_db()
+        pool = themes.cut_ids_for_scope(db, [mid], None)
+        seed = sorted(expected["space"])[0]
+        r = client.post("/api/cuts/similar",
+                        json={"seed_cut_ids": [seed], "cut_ids": pool, "exclude": [seed]})
+        ranked = r.json()["ranked"]
+        assert ranked and ranked[0]["cut_id"] in expected["space"]
+        assert all(x["cut_id"] != seed for x in ranked)
+    finally:
+        embeddings.set_embedding_engine(None)
+
+
 def test_cluster_skips_cuts_without_embeddings(client, user):
     embeddings.set_embedding_engine(FakeEmbeddingEngine())
     try:

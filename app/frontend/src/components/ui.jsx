@@ -1,5 +1,6 @@
 /* Tiny shared UI primitives. */
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 /* size: undefined|"wide"(legacy `wide` prop)|"full". For "full" the body fills
  * the dialog and the child owns its own scroll regions (pass bodyClass to drop
@@ -126,42 +127,79 @@ export function DragBar({ onMouseDown }) {
 /* -------------------------------------------------- searchable picker */
 
 /** "+ Tag" style button that opens a searchable dropdown — scales to
- *  hundreds of folders/tags/media without filling the screen. */
+ *  hundreds of folders/tags/media without filling the screen. The panel is
+ *  rendered in a body portal at fixed coordinates anchored to the button and
+ *  clamped to the viewport, so it never gets clipped by a panel's overflow or
+ *  pushed off-screen (e.g. the Assembler's narrow left column). */
+const PICKER_W = 256, PICKER_MAXH = 320, PICKER_MARGIN = 8;
+
 export function Picker({ label, icon, items, onPick, align = "left" }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
-  const boxRef = useRef();
+  const [pos, setPos] = useState(null);
+  const btnRef = useRef();
+  const popRef = useRef();
+
+  const place = useCallback(() => {
+    const b = btnRef.current;
+    if (!b) return;
+    const r = b.getBoundingClientRect();
+    let left = align === "right" ? r.right - PICKER_W : r.left;
+    left = Math.max(PICKER_MARGIN, Math.min(left, window.innerWidth - PICKER_W - PICKER_MARGIN));
+    const below = window.innerHeight - r.bottom;
+    const openUp = below < PICKER_MAXH + PICKER_MARGIN && r.top > below;
+    setPos({
+      left,
+      top: openUp ? undefined : r.bottom + 4,
+      bottom: openUp ? window.innerHeight - r.top + 4 : undefined,
+      maxH: Math.min(PICKER_MAXH, (openUp ? r.top : below) - PICKER_MARGIN),
+    });
+  }, [align]);
 
   useEffect(() => {
     if (!open) return;
-    const close = (e) => { if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false); };
+    place();
+    const reflow = () => place();
+    const close = (e) => {
+      if (btnRef.current?.contains(e.target) || popRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
     const esc = (e) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("scroll", reflow, true);
+    window.addEventListener("resize", reflow);
     document.addEventListener("mousedown", close);
     document.addEventListener("keydown", esc);
-    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", esc); };
-  }, [open]);
+    return () => {
+      window.removeEventListener("scroll", reflow, true);
+      window.removeEventListener("resize", reflow);
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [open, place]);
 
   const filtered = items
     .filter((i) => i.label.toLowerCase().includes(q.trim().toLowerCase()))
     .slice(0, 60);
 
   return (
-    <div className="relative" ref={boxRef}>
-      <button onClick={() => { setOpen(!open); setQ(""); }}
+    <div className="relative inline-block">
+      <button ref={btnRef} onClick={() => { setOpen(!open); setQ(""); }}
         className={`text-xs px-2 py-1 rounded-lg border whitespace-nowrap ${
           open ? "border-indigo-500 text-white" : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-white"}`}>
         {icon} {label} ▾
       </button>
-      {open && (
-        <div className={`absolute z-40 mt-1 w-64 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl ${
-          align === "right" ? "right-0" : "left-0"}`}>
-          <input autoFocus className="w-full bg-zinc-950 border-b border-zinc-800 rounded-t-lg px-3 py-2 text-sm outline-none"
+      {open && pos && createPortal(
+        <div ref={popRef}
+          style={{ position: "fixed", left: pos.left, top: pos.top, bottom: pos.bottom, width: PICKER_W }}
+          className="z-[60] bg-zinc-900 border border-zinc-700 rounded-lg shadow-2xl flex flex-col">
+          <input autoFocus className="w-full bg-zinc-950 border-b border-zinc-800 rounded-t-lg px-3 py-2 text-sm outline-none shrink-0"
             placeholder={`Search ${label.toLowerCase()}…`}
             value={q} onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && filtered.length) { onPick(filtered[0]); setOpen(false); }
+              if (e.key === "Escape") setOpen(false);
             }} />
-          <div className="max-h-60 overflow-y-auto py-1">
+          <div className="overflow-y-auto py-1" style={{ maxHeight: pos.maxH }}>
             {filtered.length === 0 && (
               <p className="text-xs text-zinc-500 px-3 py-2">No matches.</p>
             )}
@@ -174,8 +212,7 @@ export function Picker({ label, icon, items, onPick, align = "left" }) {
               </button>
             ))}
           </div>
-        </div>
-      )}
+        </div>, document.body)}
     </div>
   );
 }

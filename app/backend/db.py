@@ -332,6 +332,50 @@ def _m10_relinkable_media(conn):
                  "ON media_sources(media_id)")
 
 
+def _m13_recomp_status(conn):
+    """Recompositions gain a status: 'draft' (in-progress in the Assembler) or
+    'final' (created — shows in the Studio). Existing rows are final."""
+    _add_columns(conn, "recompositions", ["status TEXT NOT NULL DEFAULT 'final'"])
+
+
+def _m15_scan_folders(conn):
+    """Watched local folders for bulk ingest + a ledger so re-scans skip files
+    already imported."""
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS scan_folders (
+            id INTEGER PRIMARY KEY,
+            path TEXT NOT NULL,
+            kind TEXT NOT NULL DEFAULT 'media',   -- 'media' | 'audio'
+            created_at TEXT DEFAULT (datetime('now'))
+        )""")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS scanned_files (
+            path TEXT PRIMARY KEY,
+            kind TEXT,
+            ref_id INTEGER,
+            scanned_at TEXT DEFAULT (datetime('now'))
+        )""")
+
+
+def _m16_job_pause(conn):
+    """Cooperative pause: a running job sees pause_requested at its next
+    checkpoint and stops in a resumable 'paused' state (re-queue to continue)."""
+    _add_columns(conn, "jobs", ["pause_requested INTEGER NOT NULL DEFAULT 0"])
+
+
+def _m14_audio_org(conn):
+    """Background-audio organisation: a '/'-path folder per asset + tags (reusing
+    the shared tags table), so beds get the same nested-folder + tag filtering
+    as cuts."""
+    _add_columns(conn, "audio_assets", ["folder TEXT NOT NULL DEFAULT ''"])
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS audio_tags (
+            asset_id INTEGER NOT NULL REFERENCES audio_assets(id) ON DELETE CASCADE,
+            tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+            PRIMARY KEY (asset_id, tag_id)
+        )""")
+
+
 def _m12_cut_clusters(conn):
     """Cross-reference theme clusters: a cluster groups cuts that are about the
     same thing even when far apart in time (Louvain over cut embeddings). The
@@ -441,6 +485,10 @@ MIGRATIONS = [
     _m10_relinkable_media,
     _m11_app_settings,
     _m12_cut_clusters,
+    _m13_recomp_status,
+    _m14_audio_org,
+    _m15_scan_folders,
+    _m16_job_pause,
 ]
 
 
@@ -459,8 +507,15 @@ def get_db() -> sqlite3.Connection:
         conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=30)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys=ON")
+        # wait (don't fail) up to 30s for a write lock — lets the API and the
+        # worker pool write concurrently without "database is locked" errors.
+        conn.execute("PRAGMA busy_timeout=30000")
         try:  # WAL is faster but unsupported on some mounted filesystems
             conn.execute("PRAGMA journal_mode=WAL")
+            # NORMAL is safe under WAL and avoids an fsync per commit — without it
+            # a bulk scan's thousands of segment inserts stall every other query
+            # (and the browser) while the disk catches up.
+            conn.execute("PRAGMA synchronous=NORMAL")
         except sqlite3.OperationalError:
             pass
         _local.conn = conn

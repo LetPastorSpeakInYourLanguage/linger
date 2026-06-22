@@ -48,6 +48,12 @@ class JobCancelled(Exception):
     """Raised inside a handler when the user requested cancellation."""
 
 
+class JobPaused(Exception):
+    """Raised inside a handler when the user requested a pause — the job stops
+    at its next checkpoint in a resumable 'paused' state (re-queue to continue;
+    chained pipelines resume at stage granularity, not byte-for-byte)."""
+
+
 def handler(kind: str):
     def deco(fn):
         HANDLERS[kind] = fn
@@ -119,8 +125,15 @@ class JobContext:
         return bool(row and row["cancel_requested"])
 
     def check_cancel(self):
-        if self.cancelled():
+        """Cooperative stop point. Honours both cancel and pause requests, so
+        every existing call site doubles as a pause checkpoint."""
+        row = get_db().execute(
+            "SELECT cancel_requested, pause_requested FROM jobs WHERE id=?",
+            (self.job_id,)).fetchone()
+        if row and row["cancel_requested"]:
             raise JobCancelled()
+        if row and row["pause_requested"]:
+            raise JobPaused()
 
 
 def _set_media(media_id: int, status: str, detail: str = ""):
@@ -313,6 +326,19 @@ def enqueue_embed(media_id: int):
 
 
 # ------------------------------------------------------------- separate
+
+@handler("scan_folder")
+def _run_scan_folder(ctx: JobContext, payload: dict):
+    """Walk a registered drop-folder and ingest new media / audio (see ingest.py)."""
+    from . import ingest
+    db = get_db()
+    row = db.execute("SELECT * FROM scan_folders WHERE id=?",
+                     (payload.get("folder_id"),)).fetchone()
+    if not row:
+        ctx.report("scan folder no longer registered", progress=100)
+        return
+    ingest.scan(db, row, ctx, enqueue)
+
 
 @handler("separate")
 def _run_separate(ctx: JobContext, payload: dict):
@@ -1121,11 +1147,12 @@ def request_cancel(job_id: int) -> dict:
         return {"error": "job not found"}
     if row["status"] in ("done", "failed", "cancelled"):
         return {"error": f"job is already {row['status']}"}
-    # atomic, so we can't race the claim loop: only one of us gets the row
+    # atomic, so we can't race the claim loop: only one of us gets the row.
+    # queued and paused jobs aren't running, so they cancel instantly.
     cur = db.execute(
         "UPDATE jobs SET status='cancelled', detail='cancelled by user', "
         "finished_at=datetime('now'), updated_at=datetime('now') "
-        "WHERE id=? AND status='queued'", (job_id,))
+        "WHERE id=? AND status IN ('queued','paused')", (job_id,))
     db.commit()
     if cur.rowcount:
         if row["media_id"]:
@@ -1135,6 +1162,50 @@ def request_cancel(job_id: int) -> dict:
                (job_id,))
     db.commit()
     return {"status": "cancelling"}
+
+
+def request_pause(job_id: int) -> dict:
+    """Pause a job. Queued jobs are held instantly; a running job gets
+    pause_requested and stops at its next checkpoint, resumable via resume()."""
+    db = get_db()
+    row = db.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
+    if row is None:
+        return {"error": "job not found"}
+    if row["status"] not in ("queued", "running"):
+        return {"error": f"can't pause a {row['status']} job"}
+    cur = db.execute(
+        "UPDATE jobs SET status='paused', detail='paused by user', "
+        "worker_id=NULL, lease_until=NULL, updated_at=datetime('now') "
+        "WHERE id=? AND status='queued'", (job_id,))
+    db.commit()
+    if cur.rowcount:
+        if row["media_id"] and row["kind"] in PIPELINE_KINDS:
+            _restore_media_after_stop(row["media_id"])
+        return {"status": "paused"}
+    db.execute("UPDATE jobs SET pause_requested=1, updated_at=datetime('now') WHERE id=?",
+               (job_id,))
+    db.commit()
+    return {"status": "pausing"}
+
+
+def resume(job_id: int) -> dict:
+    """Re-queue a paused job. Chained pipelines resume at stage granularity
+    (e.g. a paused transcribe re-runs transcribe, not the download)."""
+    db = get_db()
+    row = db.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
+    if row is None:
+        return {"error": "job not found"}
+    if row["status"] != "paused":
+        return {"error": "only paused jobs can be resumed"}
+    db.execute(
+        "UPDATE jobs SET status='queued', attempts=0, cancel_requested=0, "
+        "pause_requested=0, worker_id=NULL, lease_until=NULL, finished_at=NULL, "
+        "detail='resumed', updated_at=datetime('now') WHERE id=?", (job_id,))
+    db.commit()
+    if row["media_id"] and row["kind"] in _RETRY_MEDIA_STATUS:
+        _set_media(row["media_id"], _RETRY_MEDIA_STATUS[row["kind"]], "resumed")
+    wake()
+    return {"status": "queued"}
 
 
 _RETRY_MEDIA_STATUS = {"download": "downloading", "prepare": "preparing",
@@ -1150,8 +1221,8 @@ def retry(job_id: int) -> dict:
         return {"error": "only failed or cancelled jobs can be retried"}
     db.execute(
         "UPDATE jobs SET status='queued', attempts=0, cancel_requested=0, "
-        "worker_id=NULL, lease_until=NULL, finished_at=NULL, progress=NULL, "
-        "detail='requeued', updated_at=datetime('now') WHERE id=?", (job_id,))
+        "pause_requested=0, worker_id=NULL, lease_until=NULL, finished_at=NULL, "
+        "progress=NULL, detail='requeued', updated_at=datetime('now') WHERE id=?", (job_id,))
     db.commit()
     if row["media_id"] and row["kind"] in _RETRY_MEDIA_STATUS:
         _set_media(row["media_id"], _RETRY_MEDIA_STATUS[row["kind"]], "requeued")
@@ -1168,23 +1239,48 @@ def _remote_kinds() -> set[str]:
     return {k.strip() for k in raw.split(",") if k.strip()}
 
 
-def _claim_next():
-    """Claim the next runnable job with an optimistic UPDATE. Also adopts
-    running jobs whose lease expired (their worker died). Skips kinds reserved
-    for a remote executor."""
+# Heavy = CPU/GPU/ffmpeg/network jobs (the bulk-ingest pipeline). They run in
+# their own lane so a long transcription can never starve the quick,
+# interactive lane (scan registration, embedding, …). This is the fix for
+# "bulk ingest is killing processing" / "scanning freezes the browser".
+HEAVY_KINDS = {"download", "prepare", "transcribe", "export", "separate", "dub",
+               "cut_to_bg", "translate_track", "translate_recomposition"}
+
+
+def _worker_counts() -> tuple[int, int]:
+    """(heavy, light) worker-thread counts, env-overridable. Defaults give bulk
+    ingest 2 lanes (e.g. remux overlapping a transcription) while keeping one
+    lane always free for quick work."""
+    def _n(name, default):
+        try:
+            return max(0, int(os.environ.get(name, "").strip() or default))
+        except ValueError:
+            return default
+    return _n("RECOMPOSER_HEAVY_WORKERS", 2), _n("RECOMPOSER_LIGHT_WORKERS", 1)
+
+
+def _claim_next(include: set[str] | None = None, exclude: set[str] | None = None):
+    """Claim the next runnable job with an optimistic UPDATE, restricted to a
+    lane. `include` limits to those kinds; `exclude` (plus any remote kinds)
+    skips them. Also adopts running jobs whose lease expired (dead worker)."""
     db = get_db()
-    remote = _remote_kinds()
-    excl = ""
-    params_sel: list = []
-    if remote:
-        excl = f" AND kind NOT IN ({','.join('?' * len(remote))})"
-        params_sel = list(remote)
+    skip = set(exclude or set()) | _remote_kinds()
+    clauses, params_sel = [], []
+    if include is not None:
+        if not include:
+            return None
+        clauses.append(f"kind IN ({','.join('?' * len(include))})")
+        params_sel += list(include)
+    if skip:
+        clauses.append(f"kind NOT IN ({','.join('?' * len(skip))})")
+        params_sel += list(skip)
+    lane = (" AND " + " AND ".join(clauses)) if clauses else ""
     for _ in range(10):
         row = db.execute(f"""
             SELECT id FROM jobs
-            WHERE ((status='queued' AND cancel_requested=0)
+            WHERE ((status='queued' AND cancel_requested=0 AND pause_requested=0)
                OR (status='running' AND lease_until IS NOT NULL
-                   AND lease_until < datetime('now'))){excl}
+                   AND lease_until < datetime('now'))){lane}
             ORDER BY priority DESC, id LIMIT 1""", params_sel).fetchone()
         if row is None:
             return None
@@ -1193,7 +1289,7 @@ def _claim_next():
                    lease_until=datetime('now', ?),
                    started_at=COALESCE(started_at, datetime('now')),
                    attempts=attempts+1, updated_at=datetime('now')
-            WHERE id=? AND ((status='queued' AND cancel_requested=0)
+            WHERE id=? AND ((status='queued' AND cancel_requested=0 AND pause_requested=0)
                 OR (status='running' AND lease_until < datetime('now')))""",
             (WORKER_ID, f"+{LEASE_SECONDS} seconds", row["id"]))
         db.commit()
@@ -1284,6 +1380,15 @@ def _execute(job):
         _finish(job_id, "cancelled", "cancelled by user")
         if job["media_id"] and job["kind"] in PIPELINE_KINDS:
             _restore_media_after_stop(job["media_id"])
+    except JobPaused:
+        log(f"job {job_id} ({job['kind']}) paused")
+        db = get_db()
+        db.execute("UPDATE jobs SET status='paused', pause_requested=0, "
+                   "worker_id=NULL, lease_until=NULL, detail='paused by user', "
+                   "updated_at=datetime('now') WHERE id=?", (job_id,))
+        db.commit()
+        if job["media_id"] and job["kind"] in PIPELINE_KINDS:
+            _restore_media_after_stop(job["media_id"])
     except Exception as e:
         traceback.print_exc()
         row = get_db().execute("SELECT attempts, max_attempts FROM jobs WHERE id=?",
@@ -1306,9 +1411,9 @@ def _execute(job):
                 _set_media(job["media_id"], "error", str(e)[:500])
 
 
-def _worker():
+def _worker(include=None, exclude=None):
     while True:
-        job = _claim_next()
+        job = _claim_next(include=include, exclude=exclude)
         if job is None:
             _wake.wait(timeout=POLL_SECONDS)
             _wake.clear()
@@ -1334,6 +1439,14 @@ def start_worker():
     db.execute("UPDATE jobs SET status='queued', worker_id=NULL, lease_until=NULL "
                "WHERE status='running'")
     db.commit()
-    t = threading.Thread(target=_worker, daemon=True, name="recomposer-worker")
-    t.start()
+    # Two lanes: heavy workers drain the ingest pipeline; light workers keep
+    # quick/interactive jobs (scan registration, embedding) responsive even
+    # while a long transcription is running. Both leave 'paused' jobs alone.
+    heavy_n, light_n = _worker_counts()
+    for i in range(max(1, heavy_n)):
+        threading.Thread(target=_worker, kwargs={"include": HEAVY_KINDS},
+                         daemon=True, name=f"recomposer-heavy-{i}").start()
+    for i in range(max(1, light_n)):
+        threading.Thread(target=_worker, kwargs={"exclude": HEAVY_KINDS},
+                         daemon=True, name=f"recomposer-light-{i}").start()
     wake()

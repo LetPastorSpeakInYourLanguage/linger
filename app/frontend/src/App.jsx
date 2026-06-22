@@ -4,9 +4,11 @@ import Library from "./components/Library";
 import MediaView from "./components/MediaView";
 import { CutsPage } from "./components/CutBrowser";
 import Cutter from "./components/Cutter";
+import Assembler from "./components/Assembler";
 import Studio from "./components/Studio";
 import AudioStudio from "./components/AudioStudio";
 import JobsPanel from "./components/JobsPanel";
+import JobsPage from "./components/JobsPage";
 import Settings from "./components/Settings";
 
 const COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6", "#06b6d4"];
@@ -59,8 +61,10 @@ const TABS = [
   { id: "library", label: "Library" },
   { id: "cutter", label: "⚡ Cutter" },
   { id: "cuts", label: "Cuts" },
+  { id: "assembler", label: "🧩 Assembler" },
   { id: "studio", label: "Studio" },
   { id: "audio", label: "Audio" },
+  { id: "jobs", label: "Jobs" },
   { id: "settings", label: "Settings" },
 ];
 
@@ -74,6 +78,7 @@ export default function App() {
   const [activeJobs, setActiveJobs] = useState(0);
   const openMedia = (id, seg = null) => setView({ tab: "media", mediaId: id, seg });
   const openCutter = (mediaId = null, trackId = null) => setView({ tab: "cutter", mediaId, trackId });
+  const openStudio = (recompId = null) => setView({ tab: "studio", recompId });
 
   useEffect(() => {
     if (!user) return;
@@ -140,8 +145,10 @@ export default function App() {
           <Cutter user={user} mediaId={view.mediaId} trackId={view.trackId} openMedia={openMedia} />
         )}
         {view.tab === "cuts" && <CutsPage user={user} openMedia={openMedia} />}
-        {view.tab === "studio" && <Studio user={user} />}
+        {view.tab === "assembler" && <Assembler user={user} openStudio={openStudio} />}
+        {view.tab === "studio" && <Studio user={user} initialRecompId={view.recompId} />}
         {view.tab === "audio" && <AudioStudio user={user} />}
+        {view.tab === "jobs" && <JobsPage user={user} />}
         {view.tab === "settings" && <Settings user={user} onUser={login} />}
       </main>
     </div>

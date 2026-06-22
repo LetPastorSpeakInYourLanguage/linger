@@ -222,10 +222,78 @@ function AddMediaModal({ user, onClose, onDone }) {
   );
 }
 
+/* Watch local folders and bulk-ingest from them. Movies pair with sibling
+ * subtitle files (auto-transcribe when missing); audio folders fill the bed
+ * library, mirroring sub-directories as bed folders. */
+function ScanFoldersModal({ onClose, onScanned }) {
+  const [list, setList] = useState([]);
+  const [path, setPath] = useState("");
+  const [kind, setKind] = useState("media");
+  const [err, setErr] = useState("");
+  const [scanned, setScanned] = useState(null);
+
+  const load = () => api.get("/api/scan-folders").then(setList).catch(() => {});
+  useEffect(() => { load(); }, []);
+
+  const add = async () => {
+    if (!path.trim()) return;
+    setErr("");
+    try { await api.post("/api/scan-folders", { path: path.trim(), kind }); setPath(""); load(); }
+    catch (e) { setErr(e.message); }
+  };
+  const scan = async (f) => {
+    try { await api.post(`/api/scan-folders/${f.id}/scan`); setScanned(f.id); onScanned?.(); }
+    catch (e) { setErr(e.message); }
+  };
+  const del = async (f) => { await api.del(`/api/scan-folders/${f.id}`); load(); };
+
+  return (
+    <Modal title="Scan folders" onClose={onClose} wide>
+      <div className="space-y-3">
+        <p className="text-xs text-zinc-500">
+          Point at a folder on this machine. <b>Media</b> folders ingest movies and attach
+          sibling subtitles (<span className="font-mono">movie.srt</span> / <span className="font-mono">movie.en.srt</span>),
+          transcribing only when a movie has none. <b>Audio</b> folders fill the bed library,
+          mirroring sub-folders. Scanning runs in the background — watch the <b>Jobs</b> page.
+        </p>
+        <div className="flex gap-2">
+          <input className={inputCls} placeholder="C:\Movies  or  /home/me/movies"
+            value={path} onChange={(e) => setPath(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && add()} />
+          <select className={`${inputCls} !w-28`} value={kind} onChange={(e) => setKind(e.target.value)}>
+            <option value="media">Media</option>
+            <option value="audio">Audio</option>
+          </select>
+          <button className={btnCls} onClick={add}>Add</button>
+        </div>
+        {err && <p className="text-sm text-red-400">{err}</p>}
+        {scanned && <p className="text-xs text-emerald-400">Scan queued — see the Jobs page for progress.</p>}
+        <div className="space-y-1.5 max-h-[50vh] overflow-y-auto">
+          {list.length === 0 && <p className="text-sm text-zinc-500">No watched folders yet.</p>}
+          {list.map((f) => (
+            <div key={f.id} className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-2">
+              <span>{f.kind === "audio" ? "🎵" : "🎬"}</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-mono truncate">{f.path}</p>
+                <p className="text-[11px] text-zinc-500">
+                  {f.kind} · {f.ingested} ingested {f.exists ? "" : "· ⚠ not found on this PC"}
+                </p>
+              </div>
+              <button className={`${btnGhost} !py-1`} disabled={!f.exists} onClick={() => scan(f)}>Scan now</button>
+              <button className="text-zinc-500 hover:text-red-400 text-xs" onClick={() => del(f)}>remove</button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 export default function Library({ user, openMedia }) {
   const [media, setMedia] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
+  const [showScan, setShowScan] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const timer = useRef();
 
@@ -276,6 +344,8 @@ export default function Library({ user, openMedia }) {
         <div className="flex gap-2">
           <button className={btnGhost} onClick={buildIndex}
             title="Embed transcripts for semantic ('Smart') search">✨ Build search index</button>
+          <button className={btnGhost} onClick={() => setShowScan(true)}
+            title="Watch local folders and bulk-ingest movies + subtitles / bg-audio">📂 Scan folders</button>
           <button className={btnCls} onClick={() => setShowAdd(true)}>+ Add media</button>
         </div>
       </div>
@@ -346,6 +416,9 @@ export default function Library({ user, openMedia }) {
 
       {showAdd && (
         <AddMediaModal user={user} onClose={() => setShowAdd(false)} onDone={refresh} />
+      )}
+      {showScan && (
+        <ScanFoldersModal onClose={() => setShowScan(false)} onScanned={refresh} />
       )}
     </div>
   );

@@ -130,15 +130,24 @@ export default function SubtitleEditor({ trackId, segments, getTime, playRange, 
 
   useEffect(() => { setEditingId(null); setMatches(new Set()); }, [trackId]);
 
-  const insertAfter = async (seg) => {
+  const EPS = 0.05;
+
+  // Insert a line after `seg`. When there's a silent gap to the next line it fills
+  // the WHOLE gap with a "[gap]" caption you then edit (e.g. [live music playing]) —
+  // a real segment for a stretch of video that has no speech.
+  const insertAfter = async (seg, text = "[gap]") => {
     const start = seg ? seg.end_s : 0;
     const next = segments.find((s) => s.start_s >= start && s.id !== seg?.id);
-    const end = Math.max(start + 0.5, Math.min(start + 2.5, next ? next.start_s : start + 2.5));
-    const created = await api.post("/api/segments",
-      { track_id: trackId, start_s: start, end_s: end, text: "…" });
+    const end = next ? Math.max(start + 0.3, next.start_s) : start + 2.5;
+    const created = await api.post("/api/segments", { track_id: trackId, start_s: start, end_s: end, text });
     onChanged();
     setEditingId(created.id);
   };
+
+  // Stretch a line's own boundary into the adjacent silence — no new line, just
+  // more time on this cue (e.g. room for a longer dub in the target language).
+  const extendStart = async (s, prev) => { await api.patch(`/api/segments/${s.id}`, { start_s: prev.end_s }); onChanged(); };
+  const extendEnd = async (s, next) => { await api.patch(`/api/segments/${s.id}`, { end_s: next.start_s }); onChanged(); };
 
   const remove = async (seg) => {
     try {
@@ -155,8 +164,9 @@ export default function SubtitleEditor({ trackId, segments, getTime, playRange, 
       <div className="p-2 shrink-0 space-y-2">
         <BatchBar trackId={trackId} onChanged={onChanged} onMatches={setMatches} />
         <p className="text-[11px] text-zinc-600 px-1">
-          Click a line to edit text & timing (⏱ grabs the player's current position) ·
-          ▶ plays just that line · ＋ inserts a new line after it.
+          Click a line to edit · ▶ plays it · ＋ fills the gap after with a
+          <span className="text-zinc-400"> [gap]</span> caption · <span className="font-mono text-zinc-400">[</span>/<span className="font-mono text-zinc-400">]</span> stretch
+          this line into the surrounding silence (room for dubbing).
         </p>
       </div>
 
@@ -164,15 +174,21 @@ export default function SubtitleEditor({ trackId, segments, getTime, playRange, 
         {segments.length === 0 && (
           <div className="text-center mt-10">
             <p className="text-zinc-500 text-sm mb-3">This track has no lines yet.</p>
-            <button className={btnCls} onClick={() => insertAfter(null)}>+ Add first line</button>
+            <button className={btnCls} onClick={() => insertAfter(null, "…")}>+ Add first line</button>
           </div>
         )}
-        {segments.map((s) =>
-          editingId === s.id ? (
-            <EditRow key={s.id} seg={s} getTime={getTime}
-              onDone={() => { setEditingId(null); onChanged(); }}
-              onCancel={() => setEditingId(null)} />
-          ) : (
+        {segments.map((s, i) => {
+          if (editingId === s.id) {
+            return (
+              <EditRow key={s.id} seg={s} getTime={getTime}
+                onDone={() => { setEditingId(null); onChanged(); }}
+                onCancel={() => setEditingId(null)} />
+            );
+          }
+          const prev = segments[i - 1], next = segments[i + 1];
+          const gapBefore = prev && prev.end_s < s.start_s - EPS;
+          const gapAfter = next && s.end_s < next.start_s - EPS;
+          return (
             <div key={s.id}
               className={`rounded-lg border px-2 py-1.5 flex items-center gap-2 group cursor-pointer ${
                 matches.has(s.id) ? "border-amber-500/70 bg-amber-500/10" : "border-zinc-800/70 bg-zinc-900/40 hover:border-zinc-600"}`}
@@ -183,15 +199,24 @@ export default function SubtitleEditor({ trackId, segments, getTime, playRange, 
               </span>
               <span className="text-sm truncate flex-1">{s.text}</span>
               <span className="flex gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 text-xs">
+                {gapBefore && (
+                  <button className="text-zinc-400 hover:text-indigo-300 font-mono" title="Extend start into the silence before (room for dubbing)"
+                    onClick={(e) => { e.stopPropagation(); extendStart(s, prev); }}>[</button>
+                )}
+                {gapAfter && (
+                  <button className="text-zinc-400 hover:text-indigo-300 font-mono" title="Extend end into the silence after"
+                    onClick={(e) => { e.stopPropagation(); extendEnd(s, next); }}>]</button>
+                )}
                 <button className="text-indigo-400 hover:text-indigo-300" title="Play this line"
                   onClick={(e) => { e.stopPropagation(); playRange(s.start_s, s.end_s); }}>▶</button>
-                <button className="text-zinc-400 hover:text-white" title="Insert a line after this one"
+                <button className="text-zinc-400 hover:text-white" title={gapAfter ? "Fill the gap after with a [gap] caption line" : "Insert a line after this one"}
                   onClick={(e) => { e.stopPropagation(); insertAfter(s); }}>＋</button>
                 <button className="text-zinc-400 hover:text-red-400" title="Delete this line"
                   onClick={(e) => { e.stopPropagation(); remove(s); }}>✕</button>
               </span>
             </div>
-          ))}
+          );
+        })}
       </div>
     </div>
   );
