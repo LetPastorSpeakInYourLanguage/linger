@@ -64,3 +64,15 @@ on background audio overhaul
 
 Bulk ingest is killing processing - please make the background proccessing a separate thred
 - also I want to see more details on Jobs (and a pause feature if possible to stop and restart like a retry from a continuable stage)
+
+
+
+- on Export I need a method to manage the timing of segment items [ just bracking is not acceptable ], also I need the cappability to ignore segment parts from cuts - that should be an inherent property; ignoring cuts to the level of alphabets/words - on items with word level subtitle timestamp -- which makes whisper running all items essential not just uploaded subtitles {we maybe can also have the segment level transcriptions with like 0.5 seconds spacings provided for transcription errors} - and we would just run alignment models for word/alphabet level timestamp generation
+
+- I also want the cappability to remove spacing between segment text items on export - like (filler work type thing on descript) - infact I want a descript [ in my export region - full replica of descript but built from the recomposition segments, cuts ] - research how descript does what it does and lets replicate that for studios
+
+- the video face detection based cutter, video size determination - I want to be able to generate shorts; so I need you to think deeply about optimizing the studio structure for short export; just like we run embeddings; lets also run face detection on the videos - that might also help in detecting scene shifts for the cutter also - so the parameters there will also change; also not just faces but also gender of the face and box around his body as he moves through the scene; so we have scene change data (we can also have background theme data; when general data about background or number of faces available or things like that change through frames with like some context window we can detect scene change and we can tune those settings like we do with the semantics in the cutter); we have all characters data from which we can drive more accurate cuts - but for the studio it is for when I want to create different sized export clips it would be utilized like if I wanted to export a short to be watched on a smartphone - and I have two characters in the cut scene speaking - I would select box size around the face (upper half of their body centering them ) and do a vertical one person on top and the other on bottom to fit them in the vertical ratio with is perfect for tiktok like apps
+
+- in assembler - in addition to just the recommendations; I would list to also access cuts by basic saerch (just like I can in the studio - just add the search insert into panel as one of the others) - and the transcript type view from library is nesseary just like in descript
+
+I want the studio to be exactly like descript with the trascript for each added cut and I can silence segments - meaning they will not be in the final render, I can adjust the timing upto word level, we will make alignment by whisperX type VAD the default - we will work on that
