@@ -107,3 +107,52 @@ def render(edl, source, out_path, work):
     open(lst, "w").write("".join(f"file '{p}'\n" for p in parts))
     _run(["ffmpeg", "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", lst, "-c:v", "copy", "-af", "loudnorm=I=-16:TP=-1.5", "-c:a", "aac", "-b:a", "160k", out_path])
     return out_path
+
+
+def edl_duration(edl):
+    return sum(p["src"][1] - p["src"][0] for p in edl)
+
+
+def fit_to_budget(edl, target, tts_factory, segments, tol=0.05, beat_rank=None):
+    """Closed-loop duration control after real TTS durations are known.
+    1) cap hero clips (keep their start: the emotional line is usually first), 2) re-time narration voice
+    (speed 0.9-1.2), 3) pad/trim footage around narration, 4) drop lowest-ranked segments (never P0)."""
+    log = []
+    total = edl_duration(edl)
+    hero = [p for p in edl if p["type"] == "hero"]
+    narr = [p for p in edl if p["type"] == "narr"]
+    if total > target * (1 + tol) and hero:
+        excess = total - target
+        hero_tot = sum(p["src"][1] - p["src"][0] for p in hero)
+        for p in hero:
+            d = p["src"][1] - p["src"][0]
+            cut = min(d - 3.5, excess * d / hero_tot)
+            if cut > 0: p["src"][1] -= cut
+        log.append(f"hero clips capped: {hero_tot:.1f}s -> {sum(p['src'][1] - p['src'][0] for p in hero):.1f}s")
+    total = edl_duration(edl)
+    if narr and abs(total - target) > target * tol:
+        n_tot = sum(p["tts_dur"] for p in narr)
+        other = total - sum(p["src"][1] - p["src"][0] for p in narr)
+        pad_each = 0.7
+        want_n = max(1.0, target - other - pad_each * len(narr))
+        speed = min(1.2, max(0.9, n_tot / want_n))
+        tts = tts_factory(speed)
+        for p in narr:
+            seg = segments[p["k"]]
+            wav, d = tts.say(seg["text"])
+            st = p["src"][0]; p["tts"], p["tts_dur"] = wav, d
+            p["src"] = [st, st + d + pad_each]
+        log.append(f"narration re-timed at speed {speed:.2f}")
+        total = edl_duration(edl)
+        if total < target * (1 - tol):   # still short: give narration more breathing room / footage
+            extra = (target - total) / len(narr)
+            for p in narr: p["src"][1] += extra
+            log.append(f"padded narration footage +{extra:.1f}s each")
+    total = edl_duration(edl)
+    if total > target * (1 + tol) and beat_rank:
+        order = sorted([p for p in edl if p["type"] != "card"], key=lambda p: beat_rank(segments[p["k"]]))
+        for p in order:
+            if edl_duration(edl) <= target * (1 + tol): break
+            if beat_rank(segments[p["k"]]) >= 0:   # rank<0 means protected (P0)
+                edl.remove(p); log.append(f"dropped segment {p['k']}")
+    return edl, log
