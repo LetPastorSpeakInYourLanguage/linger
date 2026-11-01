@@ -1,0 +1,74 @@
+[
+ {
+  "k": 0,
+  "type": "narr",
+  "src": [
+   22.7,
+   35.686666666666675
+  ],
+  "tts": "/home/user/work/tts_cache/557843a555b72bb9.wav",
+  "tts_dur": 9.429333333333334,
+  "audio": "duck",
+  "mood": "sad"
+ },
+ {
+  "k": 1,
+  "type": "narr",
+  "src": [
+   196.7,
+   205.01466666666664
+  ],
+  "tts": "/home/user/work/tts_cache/579fc709a6c1774d.wav",
+  "tts_dur": 4.757333333333333,
+  "audio": "duck",
+  "mood": "tense"
+ },
+ {
+  "k": 2,
+  "type": "narr",
+  "src": [
+   291.7,
+   303.1293333333333
+  ],
+  "tts": "/home/user/work/tts_cache/c7dc88997656aabb.wav",
+  "tts_dur": 7.872,
+  "audio": "duck",
+  "mood": "tense"
+ },
+ {
+  "k": 3,
+  "type": "narr",
+  "src": [
+   382.7,
+   393.25466666666665
+  ],
+  "tts": "/home/user/work/tts_cache/7dc4738052f9f789.wav",
+  "tts_dur": 6.997333333333334,
+  "audio": "duck",
+  "mood": "sad"
+ },
+ {
+  "k": 4,
+  "type": "narr",
+  "src": [
+   395.7,
+   402.28666666666663
+  ],
+  "tts": "/home/user/work/tts_cache/c5599e321805641d.wav",
+  "tts_dur": 3.029333333333333,
+  "audio": "duck",
+  "mood": "sad"
+ },
+ {
+  "k": 5,
+  "type": "narr",
+  "src": [
+   517.7,
+   527.8280000000001
+  ],
+  "tts": "/home/user/work/tts_cache/0e0d5a92b2d196cf.wav",
+  "tts_dur": 6.570666666666667,
+  "audio": "duck",
+  "mood": "warm"
+ }
+]

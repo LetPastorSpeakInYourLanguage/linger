@@ -1,0 +1,9 @@
+{"title": "Tears of Steel in 60 seconds",
+ "segments": [
+  {"type": "narration", "text": "Years ago, Thom, a young man who dreamed of space, broke up with Celia, a robotics engineer with a robot hand. Celia ended it with: we're done.", "beats": ["c01-b1"], "visual_lines": [0, 8], "mood": "sad"},
+  {"type": "narration", "text": "In the present, an armed team launches a mission with a window of about ten minutes.", "beats": ["c01-b6"], "visual_lines": [16, 21], "mood": "tense"},
+  {"type": "narration", "text": "Their plan is to re-stage the old breakup like a film take, with Thom repeating his lines while a machine overwrites a memory.", "beats": ["c01-b9"], "visual_lines": [32, 39], "mood": "tense"},
+  {"type": "narration", "text": "Celia is the threat they are fighting. She tells Thom he broke her heart and forgot her on Earth, and threatens to crush him.", "beats": ["c01-b13"], "visual_lines": [54, 58], "mood": "sad"},
+  {"type": "narration", "text": "Thom drops the script and simply apologizes.", "beats": ["c01-b14"], "visual_lines": [59, 61], "mood": "sad"},
+  {"type": "narration", "text": "As the battle peaks, he tells her the world has changed and maybe they can too. The memory overwrite completes.", "beats": ["c01-b17"], "visual_lines": [70, 72], "mood": "warm"}
+ ]}

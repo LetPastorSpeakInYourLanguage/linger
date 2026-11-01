@@ -1,0 +1,52 @@
+{
+ "short_direct": {
+  "beats_selected": 6,
+  "segments": 6,
+  "narration_words": 117,
+  "max_words": 156,
+  "within_word_budget": true,
+  "beats_cited": 6,
+  "uncited_selected": [],
+  "invented_beat_ids": [],
+  "duration_s": 40.7,
+  "target_s": 60
+ },
+ "dramatic_comedic": {
+  "beats_selected": 13,
+  "segments": 12,
+  "narration_words": 202,
+  "max_words": 247,
+  "within_word_budget": true,
+  "beats_cited": 13,
+  "uncited_selected": [],
+  "invented_beat_ids": [],
+  "duration_s": 142.3,
+  "target_s": 120
+ },
+ "fan_silent": {
+  "beats_selected": 10,
+  "segments": 11,
+  "narration_words": 0,
+  "max_words": 26,
+  "within_word_budget": true,
+  "beats_cited": 9,
+  "uncited_selected": [
+   "c01-b4"
+  ],
+  "invented_beat_ids": [],
+  "duration_s": 163.4,
+  "target_s": 90
+ },
+ "detailed_full": {
+  "beats_selected": 18,
+  "segments": 19,
+  "narration_words": 461,
+  "max_words": 900,
+  "within_word_budget": true,
+  "beats_cited": 18,
+  "uncited_selected": [],
+  "invented_beat_ids": [],
+  "duration_s": 219.8,
+  "target_s": null
+ }
+}

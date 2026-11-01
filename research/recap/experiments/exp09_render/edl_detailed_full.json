@@ -1,0 +1,218 @@
+[
+ {
+  "k": 0,
+  "type": "card",
+  "src": [
+   23.0,
+   25.8
+  ],
+  "text": "Part one: the breakup",
+  "audio": "orig_low"
+ },
+ {
+  "k": 1,
+  "type": "narr",
+  "src": [
+   22.699999999999996,
+   37.096
+  ],
+  "tts": "/home/user/work/tts_cache/59d047de36d7772e.wav",
+  "tts_dur": 13.696,
+  "audio": "duck",
+  "mood": "sad"
+ },
+ {
+  "k": 2,
+  "type": "narr",
+  "src": [
+   30.5,
+   47.029333333333334
+  ],
+  "tts": "/home/user/work/tts_cache/722c00d02504db88.wav",
+  "tts_dur": 15.829333333333333,
+  "audio": "duck",
+  "mood": "funny"
+ },
+ {
+  "k": 3,
+  "type": "hero",
+  "src": [
+   42.839999999999996,
+   45.15
+  ],
+  "audio": "orig",
+  "mood": "sad"
+ },
+ {
+  "k": 4,
+  "type": "narr",
+  "src": [
+   49.7,
+   59.44533333333334
+  ],
+  "tts": "/home/user/work/tts_cache/ad773f5cff5c06b4.wav",
+  "tts_dur": 9.045333333333334,
+  "audio": "duck",
+  "mood": "tense"
+ },
+ {
+  "k": 5,
+  "type": "narr",
+  "src": [
+   60.7,
+   75.26666666666667
+  ],
+  "tts": "/home/user/work/tts_cache/24e3a288c256d2e4.wav",
+  "tts_dur": 13.866666666666667,
+  "audio": "duck",
+  "mood": "neutral"
+ },
+ {
+  "k": 6,
+  "type": "card",
+  "src": [
+   191.0,
+   193.8
+  ],
+  "text": "Part two: the mission",
+  "audio": "orig_low"
+ },
+ {
+  "k": 7,
+  "type": "narr",
+  "src": [
+   190.5,
+   204.91733333333332
+  ],
+  "tts": "/home/user/work/tts_cache/ff82695713a70049.wav",
+  "tts_dur": 13.717333333333332,
+  "audio": "duck",
+  "mood": "epic"
+ },
+ {
+  "k": 8,
+  "type": "narr",
+  "src": [
+   222.5,
+   236.04266666666666
+  ],
+  "tts": "/home/user/work/tts_cache/badbecc8fdb3f5c7.wav",
+  "tts_dur": 12.842666666666666,
+  "audio": "duck",
+  "mood": "warm"
+ },
+ {
+  "k": 9,
+  "type": "narr",
+  "src": [
+   291.7,
+   308.01599999999996
+  ],
+  "tts": "/home/user/work/tts_cache/701b6f8137e9e85c.wav",
+  "tts_dur": 15.616,
+  "audio": "duck",
+  "mood": "tense"
+ },
+ {
+  "k": 10,
+  "type": "narr",
+  "src": [
+   338.7,
+   345.97066666666666
+  ],
+  "tts": "/home/user/work/tts_cache/085fd7f52602fd9f.wav",
+  "tts_dur": 6.570666666666667,
+  "audio": "duck",
+  "mood": "tense"
+ },
+ {
+  "k": 11,
+  "type": "hero",
+  "src": [
+   346.86,
+   363.15
+  ],
+  "audio": "orig",
+  "mood": "funny"
+ },
+ {
+  "k": 12,
+  "type": "narr",
+  "src": [
+   364.5,
+   378.02133333333336
+  ],
+  "tts": "/home/user/work/tts_cache/f0ad146b1ed64442.wav",
+  "tts_dur": 12.821333333333333,
+  "audio": "duck",
+  "mood": "tense"
+ },
+ {
+  "k": 13,
+  "type": "card",
+  "src": [
+   381.0,
+   383.8
+  ],
+  "text": "Part three: take two",
+  "audio": "orig_low"
+ },
+ {
+  "k": 14,
+  "type": "narr",
+  "src": [
+   382.7,
+   392.5093333333333
+  ],
+  "tts": "/home/user/work/tts_cache/916da8185d8b4195.wav",
+  "tts_dur": 9.109333333333334,
+  "audio": "duck",
+  "mood": "sad"
+ },
+ {
+  "k": 15,
+  "type": "narr",
+  "src": [
+   395.7,
+   409.7973333333333
+  ],
+  "tts": "/home/user/work/tts_cache/843b0c02add085f7.wav",
+  "tts_dur": 13.397333333333334,
+  "audio": "duck",
+  "mood": "sad"
+ },
+ {
+  "k": 16,
+  "type": "narr",
+  "src": [
+   427.7,
+   436.4853333333333
+  ],
+  "tts": "/home/user/work/tts_cache/f1e5b006cf1a9766.wav",
+  "tts_dur": 8.085333333333333,
+  "audio": "duck",
+  "mood": "epic"
+ },
+ {
+  "k": 17,
+  "type": "hero",
+  "src": [
+   517.86,
+   539.16
+  ],
+  "audio": "orig",
+  "mood": "warm"
+ },
+ {
+  "k": 18,
+  "type": "narr",
+  "src": [
+   537.7,
+   555.7653333333334
+  ],
+  "tts": "/home/user/work/tts_cache/64c3179689c7d5fa.wav",
+  "tts_dur": 17.365333333333332,
+  "audio": "duck",
+  "mood": "warm"
+ }
+]
