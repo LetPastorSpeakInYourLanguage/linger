@@ -1,0 +1,15 @@
+{"title": "He Dumped Her... So She Tried to End the World",
+ "segments": [
+  {"type": "narration", "text": "Meet Thom. He has one dream: to be awesome in space. And he has one girlfriend, Celia, a robotics genius with a robot hand. Guess which one he picks.", "beats": ["c01-b1"], "visual_lines": [0, 2], "mood": "funny"},
+  {"type": "hero_clip", "text": "", "beats": ["c01-b2"], "visual_lines": [3, 7], "mood": "funny"},
+  {"type": "narration", "text": "Smooth, Thom. Real smooth. Celia dumps him on the spot, and somewhere, a robot quietly saves that memory. That will not be a problem. At all.", "beats": ["c01-b3", "c01-b4"], "visual_lines": [8, 9], "mood": "tense"},
+  {"type": "narration", "text": "Cut to the future. Soldiers, guns, and a ten minute window. The secret weapon? Thom. Who looks like he is about to throw up.", "beats": ["c01-b6", "c01-b7"], "visual_lines": [14, 21], "mood": "epic"},
+  {"type": "narration", "text": "The plan is gloriously insane. They rebuild the breakup like a movie set and make Thom do the scene again, take two, while a machine overwrites the memory. Their director even shouts acting notes in the middle of a war zone.", "beats": ["c01-b8", "c01-b9"], "visual_lines": [24, 39], "mood": "funny"},
+  {"type": "narration", "text": "Then Thom goes off script, and accidentally tells the truth.", "beats": ["c01-b11"], "visual_lines": [43, 44], "mood": "funny"},
+  {"type": "hero_clip", "text": "", "beats": ["c01-b11"], "visual_lines": [44, 46], "mood": "funny"},
+  {"type": "narration", "text": "Oh, did we mention? Celia is the one destroying the world. The take collapses, everyone screams, and finally she says what this was always about.", "beats": ["c01-b12", "c01-b13"], "visual_lines": [47, 53], "mood": "tense"},
+  {"type": "hero_clip", "text": "", "beats": ["c01-b13", "c01-b14"], "visual_lines": [54, 60], "mood": "sad"},
+  {"type": "narration", "text": "Two words, years too late. The director calls it a good ad-lib. With the overwrite at ninety percent and the soldiers begging to abort, Thom delivers the best line of his life.", "beats": ["c01-b14", "c01-b16"], "visual_lines": [61, 69], "mood": "epic"},
+  {"type": "hero_clip", "text": "", "beats": ["c01-b17"], "visual_lines": [70, 72], "mood": "warm"},
+  {"type": "narration", "text": "Memory overwrite complete. Heart repaired, world saved. Lesson learned? Eh. It could have gone worse.", "beats": ["c01-b17"], "visual_lines": [72, 75], "mood": "funny"}
+ ]}

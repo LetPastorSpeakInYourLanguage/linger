@@ -1,0 +1,14 @@
+{"title": "Tears of Steel — the moments",
+ "segments": [
+  {"type": "title_card", "text": "Then", "beats": ["c01-b1"], "visual_lines": [0, 0], "mood": "sad"},
+  {"type": "hero_clip", "text": "", "beats": ["c01-b1", "c01-b2"], "visual_lines": [0, 9], "mood": "sad"},
+  {"type": "title_card", "text": "Now", "beats": ["c01-b6"], "visual_lines": [16, 16], "mood": "epic"},
+  {"type": "hero_clip", "text": "", "beats": ["c01-b6"], "visual_lines": [19, 21], "mood": "epic"},
+  {"type": "hero_clip", "text": "", "beats": ["c01-b8"], "visual_lines": [27, 31], "mood": "warm"},
+  {"type": "hero_clip", "text": "", "beats": ["c01-b9"], "visual_lines": [32, 34], "mood": "tense"},
+  {"type": "hero_clip", "text": "", "beats": ["c01-b11"], "visual_lines": [43, 46], "mood": "funny"},
+  {"type": "title_card", "text": "Take two", "beats": ["c01-b13"], "visual_lines": [53, 53], "mood": "sad"},
+  {"type": "hero_clip", "text": "", "beats": ["c01-b13", "c01-b14"], "visual_lines": [54, 61], "mood": "sad"},
+  {"type": "hero_clip", "text": "", "beats": ["c01-b17"], "visual_lines": [67, 72], "mood": "epic"},
+  {"type": "hero_clip", "text": "", "beats": [], "visual_lines": [74, 75], "mood": "funny"}
+ ]}

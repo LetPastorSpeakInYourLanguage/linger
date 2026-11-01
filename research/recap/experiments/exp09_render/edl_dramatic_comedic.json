@@ -1,0 +1,138 @@
+[
+ {
+  "k": 0,
+  "type": "narr",
+  "src": [
+   22.7,
+   33.53333333333333
+  ],
+  "tts": "/home/user/work/tts_cache/43c07ab8bb50ff32.wav",
+  "tts_dur": 10.133333333333333,
+  "audio": "duck",
+  "mood": "funny"
+ },
+ {
+  "k": 1,
+  "type": "hero",
+  "src": [
+   30.54,
+   38.2457260650481
+  ],
+  "audio": "orig",
+  "mood": "funny"
+ },
+ {
+  "k": 2,
+  "type": "narr",
+  "src": [
+   42.0833,
+   52.084633333333336
+  ],
+  "tts": "/home/user/work/tts_cache/d2bb09ab066b1c2e.wav",
+  "tts_dur": 9.301333333333334,
+  "audio": "duck",
+  "mood": "tense"
+ },
+ {
+  "k": 3,
+  "type": "narr",
+  "src": [
+   190.5,
+   198.944
+  ],
+  "tts": "/home/user/work/tts_cache/17f6635b7778bcc2.wav",
+  "tts_dur": 7.744,
+  "audio": "duck",
+  "mood": "epic"
+ },
+ {
+  "k": 4,
+  "type": "narr",
+  "src": [
+   225.5,
+   240.216
+  ],
+  "tts": "/home/user/work/tts_cache/59b377efc272f32a.wav",
+  "tts_dur": 14.016,
+  "audio": "duck",
+  "mood": "funny"
+ },
+ {
+  "k": 5,
+  "type": "narr",
+  "src": [
+   346.5,
+   350.8906666666667
+  ],
+  "tts": "/home/user/work/tts_cache/6217df3a232fa3e7.wav",
+  "tts_dur": 3.6906666666666665,
+  "audio": "duck",
+  "mood": "funny"
+ },
+ {
+  "k": 6,
+  "type": "hero",
+  "src": [
+   355.86,
+   360.69847915712324
+  ],
+  "audio": "orig",
+  "mood": "funny"
+ },
+ {
+  "k": 7,
+  "type": "narr",
+  "src": [
+   364.5,
+   374.2026666666667
+  ],
+  "tts": "/home/user/work/tts_cache/2d354e3002253f43.wav",
+  "tts_dur": 9.002666666666666,
+  "audio": "duck",
+  "mood": "tense"
+ },
+ {
+  "k": 8,
+  "type": "hero",
+  "src": [
+   382.86,
+   399.64534127347684
+  ],
+  "audio": "orig",
+  "mood": "sad"
+ },
+ {
+  "k": 9,
+  "type": "narr",
+  "src": [
+   409.5,
+   421.42133333333334
+  ],
+  "tts": "/home/user/work/tts_cache/18a57b8b6bf794b5.wav",
+  "tts_dur": 11.221333333333334,
+  "audio": "duck",
+  "mood": "epic"
+ },
+ {
+  "k": 10,
+  "type": "hero",
+  "src": [
+   517.86,
+   531.9971201710184
+  ],
+  "audio": "orig",
+  "mood": "warm"
+ },
+ {
+  "k": 11,
+  "type": "narr",
+  "src": [
+   537.7,
+   544.224
+  ],
+  "tts": "/home/user/work/tts_cache/6645ebeca03b12e5.wav",
+  "tts_dur": 5.824,
+  "audio": "duck",
+  "mood": "funny"
+ }
+]

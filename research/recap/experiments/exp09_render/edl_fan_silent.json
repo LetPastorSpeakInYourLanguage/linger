@@ -1,0 +1,112 @@
+[
+ {
+  "k": 0,
+  "type": "card",
+  "src": [
+   23.0,
+   25.8
+  ],
+  "text": "Then",
+  "audio": "orig_low"
+ },
+ {
+  "k": 1,
+  "type": "hero",
+  "src": [
+   22.86,
+   39.11346534653467
+  ],
+  "audio": "orig",
+  "mood": "sad"
+ },
+ {
+  "k": 2,
+  "type": "card",
+  "src": [
+   197.0,
+   199.8
+  ],
+  "text": "Now",
+  "audio": "orig_low"
+ },
+ {
+  "k": 3,
+  "type": "hero",
+  "src": [
+   203.34,
+   210.6271287128713
+  ],
+  "audio": "orig",
+  "mood": "epic"
+ },
+ {
+  "k": 4,
+  "type": "hero",
+  "src": [
+   234.84,
+   241.87366336633664
+  ],
+  "audio": "orig",
+  "mood": "warm"
+ },
+ {
+  "k": 5,
+  "type": "hero",
+  "src": [
+   291.84,
+   296.81425742574254
+  ],
+  "audio": "orig",
+  "mood": "tense"
+ },
+ {
+  "k": 6,
+  "type": "hero",
+  "src": [
+   346.86,
+   355.4619801980198
+  ],
+  "audio": "orig",
+  "mood": "funny"
+ },
+ {
+  "k": 7,
+  "type": "card",
+  "src": [
+   381.0,
+   383.8
+  ],
+  "text": "Take two",
+  "audio": "orig_low"
+ },
+ {
+  "k": 8,
+  "type": "hero",
+  "src": [
+   382.86,
+   397.7986138613861
+  ],
+  "audio": "orig",
+  "mood": "sad"
+ },
+ {
+  "k": 9,
+  "type": "hero",
+  "src": [
+   501.84,
+   521.5469306930693
+  ],
+  "audio": "orig",
+  "mood": "epic"
+ },
+ {
+  "k": 10,
+  "type": "hero",
+  "src": [
+   561.84,
+   565.34
+  ],
+  "audio": "orig",
+  "mood": "funny"
+ }
+]
