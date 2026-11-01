@@ -1,0 +1,719 @@
+{
+ "logline": "A newly separated mother and her diabetic daughter hide in their new home's panic room from three burglars \u2014 but the fortune the thieves want is locked inside the room with them.",
+ "genre_tone": "home-invasion thriller with dark banter",
+ "characters": [
+  {
+   "name": "Bram",
+   "aliases": [
+    "Mom"
+   ],
+   "role": "protagonist",
+   "arc": "from anxious and claustrophobic to ferocious protector",
+   "importance": 100
+  },
+  {
+   "name": "Hollis",
+   "aliases": [
+    "Kid"
+   ],
+   "role": "protagonist",
+   "arc": "sharp kid whose illness becomes the ticking clock",
+   "importance": 85
+  },
+  {
+   "name": "Lena",
+   "aliases": [],
+   "role": "antagonist",
+   "arc": "reluctant thief and panic-room builder who saves the girl",
+   "importance": 80
+  },
+  {
+   "name": "Milo",
+   "aliases": [
+    "Buddy"
+   ],
+   "role": "antagonist",
+   "arc": "armed wildcard who becomes a killer",
+   "importance": 70
+  },
+  {
+   "name": "Rufus",
+   "aliases": [],
+   "role": "antagonist",
+   "arc": "grandson-planner, out of his depth, killed by Milo",
+   "importance": 55
+  },
+  {
+   "name": "Stephen",
+   "aliases": [
+    "Dad"
+   ],
+   "role": "ally",
+   "arc": "estranged father who comes and is beaten",
+   "importance": 40
+  }
+ ],
+ "threads": [
+  {
+   "id": "T1",
+   "title": "Bram vs the house: survival",
+   "summary": "trapped mother fights to protect her daughter",
+   "beats": [
+    "c01-b1",
+    "c01-b2",
+    "c01-b5",
+    "c01-b7",
+    "c02-b3",
+    "c02-b4",
+    "c02-b7",
+    "c02-b10",
+    "c02-b12",
+    "c03-b3",
+    "c03-b4",
+    "c03-b5",
+    "c03-b6",
+    "c03-b12",
+    "c04-b5",
+    "c04-b8",
+    "c04-b11"
+   ],
+   "importance": 100
+  },
+  {
+   "id": "T2",
+   "title": "The fortune in the panic room",
+   "summary": "the hidden millions and the safe",
+   "beats": [
+    "c01-b3",
+    "c01-b4",
+    "c01-b6",
+    "c01-b8",
+    "c02-b1",
+    "c02-b2",
+    "c02-b6",
+    "c02-b11",
+    "c04-b7",
+    "c04-b9"
+   ],
+   "importance": 85
+  },
+  {
+   "id": "T3",
+   "title": "The thieves fall apart",
+   "summary": "Rufus, Lena and Milo turn on each other; Lena's conscience",
+   "beats": [
+    "c01-b9",
+    "c01-b10",
+    "c02-b8",
+    "c02-b9",
+    "c02-b13",
+    "c03-b1",
+    "c03-b2",
+    "c03-b9",
+    "c03-b10",
+    "c03-b11",
+    "c04-b2",
+    "c04-b3",
+    "c04-b4",
+    "c04-b6",
+    "c04-b10"
+   ],
+   "importance": 75
+  },
+  {
+   "id": "T4",
+   "title": "Hollis's diabetes clock",
+   "summary": "the illness that forces the door open",
+   "beats": [
+    "c02-b5",
+    "c03-b7",
+    "c03-b8",
+    "c03-b13",
+    "c04-b1"
+   ],
+   "importance": 85
+  }
+ ],
+ "turning_points": {
+  "TP1_opportunity": "c01-b8",
+  "TP2_change_of_plans": "c02-b6",
+  "TP3_point_of_no_return": "c03-b10",
+  "TP4_major_setback": "c04-b1",
+  "TP5_climax": "c04-b8"
+ },
+ "beats": [
+  {
+   "id": "c01-b1",
+   "global_importance": 70,
+   "tier": "P1",
+   "requires": [],
+   "pays_off": [],
+   "thread": "T1",
+   "short": "newly separated Bram must buy a home fast",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c01-b2",
+   "global_importance": 20,
+   "tier": "P3",
+   "requires": [],
+   "pays_off": [],
+   "thread": "T1",
+   "short": "touring a huge brownstone",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c01-b3",
+   "global_importance": 68,
+   "tier": "P1",
+   "requires": [],
+   "pays_off": [],
+   "thread": "T2",
+   "short": "late owner's missing millions",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c01-b4",
+   "global_importance": 95,
+   "tier": "P0",
+   "requires": [],
+   "pays_off": [],
+   "thread": "T2",
+   "short": "the house has a steel panic room",
+   "spoiler_level": 2
+  },
+  {
+   "id": "c01-b5",
+   "global_importance": 40,
+   "tier": "P2",
+   "requires": [],
+   "pays_off": [],
+   "thread": "T1",
+   "short": "Bram is claustrophobic",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c01-b6",
+   "global_importance": 45,
+   "tier": "P2",
+   "requires": [
+    "c01-b4"
+   ],
+   "pays_off": [],
+   "thread": "T2",
+   "short": "door sensor stops it closing",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c01-b7",
+   "global_importance": 30,
+   "tier": "P2",
+   "requires": [],
+   "pays_off": [],
+   "thread": "T1",
+   "short": "first night, mother-daughter bond",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c01-b8",
+   "global_importance": 92,
+   "tier": "P0",
+   "requires": [],
+   "pays_off": [],
+   "thread": "T2",
+   "short": "three burglars break in; house is occupied",
+   "spoiler_level": 2
+  },
+  {
+   "id": "c01-b9",
+   "global_importance": 50,
+   "tier": "P2",
+   "requires": [
+    "c01-b8"
+   ],
+   "pays_off": [],
+   "thread": "T3",
+   "short": "Lena wants out; Rufus insists",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c01-b10",
+   "global_importance": 55,
+   "tier": "P1",
+   "requires": [
+    "c01-b8"
+   ],
+   "pays_off": [],
+   "thread": "T3",
+   "short": "Rufus brought armed Milo",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c02-b1",
+   "global_importance": 85,
+   "tier": "P0",
+   "requires": [
+    "c01-b8"
+   ],
+   "pays_off": [],
+   "thread": "T2",
+   "short": "$14 million is hidden upstairs",
+   "spoiler_level": 2
+  },
+  {
+   "id": "c02-b2",
+   "global_importance": 35,
+   "tier": "P2",
+   "requires": [
+    "c01-b8"
+   ],
+   "pays_off": [],
+   "thread": "T2",
+   "short": "they split up to grab mother and child",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c02-b3",
+   "global_importance": 93,
+   "tier": "P0",
+   "requires": [
+    "c01-b4"
+   ],
+   "pays_off": [],
+   "thread": "T1",
+   "short": "Bram and Hollis flee into the panic room",
+   "spoiler_level": 2
+  },
+  {
+   "id": "c02-b4",
+   "global_importance": 72,
+   "tier": "P1",
+   "requires": [
+    "c02-b3"
+   ],
+   "pays_off": [],
+   "thread": "T1",
+   "short": "the room's phone isn't connected",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c02-b5",
+   "global_importance": 55,
+   "tier": "P1",
+   "requires": [],
+   "pays_off": [],
+   "thread": "T4",
+   "short": "hint: Hollis has a medical condition",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c02-b6",
+   "global_importance": 90,
+   "tier": "P0",
+   "requires": [
+    "c02-b3"
+   ],
+   "pays_off": [],
+   "thread": "T2",
+   "short": "what they want is inside the room",
+   "spoiler_level": 2
+  },
+  {
+   "id": "c02-b7",
+   "global_importance": 35,
+   "tier": "P2",
+   "requires": [
+    "c02-b3"
+   ],
+   "pays_off": [],
+   "thread": "T1",
+   "short": "Bram refuses to come out",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c02-b8",
+   "global_importance": 65,
+   "tier": "P1",
+   "requires": [],
+   "pays_off": [],
+   "thread": "T3",
+   "short": "Lena builds panic rooms",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c02-b9",
+   "global_importance": 25,
+   "tier": "P3",
+   "requires": [],
+   "pays_off": [],
+   "thread": "T3",
+   "short": "they seal the house",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c02-b10",
+   "global_importance": 45,
+   "tier": "P2",
+   "requires": [
+    "c01-b5"
+   ],
+   "pays_off": [],
+   "thread": "T1",
+   "short": "Bram's panic attack; Hollis steadies her",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c02-b11",
+   "global_importance": 75,
+   "tier": "P1",
+   "requires": [
+    "c02-b3"
+   ],
+   "pays_off": [],
+   "thread": "T2",
+   "short": "Rufus gasses the room",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c02-b12",
+   "global_importance": 30,
+   "tier": "P2",
+   "requires": [
+    "c02-b3"
+   ],
+   "pays_off": [],
+   "thread": "T1",
+   "short": "SOS to the neighbor ignored",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c02-b13",
+   "global_importance": 20,
+   "tier": "P3",
+   "requires": [],
+   "pays_off": [],
+   "thread": "T3",
+   "short": "squabble over shares",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c03-b1",
+   "global_importance": 50,
+   "tier": "P2",
+   "requires": [
+    "c01-b3"
+   ],
+   "pays_off": [],
+   "thread": "T3",
+   "short": "Rufus is the owner's grandson",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c03-b2",
+   "global_importance": 25,
+   "tier": "P3",
+   "requires": [],
+   "pays_off": [],
+   "thread": "T3",
+   "short": "Milo threatens Lena",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c03-b3",
+   "global_importance": 60,
+   "tier": "P1",
+   "requires": [
+    "c02-b3"
+   ],
+   "pays_off": [],
+   "thread": "T1",
+   "short": "Bram's dash for the cellphone",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c03-b4",
+   "global_importance": 25,
+   "tier": "P3",
+   "requires": [
+    "c03-b3"
+   ],
+   "pays_off": [],
+   "thread": "T1",
+   "short": "no signal inside",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c03-b5",
+   "global_importance": 55,
+   "tier": "P1",
+   "requires": [
+    "c02-b4"
+   ],
+   "pays_off": [],
+   "thread": "T1",
+   "short": "911 puts her on hold",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c03-b6",
+   "global_importance": 60,
+   "tier": "P1",
+   "requires": [],
+   "pays_off": [],
+   "thread": "T1",
+   "short": "garbled call reaches the father",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c03-b7",
+   "global_importance": 80,
+   "tier": "P0",
+   "requires": [
+    "c02-b5"
+   ],
+   "pays_off": [],
+   "thread": "T4",
+   "short": "Hollis's blood sugar crashes",
+   "spoiler_level": 2
+  },
+  {
+   "id": "c03-b8",
+   "global_importance": 88,
+   "tier": "P0",
+   "requires": [
+    "c03-b7"
+   ],
+   "pays_off": [],
+   "thread": "T4",
+   "short": "her Glucagon is outside the room",
+   "spoiler_level": 2
+  },
+  {
+   "id": "c03-b9",
+   "global_importance": 40,
+   "tier": "P2",
+   "requires": [],
+   "pays_off": [],
+   "thread": "T3",
+   "short": "Rufus tries to quit",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c03-b10",
+   "global_importance": 82,
+   "tier": "P0",
+   "requires": [
+    "c01-b10"
+   ],
+   "pays_off": [],
+   "thread": "T3",
+   "short": "Milo shoots Rufus and takes control",
+   "spoiler_level": 2
+  },
+  {
+   "id": "c03-b11",
+   "global_importance": 45,
+   "tier": "P2",
+   "requires": [
+    "c03-b10"
+   ],
+   "pays_off": [],
+   "thread": "T3",
+   "short": "Lena forced to find a way in",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c03-b12",
+   "global_importance": 78,
+   "tier": "P1",
+   "requires": [
+    "c03-b6"
+   ],
+   "pays_off": [],
+   "thread": "T1",
+   "short": "father captured and beaten on camera",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c03-b13",
+   "global_importance": 80,
+   "tier": "P1",
+   "requires": [
+    "c03-b8"
+   ],
+   "pays_off": [],
+   "thread": "T4",
+   "short": "Hollis goes into a diabetic attack",
+   "spoiler_level": 2
+  },
+  {
+   "id": "c04-b1",
+   "global_importance": 94,
+   "tier": "P0",
+   "requires": [
+    "c03-b8"
+   ],
+   "pays_off": [],
+   "thread": "T4",
+   "short": "positions flip: thieves in the room with Hollis",
+   "spoiler_level": 2
+  },
+  {
+   "id": "c04-b2",
+   "global_importance": 70,
+   "tier": "P1",
+   "requires": [
+    "c04-b1"
+   ],
+   "pays_off": [],
+   "thread": "T3",
+   "short": "Lena chooses to give her the shot",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c04-b3",
+   "global_importance": 86,
+   "tier": "P0",
+   "requires": [
+    "c04-b1"
+   ],
+   "pays_off": [],
+   "thread": "T3",
+   "short": "Lena saves Hollis; bad-cards confession",
+   "spoiler_level": 2
+  },
+  {
+   "id": "c04-b4",
+   "global_importance": 55,
+   "tier": "P1",
+   "requires": [
+    "c03-b10"
+   ],
+   "pays_off": [],
+   "thread": "T3",
+   "short": "Milo: 'saved her for ten minutes'",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c04-b5",
+   "global_importance": 80,
+   "tier": "P1",
+   "requires": [
+    "c04-b1"
+   ],
+   "pays_off": [],
+   "thread": "T1",
+   "short": "Bram sends the police away",
+   "spoiler_level": 2
+  },
+  {
+   "id": "c04-b6",
+   "global_importance": 70,
+   "tier": "P1",
+   "requires": [
+    "c03-b10"
+   ],
+   "pays_off": [],
+   "thread": "T3",
+   "short": "Milo plans to kill all witnesses",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c04-b7",
+   "global_importance": 50,
+   "tier": "P2",
+   "requires": [
+    "c02-b6"
+   ],
+   "pays_off": [],
+   "thread": "T2",
+   "short": "the safe is opened",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c04-b8",
+   "global_importance": 96,
+   "tier": "P0",
+   "requires": [
+    "c04-b6"
+   ],
+   "pays_off": [],
+   "thread": "T1",
+   "short": "Bram turns the gun on Milo",
+   "spoiler_level": 2
+  },
+  {
+   "id": "c04-b9",
+   "global_importance": 60,
+   "tier": "P1",
+   "requires": [
+    "c04-b7"
+   ],
+   "pays_off": [],
+   "thread": "T2",
+   "short": "Lena flees with the money",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c04-b10",
+   "global_importance": 65,
+   "tier": "P1",
+   "requires": [
+    "c04-b9"
+   ],
+   "pays_off": [],
+   "thread": "T3",
+   "short": "police stop Lena",
+   "spoiler_level": 1
+  },
+  {
+   "id": "c04-b11",
+   "global_importance": 62,
+   "tier": "P1",
+   "requires": [],
+   "pays_off": [],
+   "thread": "T1",
+   "short": "mother and daughter house-hunt again",
+   "spoiler_level": 1
+  }
+ ],
+ "emotional_peaks": [
+  "c03-b13",
+  "c03-b12",
+  "c04-b3",
+  "c04-b8",
+  "c02-b10"
+ ],
+ "comedy_peaks": [
+  "c02-b7",
+  "c04-b5",
+  "c01-b9"
+ ],
+ "best_quotes": [
+  {
+   "line": 50,
+   "why": "'It's called a panic room.'"
+  },
+  {
+   "line": 213,
+   "why": "'What we want is in that room.'"
+  },
+  {
+   "line": 221,
+   "why": "'Get the fuck out of my house!'"
+  },
+  {
+   "line": 504,
+   "why": "'Coma. Die.'"
+  },
+  {
+   "line": 521,
+   "why": "'Bad cards, Kid.'"
+  }
+ ],
+ "themes": [
+  "safety as a prison",
+  "a mother's ferocity",
+  "greed vs conscience"
+ ]
+}

@@ -1,0 +1,91 @@
+{
+ "roster_updates": [
+  {"name": "Thom", "aliases": [], "who": "young man who left his girlfriend to go to space; now pressed into a mission to win her back", "evidence": "L0-L2, L24, L41"},
+  {"name": "Celia", "aliases": ["her"], "who": "Thom's ex-girlfriend with a robot hand who works in robotics; in the present she is the threat the team must stop", "evidence": "L0-L3, L46, L54-L58"},
+  {"name": "Barley", "aliases": [], "who": "team member tracking the time window", "evidence": "L16-L17"},
+  {"name": "Director", "aliases": [], "who": "unnamed leader who stages the scene like a film shoot ('action', 'cut', 'Vivacissimo')", "evidence": "L32, L42, L50, L61, L64"},
+  {"name": "Captain", "aliases": [], "who": "military leader of the operation (addressed as Captain)", "evidence": "L69"}
+ ],
+ "scenes": [
+  {"id": "c01-s1", "lines": [0, 9], "setting_guess": "the past; a lookout/bridge where the couple argue", "characters": ["Celia", "Thom"],
+   "speakers": {"L0": "Celia", "L1": "Thom", "L2": "Thom", "L3": "Celia", "L4": "Thom", "L5": "Thom", "L6": "Thom", "L7": "Thom", "L8": "Celia", "L9": "?"},
+   "summary": "Celia called Thom a jerk as he explained he wanted to go to space while she stayed with her robotics. Pressed, Thom admitted he was freaked out by her robot hand, and Celia ended the relationship. A voice announced that a robot's memory had been synced and locked.",
+   "beats": [
+    {"id": "c01-b1", "text": "Thom breaks up with Celia to chase his dream of going to space while she stays with her robotics", "lines": [0, 2], "kind": "relationship", "local_importance": 5, "emotion": {"label": "anger", "intensity": 2}, "who": ["Thom", "Celia"]},
+    {"id": "c01-b2", "text": "Thom admits the real reason: he is freaked out by Celia's robot hand and has nightmares about robotic claws", "lines": [3, 7], "kind": "character", "local_importance": 4, "emotion": {"label": "awkward", "intensity": 2}, "who": ["Thom", "Celia"]},
+    {"id": "c01-b3", "text": "Celia ends it: 'Whatever, Thom. We're done.'", "lines": [8, 8], "kind": "relationship", "local_importance": 4, "emotion": {"label": "hurt", "intensity": 2}, "who": ["Celia"]},
+    {"id": "c01-b4", "text": "A robot's memory is synced and locked at that moment of the breakup", "lines": [9, 9], "kind": "setup", "local_importance": 3, "emotion": {"label": "ominous", "intensity": 1}, "who": []}
+   ],
+   "humor": [{"lines": [6, 7], "joke": "Thom confesses nightmares about 'giant robotic claws of death'", "type": "irony"}],
+   "quotes": [{"line": 0, "why": "opening line, repeated later as a callback"}, {"line": 7, "why": "foreshadows giant robots"}],
+   "moments": [{"lines": [0, 8], "what": "the original breakup argument", "emotion": "hurt/anger", "intensity": 2}],
+   "open_threads": ["Whose memory was synced, and why does it matter?"]},
+  {"id": "c01-s2", "lines": [10, 13], "setting_guess": "unclear; long gaps suggest mostly visual scenes", "characters": ["?"],
+   "speakers": {"L10": "?", "L11": "?", "L12": "?", "L13": "?"},
+   "summary": "Sparse lines over long silences: someone found something freaky, someone was asked why they were not 'down there', and someone admitted overhearing the couple the night before while another insisted it was not their fault.",
+   "beats": [
+    {"id": "c01-b5", "text": "A bystander overheard the couple's fight and insists 'it's not my fault'", "lines": [12, 13], "kind": "mystery", "local_importance": 2, "emotion": {"label": "defensive", "intensity": 1}, "who": []}
+   ],
+   "humor": [], "quotes": [], "moments": [], "open_threads": ["What happened between the breakup and the present? (likely shown visually, not in dialogue)"]},
+  {"id": "c01-s3", "lines": [14, 21], "setting_guess": "a staging point before a military operation", "characters": ["Thom", "Barley", "Captain"],
+   "speakers": {"L14": "?", "L15": "?", "L16": "Captain?", "L17": "Barley", "L18": "Captain?", "L19": "Captain?", "L20": "Captain?", "L21": "?"},
+   "summary": "Thom was hyped up as a 'rockstar' before an operation. Barley estimated a ten-minute window and soldiers were ordered to move out.",
+   "beats": [
+    {"id": "c01-b6", "text": "An armed team launches a time-critical operation with a window of about ten minutes", "lines": [16, 21], "kind": "plot", "local_importance": 4, "emotion": {"label": "urgency", "intensity": 2}, "who": ["Barley", "Captain"]},
+    {"id": "c01-b7", "text": "Thom, clearly nervous, is reassured he is a 'rockstar'", "lines": [14, 15], "kind": "humor", "local_importance": 2, "emotion": {"label": "nervous", "intensity": 1}, "who": ["Thom"]}
+   ],
+   "humor": [{"lines": [14, 15], "joke": "'Of course you're ready, you're a rockstar' to an obviously unready Thom", "type": "sarcasm"}],
+   "quotes": [], "moments": [{"lines": [19, 21], "what": "soldiers storm out ('Move your asses! Go go go!')", "emotion": "action", "intensity": 2}], "open_threads": []},
+  {"id": "c01-s4", "lines": [22, 31], "setting_guess": "the field, approaching 'her'", "characters": ["Director", "Thom"],
+   "speakers": {"L22": "Director", "L23": "Director", "L24": "Director", "L25": "Director", "L26": "Director", "L27": "Director", "L28": "Director", "L29": "Director", "L30": "Director", "L31": "Director"},
+   "summary": "As they caught sight of 'her', the director coached Thom like an actor: she is your passion, be tender, be honest, remind her what love is.",
+   "beats": [
+    {"id": "c01-b8", "text": "The plan relies on Thom: he is coached to approach 'her' tenderly and remind her what love is", "lines": [24, 31], "kind": "plot", "local_importance": 5, "emotion": {"label": "anticipation", "intensity": 2}, "who": ["Thom", "Director"]}
+   ],
+   "humor": [{"lines": [29, 30], "joke": "the director's over-the-top acting notes in the middle of a battle", "type": "irony"}],
+   "quotes": [{"line": 31, "why": "states the mission in emotional terms"}], "moments": [{"lines": [25, 31], "what": "director's pep talk as Thom sees her", "emotion": "anticipation", "intensity": 2}], "open_threads": ["Who is 'her'? (Celia)"]},
+  {"id": "c01-s5", "lines": [32, 53], "setting_guess": "a re-staged copy of the breakup location, under attack", "characters": ["Director", "Thom", "Celia", "Barley"],
+   "speakers": {"L32": "Director", "L33": "Technician", "L34": "Celia (actress?)", "L35": "?", "L36": "Thom", "L37": "Thom", "L38": "Thom", "L39": "Thom", "L40": "Barley", "L41": "Director", "L42": "Director", "L43": "Celia", "L44": "Thom", "L45": "Thom", "L46": "Thom", "L47": "?", "L48": "?", "L49": "Captain?", "L50": "Director", "L51": "?", "L52": "?", "L53": "?"},
+   "summary": "The team re-staged the original breakup as a film take while a 'memory overwrite' ran, with Thom repeating his old lines. With enemies two minutes away, Thom went off-script, admitting he was young and a jerk but that it was no reason to destroy the world. The take collapsed into 'Abort! Cut!' and screams.",
+   "beats": [
+    {"id": "c01-b9", "text": "The plan revealed: they re-stage the original breakup as a film take to overwrite a memory", "lines": [32, 39], "kind": "plot", "local_importance": 5, "emotion": {"label": "tension", "intensity": 2}, "who": ["Director", "Thom", "Celia"]},
+    {"id": "c01-b10", "text": "Enemies close in with two minutes left and Thom is told to speed up", "lines": [40, 42], "kind": "plot", "local_importance": 3, "emotion": {"label": "urgency", "intensity": 2}, "who": ["Barley", "Director"]},
+    {"id": "c01-b11", "text": "Thom goes off-script: he was young and a jerk, but that is no reason to destroy the world, revealing Celia is the threat", "lines": [43, 46], "kind": "payoff", "local_importance": 5, "emotion": {"label": "remorse/humor", "intensity": 2}, "who": ["Thom", "Celia"]},
+    {"id": "c01-b12", "text": "The take falls apart into 'Abort! Cut!' and screaming chaos", "lines": [47, 53], "kind": "plot", "local_importance": 4, "emotion": {"label": "panic", "intensity": 3}, "who": []}
+   ],
+   "humor": [{"lines": [34, 35], "joke": "a flubbed take ('Ohp- Sorry! Sorry.') during a life-or-death re-enactment", "type": "slapstick"}, {"lines": [44, 45], "joke": "'I was young... and a dick.'", "type": "banter"}, {"lines": [42, 42], "joke": "director yells 'Vivacissimo!'", "type": "irony"}],
+   "quotes": [{"line": 46, "why": "reveals the stakes"}, {"line": 45, "why": "funniest line"}],
+   "moments": [{"lines": [43, 46], "what": "Thom's off-script confession", "emotion": "funny/remorse", "intensity": 2}, {"lines": [49, 53], "what": "abort, chaos and screams", "emotion": "panic", "intensity": 3}],
+   "open_threads": ["Will the overwrite work?"]},
+  {"id": "c01-s6", "lines": [54, 63], "setting_guess": "face to face with Celia", "characters": ["Celia", "Thom", "Director"],
+   "speakers": {"L54": "Celia", "L55": "Thom", "L56": "Celia", "L57": "Thom", "L58": "Celia", "L59": "Thom", "L60": "Thom", "L61": "Director", "L62": "?", "L63": "?"},
+   "summary": "Celia confronted Thom: he broke her heart and forgot her on earth, and she threatened to crush him. Thom simply said he was sorry, which the director praised as a 'good ad-lib'. Someone again insisted it was not their fault, 'this time'.",
+   "beats": [
+    {"id": "c01-b13", "text": "Celia reveals her motive: Thom broke her heart and forgot her on earth; she threatens to crush him", "lines": [54, 58], "kind": "emotion", "local_importance": 5, "emotion": {"label": "heartbreak/rage", "intensity": 3}, "who": ["Celia", "Thom"]},
+    {"id": "c01-b14", "text": "Thom sincerely apologizes; the director calls it a 'good ad-lib'", "lines": [59, 61], "kind": "emotion", "local_importance": 5, "emotion": {"label": "remorse", "intensity": 3}, "who": ["Thom", "Director"]},
+    {"id": "c01-b15", "text": "Running gag: 'Not my fault! This time.'", "lines": [62, 63], "kind": "humor", "local_importance": 2, "emotion": {"label": "comic", "intensity": 1}, "who": []}
+   ],
+   "humor": [{"lines": [61, 61], "joke": "a heartfelt apology is judged as an acting choice", "type": "irony"}, {"lines": [62, 63], "joke": "'Not my fault! This time.' callback to L13", "type": "callback"}],
+   "quotes": [{"line": 54, "why": "emotional core"}, {"line": 56, "why": "reveals why she turned on the world"}, {"line": 60, "why": "the apology"}],
+   "moments": [{"lines": [54, 60], "what": "Celia's heartbreak and Thom's apology", "emotion": "sad", "intensity": 3}],
+   "open_threads": []},
+  {"id": "c01-s7", "lines": [64, 72], "setting_guess": "the set during the final assault", "characters": ["Director", "Barley", "Thom", "Celia", "Captain"],
+   "speakers": {"L64": "Director", "L65": "Barley", "L66": "?", "L67": "?", "L68": "Technician", "L69": "Soldier", "L70": "Thom", "L71": "Thom", "L72": "Technician"},
+   "summary": "Out of time, the battle peaked; the overwrite reached 90% while a soldier begged the captain to abort. Thom told Celia the world had changed and maybe they could too, and the memory overwrite completed.",
+   "beats": [
+    {"id": "c01-b16", "text": "Out of time, the battle peaks as the overwrite reaches 90% and soldiers beg to abort", "lines": [64, 69], "kind": "plot", "local_importance": 4, "emotion": {"label": "climax tension", "intensity": 3}, "who": ["Barley", "Captain"]},
+    {"id": "c01-b17", "text": "Thom tells Celia 'The world's changed... maybe we can too' and the memory overwrite completes", "lines": [70, 72], "kind": "payoff", "local_importance": 5, "emotion": {"label": "hope", "intensity": 3}, "who": ["Thom", "Celia"]}
+   ],
+   "humor": [],
+   "quotes": [{"line": 70, "why": "thematic line"}, {"line": 71, "why": "resolution"}],
+   "moments": [{"lines": [67, 69], "what": "battle roar and the call to abort", "emotion": "epic", "intensity": 3}, {"lines": [70, 72], "what": "Thom's final words to Celia as the overwrite completes", "emotion": "hopeful", "intensity": 3}],
+   "open_threads": []},
+  {"id": "c01-s8", "lines": [73, 75], "setting_guess": "aftermath", "characters": ["?"],
+   "speakers": {"L73": "?", "L74": "?", "L75": "?"},
+   "summary": "In the aftermath someone remarked there was a lesson to learn from all this, and that it could have gone worse.",
+   "beats": [{"id": "c01-b18", "text": "Coda: 'There's a lesson to be learned from this... Could'a gone worse.'", "lines": [73, 75], "kind": "humor", "local_importance": 3, "emotion": {"label": "wry", "intensity": 1}, "who": []}],
+   "humor": [{"lines": [74, 75], "joke": "understatement after a world-ending battle", "type": "irony"}],
+   "quotes": [{"line": 75, "why": "closing joke"}], "moments": [{"lines": [73, 75], "what": "wry closing lines", "emotion": "funny", "intensity": 2}], "open_threads": []}
+ ],
+ "story_so_far": "Years ago Thom left Celia, who has a robot hand and works in robotics, to go to space, admitting her hand freaked him out; at that moment a robot's memory was synced. In the present Celia has become a world-destroying threat. A military team and a film-director-like leader re-stage the breakup as a take to overwrite her memory, with Thom as the actor. Under attack, Thom goes off-script, Celia reveals he broke her heart and forgot her on earth, Thom apologizes, and as the battle peaks he says the world has changed and maybe they can too; the overwrite completes. Someone wryly notes it could have gone worse."
+}

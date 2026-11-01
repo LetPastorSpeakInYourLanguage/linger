@@ -1,0 +1,74 @@
+{
+ "movie": "Panic Room",
+ "scenes": 168,
+ "scenes_with_dialogue": 86,
+ "beats": 47,
+ "scenes_covered_by_beats": 80,
+ "mensa": {
+  "salient": 58,
+  "AUC_llm_global": 0.648,
+  "AUC_llm_local": 0.637,
+  "AUC_position_prior": 0.477,
+  "AUC_dialogue_length": 0.662,
+  "P@k_llm_global": 0.552,
+  "AP_llm_global": 0.475,
+  "P0P1_precision": 0.542,
+  "P0P1_recall": 0.552
+ },
+ "tripod_tp": {
+  "gold": [
+   [
+    17,
+    18,
+    20
+   ],
+   [
+    56,
+    58
+   ],
+   [
+    135
+   ],
+   [
+    148
+   ],
+   [
+    159,
+    160
+   ]
+  ],
+  "llm_scene_distance": [
+   2,
+   5,
+   5,
+   2,
+   1
+  ],
+  "llm_hit@2": 0.6,
+  "position_prior_hit@2": 0.4
+ },
+ "ceiling": {
+  "salient_scenes_without_dialogue": 20,
+  "salient_total": 58,
+  "AUC_llm_global_dialogue_scenes_only": 0.648,
+  "AUC_dialogue_length_dialogue_scenes_only": 0.683,
+  "tp_scenes_without_dialogue": [
+   [
+    17,
+    18,
+    20
+   ],
+   [
+    56,
+    58
+   ],
+   [
+    135
+   ],
+   [],
+   [
+    159
+   ]
+  ]
+ }
+}

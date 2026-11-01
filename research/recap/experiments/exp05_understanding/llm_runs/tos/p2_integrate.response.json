@@ -1,0 +1,41 @@
+{
+ "logline": "When the robot-handed girlfriend he abandoned to go to space becomes a world-destroying threat, a young man must re-stage their breakup on a war-zone film set so that a memory overwrite can heal her heart.",
+ "genre_tone": "sci-fi action comedy with a romantic core; self-aware, film-within-a-film humor",
+ "characters": [
+  {"name": "Thom", "aliases": [], "role": "protagonist", "arc": "from a man who ran from his girlfriend's difference to one who apologizes and believes people can change", "importance": 100},
+  {"name": "Celia", "aliases": ["her"], "role": "antagonist", "arc": "heartbroken and abandoned, she turns against the world; Thom's apology and the overwrite bring her back", "importance": 95},
+  {"name": "Director", "aliases": [], "role": "ally", "arc": "treats a battle as a film shoot; comic relief and the plan's architect", "importance": 55},
+  {"name": "Barley", "aliases": [], "role": "ally", "arc": "keeps the clock", "importance": 30},
+  {"name": "Captain", "aliases": [], "role": "ally", "arc": "leads the soldiers", "importance": 25}
+ ],
+ "threads": [
+  {"id": "T1", "title": "Thom and Celia's broken relationship", "summary": "the breakup, its hidden reason, her heartbreak, his apology and the reconciliation", "beats": ["c01-b1", "c01-b2", "c01-b3", "c01-b11", "c01-b13", "c01-b14", "c01-b17"], "importance": 100},
+  {"id": "T2", "title": "The memory-overwrite mission", "summary": "the team stages the breakup again under fire to overwrite Celia's memory", "beats": ["c01-b4", "c01-b6", "c01-b8", "c01-b9", "c01-b10", "c01-b12", "c01-b16", "c01-b17"], "importance": 90},
+  {"id": "T3", "title": "Running gags", "summary": "'not my fault', acting notes in a war zone, wry coda", "beats": ["c01-b5", "c01-b7", "c01-b15", "c01-b18"], "importance": 25}
+ ],
+ "turning_points": {"TP1_opportunity": "c01-b8", "TP2_change_of_plans": "c01-b9", "TP3_point_of_no_return": "c01-b11", "TP4_major_setback": "c01-b12", "TP5_climax": "c01-b17"},
+ "beats": [
+  {"id": "c01-b1", "global_importance": 95, "tier": "P0", "requires": [], "pays_off": [], "thread": "T1", "short": "Thom dumps Celia to chase space", "spoiler_level": 0},
+  {"id": "c01-b2", "global_importance": 70, "tier": "P1", "requires": ["c01-b1"], "pays_off": [], "thread": "T1", "short": "her robot hand freaks him out", "spoiler_level": 0},
+  {"id": "c01-b3", "global_importance": 45, "tier": "P2", "requires": ["c01-b1"], "pays_off": [], "thread": "T1", "short": "Celia: 'We're done'", "spoiler_level": 0},
+  {"id": "c01-b4", "global_importance": 60, "tier": "P1", "requires": ["c01-b1"], "pays_off": [], "thread": "T2", "short": "that memory gets locked into a robot", "spoiler_level": 1},
+  {"id": "c01-b5", "global_importance": 10, "tier": "P3", "requires": [], "pays_off": [], "thread": "T3", "short": "someone insists it's not their fault", "spoiler_level": 0},
+  {"id": "c01-b6", "global_importance": 62, "tier": "P1", "requires": [], "pays_off": [], "thread": "T2", "short": "a team launches a ten-minute mission", "spoiler_level": 1},
+  {"id": "c01-b7", "global_importance": 15, "tier": "P3", "requires": [], "pays_off": [], "thread": "T3", "short": "nervous Thom is called a rockstar", "spoiler_level": 0},
+  {"id": "c01-b8", "global_importance": 72, "tier": "P1", "requires": ["c01-b6"], "pays_off": [], "thread": "T2", "short": "Thom is coached to win her back", "spoiler_level": 1},
+  {"id": "c01-b9", "global_importance": 92, "tier": "P0", "requires": ["c01-b1"], "pays_off": ["c01-b4"], "thread": "T2", "short": "they re-stage the breakup to overwrite her memory", "spoiler_level": 2},
+  {"id": "c01-b10", "global_importance": 35, "tier": "P2", "requires": ["c01-b9"], "pays_off": [], "thread": "T2", "short": "two minutes left", "spoiler_level": 1},
+  {"id": "c01-b11", "global_importance": 78, "tier": "P1", "requires": ["c01-b1"], "pays_off": ["c01-b2"], "thread": "T1", "short": "Thom goes off-script: Celia is destroying the world", "spoiler_level": 2},
+  {"id": "c01-b12", "global_importance": 50, "tier": "P2", "requires": ["c01-b9"], "pays_off": [], "thread": "T2", "short": "the take collapses into chaos", "spoiler_level": 2},
+  {"id": "c01-b13", "global_importance": 90, "tier": "P0", "requires": ["c01-b1"], "pays_off": ["c01-b1", "c01-b3"], "thread": "T1", "short": "Celia: you broke my heart and forgot me", "spoiler_level": 2},
+  {"id": "c01-b14", "global_importance": 75, "tier": "P1", "requires": ["c01-b13"], "pays_off": [], "thread": "T1", "short": "Thom apologizes for real", "spoiler_level": 2},
+  {"id": "c01-b15", "global_importance": 12, "tier": "P3", "requires": ["c01-b5"], "pays_off": ["c01-b5"], "thread": "T3", "short": "'Not my fault! This time.'", "spoiler_level": 1},
+  {"id": "c01-b16", "global_importance": 58, "tier": "P1", "requires": ["c01-b9"], "pays_off": [], "thread": "T2", "short": "overwrite at 90% as the battle peaks", "spoiler_level": 2},
+  {"id": "c01-b17", "global_importance": 96, "tier": "P0", "requires": ["c01-b9", "c01-b13"], "pays_off": ["c01-b4", "c01-b1"], "thread": "T1", "short": "'maybe we can change too' — overwrite complete", "spoiler_level": 3},
+  {"id": "c01-b18", "global_importance": 30, "tier": "P2", "requires": [], "pays_off": [], "thread": "T3", "short": "'could'a gone worse'", "spoiler_level": 1}
+ ],
+ "emotional_peaks": ["c01-b13", "c01-b14", "c01-b17", "c01-b1"],
+ "comedy_peaks": ["c01-b11", "c01-b14", "c01-b18", "c01-b15"],
+ "best_quotes": [{"line": 45, "why": "'...and a dick.' comic peak"}, {"line": 54, "why": "'You broke my heart.' emotional core"}, {"line": 70, "why": "thematic resolution"}, {"line": 75, "why": "closing joke"}, {"line": 0, "why": "callback line"}],
+ "themes": ["running from someone's difference", "apology and change", "memory and second takes", "filmmaking as a way to rewrite the past"]
+}
