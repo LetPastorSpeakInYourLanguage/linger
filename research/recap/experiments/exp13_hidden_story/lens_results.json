@@ -1,0 +1,41 @@
+{
+ "panic_room_lena": {
+  "lines_spoken": 140,
+  "lines_mentioning": 4,
+  "gold_scenes": 32,
+  "O1_main_SUL": {
+   "beats_about_char": 19,
+   "spoken_line_recall": 0.571,
+   "scene_recall": 0.562
+  },
+  "O2a_mentions_ctx": {
+   "lines": 20,
+   "spoken_line_recall": 0.029,
+   "scene_recall": 0.062
+  },
+  "O2b_mentions+speaker": {
+   "lines": 319,
+   "spoken_line_recall": 1.0,
+   "scene_recall": 1.0,
+   "share_of_film": 0.52
+  }
+ },
+ "friends_gunther": {
+  "utterances_spoken": 43,
+  "utterances_mentioning": 19,
+  "gold_scenes": 24,
+  "episodes": 18,
+  "O1_series_SUL_digest_beats": 4,
+  "O1_scene_recall": 0.125,
+  "crowd_scene_plots_mentioning": 8,
+  "O2a_mentions_ctx": {
+   "utterances": 92,
+   "scene_recall": 0.625
+  },
+  "O2b_mentions+speaker": {
+   "utterances": 200,
+   "scene_recall": 1.0,
+   "share_of_corpus": 0.011
+  }
+ }
+}

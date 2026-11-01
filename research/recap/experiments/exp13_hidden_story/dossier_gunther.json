@@ -1,0 +1,17 @@
+{"character": "Gunther (Central Perk)", "source": "lens pass over 200 utterances (speaker-attributed + mentions ±2) = 1.1% of S1-S3",
+ "facts": [
+  {"f": "used to be an actor: played Bryce on 'All My Children', killed off in an avalanche", "ep": "s02_e19", "idx": [18, 20], "in_main_SUL": true, "kind": "backstory"},
+  {"f": "bonds with Joey over being killed off a soap", "ep": "s02_e19", "idx": [13, 20], "in_main_SUL": false, "kind": "relationship"},
+  {"f": "the coffeehouse's enforcer — 'the Gunther card' wins the couch back", "ep": "s02_e21", "idx": [25, 35], "in_main_SUL": false, "kind": "role/humor"},
+  {"f": "gets trapped at Monica's Boggle party, too scared to leave ('she'll yell at me again')", "ep": "s02_e22", "idx": [41, 52], "in_main_SUL": false, "kind": "humor"},
+  {"f": "secretly in love with Rachel: 'I love Rachel. I wish she was my wife.'", "ep": "s03_e07", "idx": [62, 62], "in_main_SUL": false, "kind": "inner life"},
+  {"f": "resents Ross ('What does Rachel see in this guy?', 'like you don't already have everything')", "ep": "s03_e07-08", "idx": [62, 74], "in_main_SUL": true, "kind": "rivalry"},
+  {"f": "knows Rachel's wardrobe ('Rachel has those in burgundy')", "ep": "s03_e08", "idx": [79, 79], "in_main_SUL": false, "kind": "detail"},
+  {"f": "becomes Rachel's trainer/boss at the café; calls her 'sweetheart'", "ep": "s03_e10", "idx": [84, 99], "in_main_SUL": false, "kind": "relationship"},
+  {"f": "Rachel quits on him, which pushes her toward the fashion job", "ep": "s03_e10", "idx": [104, 121], "in_main_SUL": false, "kind": "turning point (hers)"},
+  {"f": "cheers 'Let it be me!' during Ross and Rachel's jealousy fight", "ep": "s03_e12", "idx": [130, 132], "in_main_SUL": false, "kind": "humor/rivalry"},
+  {"f": "former smoker: 'Oh dark mother, once again I suckle at your smoky tit'", "ep": "s03_e18", "idx": [167, 171], "in_main_SUL": false, "kind": "detail"},
+  {"f": "is the one who tells Rachel about Ross and the girl from the Xerox place — 'Was I not supposed to?'", "ep": "s03_e16", "idx": [154, 164], "in_main_SUL": false, "kind": "HIDDEN TURNING POINT of the main arc"},
+  {"f": "after the breakup, finally tries to ask Rachel out ('As my lover!... too out there') — Mark asks her out first; 'I dropped a cup.'", "ep": "s03_e19", "idx": [176, 183], "in_main_SUL": true, "kind": "turning point"},
+  {"f": "keeps courting her with small gestures ('Rachel, I made you a cocoa')", "ep": "s03_e21", "idx": [188, 188], "in_main_SUL": false, "kind": "detail"}
+ ]}
