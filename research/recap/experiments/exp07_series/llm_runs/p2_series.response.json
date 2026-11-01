@@ -1,0 +1,484 @@
+{
+ "arcs": [
+  {
+   "id": "A1",
+   "title": "Ross & Rachel",
+   "summary": "Ross's lifelong crush on Rachel: missed timing, the airport, Julie, the list, getting together, jealousy over Mark, 'the break' and Chloe, the breakup and its aftermath",
+   "importance": 100,
+   "keywords": []
+  },
+  {
+   "id": "A2",
+   "title": "Ross, Carol, Susan and Ben",
+   "summary": "Ross's ex-wife is a lesbian and pregnant with his child; co-parenting with Susan; Ben's birth; the lesbian wedding",
+   "importance": 78,
+   "keywords": []
+  },
+  {
+   "id": "A3",
+   "title": "Monica's love life",
+   "summary": "from Paul the Wine Guy and Alan to Richard, her parents' older friend; the kids issue and the breakup; Julio and Pete",
+   "importance": 70,
+   "keywords": []
+  },
+  {
+   "id": "A4",
+   "title": "Chandler's romantic misadventures",
+   "summary": "commitment fear, Aurora, Jill, Janice again and again",
+   "importance": 55,
+   "keywords": []
+  },
+  {
+   "id": "A5",
+   "title": "Joey's acting career",
+   "summary": "bit parts, the V.D. poster, Dr. Drake Ramoray on Days of Our Lives, getting killed off, theatre and Kate",
+   "importance": 60,
+   "keywords": []
+  },
+  {
+   "id": "A6",
+   "title": "Phoebe's family",
+   "summary": "Ursula the twin, the gay ice-dancer husband, the father myth, her mother, half-brother Frank and Alice, Phoebe Sr",
+   "importance": 60,
+   "keywords": []
+  },
+  {
+   "id": "A7",
+   "title": "Rachel grows up",
+   "summary": "runaway bride turned waitress, cutting off Dad's money, to a fashion job at Bloomingdale's",
+   "importance": 65,
+   "keywords": []
+  },
+  {
+   "id": "A8",
+   "title": "Marcel the monkey",
+   "summary": "Ross's pet monkey, the zoo, Marcel's showbiz career",
+   "importance": 40,
+   "keywords": []
+  },
+  {
+   "id": "A9",
+   "title": "Joey and Chandler: roommates",
+   "summary": "Joey moves out, Chandler's creepy roommate Eddie, Joey comes back",
+   "importance": 45,
+   "keywords": []
+  },
+  {
+   "id": "A10",
+   "title": "Rachel and Paolo",
+   "summary": "Rachel's Italian boyfriend who hits on Phoebe",
+   "importance": 35,
+   "keywords": []
+  }
+ ],
+ "beat_arc": {
+  "s01_e01_b2": "A1",
+  "s01_e05_b4": "A1",
+  "s01_e12_b4": "A1",
+  "s01_e12_b5": "A1",
+  "s01_e16_b4": "A1",
+  "s01_e19_b0": "A1",
+  "s01_e24_b0": "A1",
+  "s01_e24_b1": "A1",
+  "s01_e24_b5": "A1",
+  "s02_e01_b0": "A1",
+  "s02_e01_b1": "A1",
+  "s02_e01_b3": "A1",
+  "s02_e02_b4": "A1",
+  "s02_e02_b5": "A1",
+  "s02_e04_b5": "A1",
+  "s02_e07_b3": "A1",
+  "s02_e08_b2": "A1",
+  "s02_e08_b3": "A1",
+  "s02_e08_b5": "A1",
+  "s02_e09_b2": "A1",
+  "s02_e10_b1": "A1",
+  "s02_e14_b0": "A1",
+  "s02_e14_b1": "A1",
+  "s02_e15_b3": "A1",
+  "s02_e15_b4": "A1",
+  "s02_e19_b1": "A1",
+  "s02_e23_b4": "A1",
+  "s03_e11_b3": "A1",
+  "s03_e11_b4": "A7",
+  "s03_e12_b2": "A1",
+  "s03_e12_b3": "A1",
+  "s03_e14_b2": "A1",
+  "s03_e14_b3": "A7",
+  "s03_e15_b3": "A1",
+  "s03_e15_b4": "A1",
+  "s03_e16_b1": "A1",
+  "s03_e16_b2": "A1",
+  "s03_e16_b3": "A1",
+  "s03_e16_b5": "A1",
+  "s03_e17_b1": "A1",
+  "s03_e17_b2": "A1",
+  "s03_e19_b5": "A1",
+  "s03_e24_b5": "A1",
+  "s03_e25_b4": "A1",
+  "s01_e02_b0": "A2",
+  "s01_e02_b1": "A2",
+  "s01_e02_b4": "A2",
+  "s01_e02_b5": "A2",
+  "s01_e09_b5": "A2",
+  "s01_e14_b4": "A2",
+  "s01_e16_b1": "A2",
+  "s01_e16_b2": "A2",
+  "s01_e17_b0": "A2",
+  "s01_e23_b0": "A2",
+  "s01_e23_b1": "A2",
+  "s01_e23_b3": "A2",
+  "s01_e23_b4": "A2",
+  "s01_e23_b5": "A2",
+  "s02_e02_b0": "A2",
+  "s02_e02_b3": "A2",
+  "s02_e06_b2": "A2",
+  "s02_e11_b0": "A2",
+  "s02_e11_b3": "A2",
+  "s02_e11_b4": "A2",
+  "s02_e11_b5": "A2",
+  "s02_e20_b1": "A2",
+  "s03_e04_b2": "A2",
+  "s03_e04_b5": "A2",
+  "s03_e08_b3": "A2",
+  "s03_e17_b5": "A2",
+  "s01_e01_b3": "A3",
+  "s01_e03_b2": "A3",
+  "s02_e15_b0": "A3",
+  "s02_e15_b1": "A3",
+  "s02_e16_b2": "A3",
+  "s02_e16_b3": "A3",
+  "s02_e20_b0": "A3",
+  "s02_e20_b3": "A3",
+  "s02_e20_b4": "A3",
+  "s02_e23_b5": "A3",
+  "s02_e24_b4": "A3",
+  "s03_e01_b0": "A3",
+  "s03_e01_b4": "A3",
+  "s03_e12_b4": "A3",
+  "s03_e13_b0": "A3",
+  "s03_e18_b0": "A3",
+  "s03_e19_b2": "A3",
+  "s03_e19_b3": "A3",
+  "s03_e21_b1": "A3",
+  "s03_e21_b4": "A3",
+  "s03_e23_b3": "A3",
+  "s03_e24_b2": "A3",
+  "s01_e06_b5": "A4",
+  "s01_e07_b1": "A4",
+  "s01_e07_b5": "A4",
+  "s01_e14_b5": "A4",
+  "s02_e05_b0": "A4",
+  "s02_e05_b1": "A4",
+  "s02_e05_b2": "A4",
+  "s02_e05_b3": "A4",
+  "s02_e13_b1": "A4",
+  "s02_e13_b2": "A4",
+  "s02_e24_b1": "A4",
+  "s02_e24_b5": "A4",
+  "s03_e01_b3": "A4",
+  "s03_e03_b2": "A4",
+  "s03_e04_b1": "A4",
+  "s03_e04_b4": "A4",
+  "s03_e07_b4": "A4",
+  "s03_e08_b0": "A4",
+  "s03_e11_b0": "A4",
+  "s03_e20_b3": "A4",
+  "s01_e06_b0": "A5",
+  "s01_e09_b3": "A5",
+  "s02_e10_b0": "A5",
+  "s02_e12_b2": "A5",
+  "s02_e18_b0": "A5",
+  "s02_e18_b2": "A5",
+  "s02_e23_b3": "A5",
+  "s02_e24_b0": "A5",
+  "s03_e04_b3": "A5",
+  "s03_e12_b0": "A5",
+  "s03_e12_b1": "A5",
+  "s03_e19_b4": "A5",
+  "s03_e20_b1": "A5",
+  "s03_e20_b5": "A5",
+  "s03_e22_b2": "A5",
+  "s03_e22_b3": "A5",
+  "s01_e16_b0": "A6",
+  "s02_e04_b2": "A6",
+  "s02_e04_b3": "A6",
+  "s02_e04_b4": "A6",
+  "s02_e09_b0": "A6",
+  "s02_e20_b2": "A6",
+  "s03_e18_b2": "A6",
+  "s03_e18_b3": "A6",
+  "s03_e18_b4": "A6",
+  "s03_e18_b5": "A6",
+  "s03_e25_b2": "A6",
+  "s03_e25_b5": "A6",
+  "s01_e01_b4": "A7",
+  "s01_e01_b5": "A7",
+  "s01_e02_b3": "A7",
+  "s01_e04_b5": "A7",
+  "s01_e09_b0": "A7",
+  "s02_e22_b1": "A7",
+  "s02_e22_b2": "A7",
+  "s03_e10_b5": "A7",
+  "s03_e18_b1": "A7",
+  "s01_e10_b0": "A8",
+  "s01_e10_b1": "A8",
+  "s01_e17_b1": "A8",
+  "s01_e17_b2": "A8",
+  "s01_e17_b4": "A8",
+  "s01_e21_b3": "A8",
+  "s02_e12_b1": "A8",
+  "s02_e12_b3": "A8",
+  "s02_e12_b5": "A8",
+  "s02_e13_b0": "A8",
+  "s02_e16_b4": "A9",
+  "s02_e16_b5": "A9",
+  "s02_e17_b0": "A9",
+  "s02_e17_b2": "A9",
+  "s02_e17_b4": "A9",
+  "s02_e18_b3": "A9",
+  "s02_e18_b4": "A9",
+  "s02_e19_b0": "A9",
+  "s02_e19_b3": "A9",
+  "s02_e19_b4": "A9",
+  "s02_e19_b5": "A9",
+  "s03_e06_b3": "A9",
+  "s01_e07_b4": "A10",
+  "s01_e08_b4": "A10",
+  "s01_e11_b4": "A10",
+  "s01_e14_b2": "A10"
+ },
+ "spine": [
+  {
+   "id": "s01_e01_b2",
+   "score": 92,
+   "tier": "P0",
+   "requires": []
+  },
+  {
+   "id": "s01_e02_b0",
+   "score": 90,
+   "tier": "P0",
+   "requires": []
+  },
+  {
+   "id": "s01_e23_b0",
+   "score": 88,
+   "tier": "P0",
+   "requires": [
+    "s01_e02_b0"
+   ]
+  },
+  {
+   "id": "s01_e23_b5",
+   "score": 70,
+   "tier": "P1",
+   "requires": [
+    "s01_e23_b0"
+   ]
+  },
+  {
+   "id": "s01_e24_b1",
+   "score": 95,
+   "tier": "P0",
+   "requires": [
+    "s01_e01_b2"
+   ]
+  },
+  {
+   "id": "s01_e24_b5",
+   "score": 93,
+   "tier": "P0",
+   "requires": [
+    "s01_e24_b1"
+   ]
+  },
+  {
+   "id": "s02_e01_b0",
+   "score": 72,
+   "tier": "P1",
+   "requires": [
+    "s01_e24_b5"
+   ]
+  },
+  {
+   "id": "s02_e08_b3",
+   "score": 92,
+   "tier": "P0",
+   "requires": [
+    "s02_e01_b0"
+   ]
+  },
+  {
+   "id": "s02_e08_b5",
+   "score": 70,
+   "tier": "P1",
+   "requires": [
+    "s02_e08_b3"
+   ]
+  },
+  {
+   "id": "s02_e14_b1",
+   "score": 72,
+   "tier": "P1",
+   "requires": []
+  },
+  {
+   "id": "s02_e15_b4",
+   "score": 96,
+   "tier": "P0",
+   "requires": [
+    "s02_e08_b3"
+   ]
+  },
+  {
+   "id": "s02_e15_b1",
+   "score": 75,
+   "tier": "P1",
+   "requires": []
+  },
+  {
+   "id": "s02_e24_b4",
+   "score": 80,
+   "tier": "P1",
+   "requires": [
+    "s02_e15_b1"
+   ]
+  },
+  {
+   "id": "s03_e01_b0",
+   "score": 74,
+   "tier": "P1",
+   "requires": [
+    "s02_e24_b4"
+   ]
+  },
+  {
+   "id": "s02_e24_b5",
+   "score": 66,
+   "tier": "P1",
+   "requires": []
+  },
+  {
+   "id": "s02_e18_b0",
+   "score": 70,
+   "tier": "P1",
+   "requires": []
+  },
+  {
+   "id": "s02_e18_b2",
+   "score": 80,
+   "tier": "P1",
+   "requires": [
+    "s02_e18_b0"
+   ]
+  },
+  {
+   "id": "s02_e17_b0",
+   "score": 62,
+   "tier": "P1",
+   "requires": []
+  },
+  {
+   "id": "s02_e11_b0",
+   "score": 72,
+   "tier": "P1",
+   "requires": [
+    "s01_e02_b0"
+   ]
+  },
+  {
+   "id": "s03_e11_b4",
+   "score": 88,
+   "tier": "P0",
+   "requires": []
+  },
+  {
+   "id": "s03_e12_b3",
+   "score": 74,
+   "tier": "P1",
+   "requires": [
+    "s03_e11_b4"
+   ]
+  },
+  {
+   "id": "s03_e16_b3",
+   "score": 97,
+   "tier": "P0",
+   "requires": [
+    "s03_e11_b4"
+   ]
+  },
+  {
+   "id": "s03_e16_b5",
+   "score": 78,
+   "tier": "P1",
+   "requires": [
+    "s03_e16_b3"
+   ]
+  },
+  {
+   "id": "s03_e17_b1",
+   "score": 70,
+   "tier": "P1",
+   "requires": [
+    "s03_e16_b3"
+   ]
+  },
+  {
+   "id": "s03_e19_b5",
+   "score": 68,
+   "tier": "P1",
+   "requires": [
+    "s03_e16_b3"
+   ]
+  },
+  {
+   "id": "s03_e25_b4",
+   "score": 85,
+   "tier": "P0",
+   "requires": [
+    "s03_e16_b3"
+   ]
+  },
+  {
+   "id": "s02_e04_b3",
+   "score": 70,
+   "tier": "P1",
+   "requires": []
+  },
+  {
+   "id": "s03_e18_b4",
+   "score": 72,
+   "tier": "P1",
+   "requires": []
+  },
+  {
+   "id": "s03_e25_b5",
+   "score": 70,
+   "tier": "P1",
+   "requires": [
+    "s03_e18_b4"
+   ]
+  },
+  {
+   "id": "s01_e01_b4",
+   "score": 78,
+   "tier": "P1",
+   "requires": []
+  },
+  {
+   "id": "s03_e23_b3",
+   "score": 62,
+   "tier": "P1",
+   "requires": []
+  },
+  {
+   "id": "s03_e22_b3",
+   "score": 58,
+   "tier": "P1",
+   "requires": []
+  }
+ ],
+ "standalone_importance": 20
+}
