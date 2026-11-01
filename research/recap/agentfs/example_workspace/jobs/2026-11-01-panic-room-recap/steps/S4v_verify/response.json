@@ -1,0 +1,127 @@
+{
+ "judge": "Claude in-session (same model that wrote the narrations; self-judging bias \u2014 re-run with an independent model/human via the folder protocol)",
+ "reference_coverage": {
+  "legend": "C=covered, P=partial, M=missing, X=contradicts reference, D=reference describes the final film but our input is a draft screenplay that differs",
+  "A": [
+   "C",
+   "C",
+   "C",
+   "C",
+   "P",
+   "C",
+   "C",
+   "P",
+   "X",
+   "M",
+   "M",
+   "C",
+   "C",
+   "P",
+   "C",
+   "C",
+   "C",
+   "C",
+   "P",
+   "M",
+   "P",
+   "P",
+   "C",
+   "D",
+   "M",
+   "P",
+   "C",
+   "P",
+   "P",
+   "M",
+   "C",
+   "C"
+  ],
+  "C": [
+   "C",
+   "C",
+   "C",
+   "C",
+   "P",
+   "C",
+   "C",
+   "P",
+   "P",
+   "M",
+   "M",
+   "C",
+   "C",
+   "C",
+   "P",
+   "C",
+   "C",
+   "C",
+   "P",
+   "M",
+   "P",
+   "P",
+   "C",
+   "D",
+   "M",
+   "P",
+   "C",
+   "P",
+   "P",
+   "M",
+   "C",
+   "C"
+  ],
+  "missing_reason": {
+   "9": "gas increased by gunman \u2014 action, no dialogue",
+   "10": "mother ignites the gas / explosion \u2014 action, no dialogue",
+   "19": "struggle for syringe \u2014 action",
+   "24": "girl thanks him \u2014 not in draft dialogue",
+   "29": "burglar returns and shoots the gunman \u2014 action"
+  },
+  "contradiction_reason": {
+   "A:8": "A said the planner pumps the gas; the dialogue never says who (final film: the reluctant burglar). The zoom-in pass caught this and C hedged it."
+  }
+ },
+ "faithfulness_to_subtitles": {
+  "A": {
+   "segments": 30,
+   "supported": 24,
+   "partly": 5,
+   "unsupported": 1,
+   "issues": [
+    "unsupported: 'Rufus pumps gas' (agent not stated in lines)",
+    "partly: 'her husband has moved on' (inferred from 'fuck her too')",
+    "partly: 'price too good to be true'",
+    "partly: 'turns the gun on Milo' (lines only say 'She's got your gun')",
+    "partly: 'runs straight into police' (addressee of 'Put your hands up' unknown)",
+    "partly: 'body starts to give out' (fine but inferred)"
+   ]
+  },
+  "C": {
+   "segments": 27,
+   "supported": 21,
+   "partly": 6,
+   "unsupported": 0,
+   "issues": [
+    "partly: 'He thinks she means a singer' (responder unclear)",
+    "partly: 'until Lena asks if he took a nap in math class' (speaker inferred)",
+    "partly: 'a wall from the neighbor's house'",
+    "partly: 'Bram with Milo's gun'",
+    "partly: 'right into the police'",
+    "partly: 'the kid says what her mom is thinking'"
+   ]
+  }
+ },
+ "flow_flaws": {
+  "both": [
+   "dangling setup: the door sensor is planted ('Remember that' / 'Keep that in mind') but never paid off \u2014 the payoff is a dialogue-free action beat",
+   "finale compressed into 1-2 vague sentences because the climax is mostly action (no subtitles)",
+   "cross-cut scenes (burglars vs panic room) occasionally read as abrupt location jumps"
+  ],
+  "A_only": [
+   "generic phrasing in places ('things are going to get ugly', 'changes everything') \u2014 fewer concrete hooks"
+  ],
+  "C_only": [
+   "denser; a few sentences pack 2-3 quotes and would need slower delivery"
+  ]
+ }
+}

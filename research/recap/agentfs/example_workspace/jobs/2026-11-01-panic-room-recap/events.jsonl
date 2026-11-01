@@ -1,0 +1,11 @@
+{"t": 1793510179.83437, "event": "job_created", "kind": "recap"}
+{"t": 1793510179.8345833, "event": "step_ready", "step": "S4z_zoom_in"}
+{"t": 1793510179.834713, "event": "step_ready", "step": "S4_script"}
+{"t": 1793510179.8348193, "event": "step_ready", "step": "S4v_verify"}
+{"t": 1793510179.8349602, "event": "step_claimed", "step": "S4z_zoom_in", "worker": "demo-worker"}
+{"t": 1793510179.8354466, "event": "step_done", "step": "S4z_zoom_in"}
+{"t": 1793510179.8355181, "event": "step_claimed", "step": "S4_script", "worker": "demo-worker"}
+{"t": 1793510179.8359535, "event": "step_done", "step": "S4_script"}
+{"t": 1793510179.836093, "event": "step_claimed", "step": "S4v_verify", "worker": "demo-worker"}
+{"t": 1793510179.8364308, "event": "step_done", "step": "S4v_verify"}
+{"t": 1793510179.8366206, "event": "gate_requested", "gate": "G2_script"}
