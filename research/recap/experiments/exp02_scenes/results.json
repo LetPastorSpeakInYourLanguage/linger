@@ -1,0 +1,87 @@
+{
+ "friends": {
+  "even_oracleK": {
+   "Pk": 0.517,
+   "WD": 0.531,
+   "F1@2": 0.23,
+   "pred/true": 1.0
+  },
+  "even_priorK": {
+   "Pk": 0.558,
+   "WD": 0.608,
+   "F1@2": 0.302,
+   "pred/true": 1.93
+  },
+  "tiling_emb": {
+   "Pk": 0.553,
+   "WD": 0.715,
+   "F1@2": 0.341,
+   "pred/true": 2.82
+  },
+  "tiling_emb_oracleK": {
+   "Pk": 0.484,
+   "WD": 0.511,
+   "F1@2": 0.285,
+   "pred/true": 1.0
+  },
+  "tiling+names": {
+   "Pk": 0.553,
+   "WD": 0.77,
+   "F1@2": 0.372,
+   "pred/true": 3.47
+  },
+  "tiling+names_oracleK": {
+   "Pk": 0.486,
+   "WD": 0.517,
+   "F1@2": 0.294,
+   "pred/true": 1.0
+  }
+ },
+ "tripod": {
+  "even_oracleK": {
+   "Pk": 0.505,
+   "WD": 0.554,
+   "F1@2": 0.364,
+   "pred/true": 1.0
+  },
+  "even_priorK": {
+   "Pk": 0.452,
+   "WD": 0.48,
+   "F1@2": 0.242,
+   "pred/true": 0.57
+  },
+  "tiling_emb": {
+   "Pk": 0.507,
+   "WD": 0.593,
+   "F1@2": 0.435,
+   "pred/true": 1.47
+  },
+  "tiling_emb_oracleK": {
+   "Pk": 0.468,
+   "WD": 0.522,
+   "F1@2": 0.397,
+   "pred/true": 1.0
+  },
+  "tiling+names": {
+   "Pk": 0.527,
+   "WD": 0.635,
+   "F1@2": 0.461,
+   "pred/true": 1.76
+  },
+  "tiling+names_oracleK": {
+   "Pk": 0.463,
+   "WD": 0.519,
+   "F1@2": 0.403,
+   "pred/true": 1.0
+  }
+ },
+ "n_docs": {
+  "friends": 24,
+  "tripod": 26
+ },
+ "lines_per_scene": {
+  "friends": 19.5,
+  "tripod": 11.0
+ },
+ "seconds": 1173
+}
