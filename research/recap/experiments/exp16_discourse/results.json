@@ -1,0 +1,40 @@
+{
+ "sermons": {
+  "windows": 318,
+  "words": 37933,
+  "bm25": {
+   "P@10_strong": 0.9,
+   "P@10_incl_partial": 1.0,
+   "duplicates_in_top10": 4
+  },
+  "dense": {
+   "P@10_strong": 1.0,
+   "P@10_incl_partial": 1.0,
+   "duplicates_in_top10": 5
+  },
+  "hybrid": {
+   "P@10_strong": 0.9,
+   "P@10_incl_partial": 1.0,
+   "duplicates_in_top10": 3
+  }
+ },
+ "jre": {
+  "windows": 1944,
+  "words": 271937,
+  "bm25": {
+   "P@10_strong": 0.6,
+   "P@10_incl_partial": 0.8,
+   "duplicates_in_top10": 0
+  },
+  "dense": {
+   "P@10_strong": 0.6,
+   "P@10_incl_partial": 0.9,
+   "duplicates_in_top10": 0
+  },
+  "hybrid": {
+   "P@10_strong": 0.8,
+   "P@10_incl_partial": 1.0,
+   "duplicates_in_top10": 0
+  }
+ }
+}

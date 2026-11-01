@@ -1,0 +1,19 @@
+{"jre_peterson_meaning": {"query": "What Jordan Peterson says about the meaning of life", "style": "clips (no narrator)", "order": "argument flow, not chronology",
+  "title_card": "Jordan Peterson on meaning — The Joe Rogan Experience, 2018-2024",
+  "clips": [
+   {"src": "JRE #1070", "t0": 4347, "t1": 4372, "lower_third": "JRE #1070 (2018)", "claim": "meaningful engagement is the antidote to malevolence and suffering"},
+   {"src": "JRE #1139", "t0": 3395, "t1": 3432, "lower_third": "JRE #1139 (2018)", "claim": "meaning is found not in rights or impulsive pleasure but in responsibility, in widening circles"},
+   {"src": "JRE #1070", "t0": 3892, "t1": 3918, "lower_third": "JRE #1070 (2018)", "claim": "take care of yourself, your partner, your family, your community; stand up straight despite tragedy"},
+   {"src": "JRE #2180", "t0": 8240, "t1": 8258, "lower_third": "JRE #2180 (2024)", "claim": "the meaning of life reveals itself on the pathway of maximal responsibility"},
+   {"src": "JRE #2308", "t0": 8178, "t1": 8204, "lower_third": "JRE #2308 (2025)", "claim": "no better pathway than voluntarily undertaking responsibility (the light burden)", "speaker_uncertain": true}],
+  "total_seconds": 132},
+ "sermon_vandermaas_marriage": {"query": "What Pastor Andrew VanderMaas says about women and marriage", "style": "clips (no narrator)", "dedup": "'A Notable Life' = second recording of 'Living as Co-Heirs of Grace' -> one copy used",
+  "timing": "ESTIMATED (source has no timestamps; production needs ASR/forced alignment of the audio)",
+  "clips": [
+   {"src": "Living as Co-Heirs of Grace", "window": 181, "claim": "names the modern discomfort with 'wives be subject to your husbands'"},
+   {"src": "Living as Co-Heirs of Grace", "window": 189, "claim": "submission is to one's own husband — 'not a word to all women in relationship to all men'"},
+   {"src": "Living as Co-Heirs of Grace", "window": 182, "claim": "story from Jordan: the hard part there is husbands honoring their wives"},
+   {"src": "Living as Co-Heirs of Grace", "window": 208, "claim": "husbands must foster intimacy, dwelling with wives 'according to knowledge'"},
+   {"src": "Living as Co-Heirs of Grace", "window": 212, "claim": "'weaker vessel' is not mainly about physical strength"},
+   {"src": "A Notable Life", "window": 34, "claim": "women flocked to early Christianity because it called men to a higher standard"},
+   {"src": "Living as Co-Heirs of Grace", "window": 187, "claim": "marriage is for the whole community, not just the couple"}]}}

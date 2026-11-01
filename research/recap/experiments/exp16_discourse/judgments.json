@@ -1,0 +1,6 @@
+{"judge": "Claude in-session; Y = the target speaker states a view on the topic; P = partial/mixed speaker/tangential; N = not relevant",
+ "sermons": {"Y": [10, 12, 14, 16, 17, 18, 20, 34, 35, 181, 182, 185, 187, 188, 189, 208, 212], "P": [172], "N": [],
+             "duplicates": [[10, 181], [12, 182], [14, 185], [16, 187], [17, 188], [18, 189], [35, 208]],
+             "note": "'A Notable Life' and 'Living as Co-Heirs of Grace' are two recordings of the same sermon"},
+ "jre": {"Y": [85, 95, 103, 271, 301, 475, 619, 1278, 1443, 1445, 1648, 1911], "P": [298, 637, 1428], "N": [24, 1368, 1943],
+         "speaker_confusion": [24, 637], "note": "auto-captions have no speakers: window 24 is mostly the host's words; 637 is the host asking"}}
