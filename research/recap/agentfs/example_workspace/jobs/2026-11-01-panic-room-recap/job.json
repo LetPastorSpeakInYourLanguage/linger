@@ -1,0 +1,15 @@
+{
+ "kind": "recap",
+ "titles": [
+  "panic_room"
+ ],
+ "understanding": "CURRENT",
+ "params": {
+  "style": "recap_channel",
+  "duration": "6m",
+  "focus": "main",
+  "spoilers": "full"
+ },
+ "autonomy": "gates",
+ "instructions": "Make the reluctant burglar sympathetic."
+}

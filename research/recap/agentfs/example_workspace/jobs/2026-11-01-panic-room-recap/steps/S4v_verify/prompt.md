@@ -1,0 +1,1 @@
+Fresh context: verify each segment against its cited lines.
