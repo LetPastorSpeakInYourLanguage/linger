@@ -1,0 +1,20 @@
+# research venv (no torch required)
+numpy
+scipy
+scikit-learn
+networkx
+rapidfuzz
+pysubs2
+onnxruntime
+soundfile
+opencv-python-headless
+scenedetect
+webrtcvad-wheels
+vaderSentiment
+rank_bm25
+kokoro-onnx
+tokenizers
+safetensors
+gensim
+pytest
+# system: ffmpeg, tesseract-ocr (hardsub OCR), espeak-ng (kokoro phonemizer fallback)

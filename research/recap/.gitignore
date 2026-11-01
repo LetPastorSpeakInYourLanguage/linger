@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+work/
+*.mp4
+*.mkv
+*.wav
+!**/samples/*.mp4
