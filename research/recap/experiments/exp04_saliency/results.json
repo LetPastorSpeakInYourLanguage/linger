@@ -1,0 +1,42 @@
+{
+ "mensa": {
+  "movies": 21,
+  "scenes": 3613,
+  "salient_rate": 0.328,
+  "single_feature_AUC": {
+   "pos": 0.543,
+   "pos2": 0.542,
+   "log_lines": 0.663,
+   "centrality": 0.656,
+   "novelty": 0.525,
+   "callback": 0.636,
+   "main_names": 0.614,
+   "sent_abs": 0.586,
+   "sent_max": 0.634,
+   "excl_q": 0.576,
+   "pagerank": 0.656
+  },
+  "logreg_LOMO_AUC": 0.674,
+  "logreg_AP": 0.551,
+  "logreg_P@k": 0.501,
+  "coef": {
+   "pos": 0.19,
+   "pos2": 0.19,
+   "log_lines": 0.69,
+   "centrality": -0.19,
+   "novelty": -0.1,
+   "callback": -0.04,
+   "main_names": 0.19,
+   "sent_abs": 0.01,
+   "sent_max": -0.05,
+   "excl_q": 0.09,
+   "pagerank": 0.1
+  }
+ },
+ "tripod_tp": {
+  "position_prior": 0.2,
+  "salience_in_window": 0.2,
+  "n_tps": 75
+ },
+ "seconds": 486
+}
