@@ -1,0 +1,305 @@
+{
+ "episodes": 73,
+ "scenes": 967,
+ "dialogue_words": 183910,
+ "digest_beats": 409,
+ "token_budget_estimate": {
+  "P1_scene_cards_input": 310348,
+  "P1_output": 55862,
+  "P1.5_episode_digest_in": 132516,
+  "P2_series_in": 16564,
+  "note": "P1 dominates (>90%); runs per-episode in parallel; cacheable; one-time per title"
+ },
+ "selection": {
+  "60": {
+   "weighted_coverage": 0.052,
+   "tier_recall": {
+    "P0": 0.8,
+    "P1": 0.091,
+    "P2": 0.0,
+    "P3": 0.0
+   },
+   "deps_satisfied": true,
+   "n": 10,
+   "seconds": 57.7,
+   "per_season": {
+    "1": 4,
+    "2": 4,
+    "3": 2
+   },
+   "per_arc": {
+    "A1": 7,
+    "A2": 1,
+    "A3": 0,
+    "A4": 1,
+    "A5": 0,
+    "A6": 0,
+    "A7": 1,
+    "A8": 0,
+    "A9": 0,
+    "A10": 0
+   },
+   "episodes_touched": 9
+  },
+  "300": {
+   "weighted_coverage": 0.219,
+   "tier_recall": {
+    "P0": 1.0,
+    "P1": 0.773,
+    "P2": 0.154,
+    "P3": 0.0
+   },
+   "deps_satisfied": true,
+   "n": 49,
+   "seconds": 288.0,
+   "per_season": {
+    "1": 16,
+    "2": 20,
+    "3": 13
+   },
+   "per_arc": {
+    "A1": 27,
+    "A2": 9,
+    "A3": 4,
+    "A4": 1,
+    "A5": 3,
+    "A6": 2,
+    "A7": 2,
+    "A8": 0,
+    "A9": 1,
+    "A10": 0
+   },
+   "episodes_touched": 31
+  },
+  "900": {
+   "weighted_coverage": 0.496,
+   "tier_recall": {
+    "P0": 1.0,
+    "P1": 1.0,
+    "P2": 0.587,
+    "P3": 0.0
+   },
+   "deps_satisfied": true,
+   "n": 116,
+   "seconds": 873.7,
+   "per_season": {
+    "1": 32,
+    "2": 42,
+    "3": 42
+   },
+   "per_arc": {
+    "A1": 41,
+    "A2": 22,
+    "A3": 13,
+    "A4": 11,
+    "A5": 10,
+    "A6": 8,
+    "A7": 8,
+    "A8": 1,
+    "A9": 2,
+    "A10": 0
+   },
+   "episodes_touched": 55
+  },
+  "unlimited": {
+   "weighted_coverage": 1.0,
+   "tier_recall": {
+    "P0": 1.0,
+    "P1": 1.0,
+    "P2": 1.0,
+    "P3": 1.0
+   },
+   "deps_satisfied": true,
+   "n": 409,
+   "seconds": 3793.5,
+   "per_season": {
+    "1": 133,
+    "2": 134,
+    "3": 142
+   },
+   "per_arc": {
+    "A1": 42,
+    "A2": 26,
+    "A3": 22,
+    "A4": 20,
+    "A5": 16,
+    "A6": 12,
+    "A7": 11,
+    "A8": 10,
+    "A9": 12,
+    "A10": 4
+   },
+   "episodes_touched": 73
+  }
+ },
+ "arcs": {
+  "A1": {
+   "title": "Ross & Rachel",
+   "importance": 100,
+   "beats": 42
+  },
+  "A2": {
+   "title": "Ross, Carol, Susan and Ben",
+   "importance": 78,
+   "beats": 26
+  },
+  "A3": {
+   "title": "Monica's love life",
+   "importance": 70,
+   "beats": 22
+  },
+  "A4": {
+   "title": "Chandler's romantic misadventures",
+   "importance": 55,
+   "beats": 20
+  },
+  "A5": {
+   "title": "Joey's acting career",
+   "importance": 60,
+   "beats": 16
+  },
+  "A6": {
+   "title": "Phoebe's family",
+   "importance": 60,
+   "beats": 12
+  },
+  "A7": {
+   "title": "Rachel grows up",
+   "importance": 65,
+   "beats": 11
+  },
+  "A8": {
+   "title": "Marcel the monkey",
+   "importance": 40,
+   "beats": 10
+  },
+  "A9": {
+   "title": "Joey and Chandler: roommates",
+   "importance": 45,
+   "beats": 12
+  },
+  "A10": {
+   "title": "Rachel and Paolo",
+   "importance": 35,
+   "beats": 4
+  }
+ },
+ "recap_15min_outline": [
+  "s01_e01 [P0/full] Ross gazes out of the window, and in the next clip, we see Rachel sitting on the window seat at Monica's apartment with a saddened, lonely expression.",
+  "s01_e01 [P2/full] Monica slept with Paul the Wine Guy.",
+  "s01_e01 [P1/full] Rachel just went through twelve interviews in one day, but did n't get hired.",
+  "s01_e02 [P2/short] Ross'homosexual ex-wife Carol arrives, and Carol makes it clear to Ross that Carol is still a lesbian.",
+  "s01_e02 [P0/full] It is a little uncomfortable between them, so Carol announces that she is pregnant with his child.",
+  "s01_e02 [P2/full] Rachel is upset to learn that Barry went on their honeymoon without Rachel.",
+  "s01_e02 [P2/full] Ross argues With Carol and Susan over the last name of their child.",
+  "s01_e02 [P2/micro] Ross is showing everyone his sonogram, they ca n't really tell what it is but Monica is touched and begins to well up. Rachel puts Mindy down over the phone.",
+  "s01_e03 [P2/short] Monica's new boyfriend ( Alan ) is a hit with Monica's friends, but Monica is not too sure.",
+  "s01_e04 [P2/full] The phone rings - it is Rachel's credit card company.",
+  "s01_e05 [P2/full] Feeling victorious, Rachel kisses Ross.",
+  "s01_e06 [P2/full] Ross, Phoebe, and Ross attend Joey's new musical, Freud!",
+  "s01_e06 [P2/short] Chandler is enjoying things with Aurora, but deep down, he wants to commit.",
+  "s01_e09 [P2/short] The friends pitch in and give Rachel the money that she needs to see her family",
+  "s01_e09 [P2/short] Joey poses for a health poster, but later finds out Joey's become the V.D. poster boy.",
+  "s01_e10 [P2/full] Ross gets a monkey named Marcel.",
+  "s01_e12 [P2/full] They talk about Rachel being ready to be swooned.",
+  "s01_e12 [P2/full] Joey and Chandler encourage Ross to take advantage of Rachel's break up with Paolo.",
+  "s01_e14 [P2/full] Ross makes his date with Kristin awkward by inviting Carol to join.",
+  "s01_e14 [P2/full] Janice reminds Chandler that Janice thinks they're meant to be together.",
+  "s01_e16 [P2/full] While dining out, Joey and Chandler meet Phoebe's twin sister, Ursula.",
+  "s01_e16 [P2/full] Carol thinks marriage is little complicted.",
+  "s01_e16 [P2/full] Ross attends Lamaze classes with Carol and Susan.",
+  "s01_e16 [P2/full] Ross worries about raising a child while Rachel comforts him",
+  "s01_e19 [P2/full] Ross is attempting to share a romantic moment with Rachel but is interepted by Barry.",
+  "s01_e23 [P0/full] When Ross'ex-wife Carol is rushed to the hospital to have their baby, all the friends come along, but prove less than helpful.",
+  "s01_e23 [P2/full] Phoebe attempts to stop the argument between Ross and Susan but creates another problem.",
+  "s01_e23 [P2/full] Phoebe watches Carol give birth from the vent system above the room.",
+  "s01_e23 [P1/full] Ross suggests a name for a baby and Susan agrees while greeting it.",
+  "s01_e24 [P2/full] Monica, Chandler and Phoebe try and stop Rachel from going to the airport to confront Ross.",
+  "s01_e24 [P0/full] Unaware of this, Rachel waits for Ross.",
+  "s01_e24 [P0/full] Just when Ross is about to leave the gates, Ross picks up a bag that a girl dropped.",
+  "s02_e01 [P2/micro] Having decided to tell Ross that Rachel loves Ross ( continuing from the cliff - hanger ending in The One Where Rachel Finds Out ), Rachel goes to the airport to wait for Ross with a bunch of flowers.",
+  "s02_e01 [P1/full] Rachel is upset Ross is with Julie.",
+  "s02_e01 [P2/full] Rachel uses Chandler to find out why Ross is with a new girl",
+  "s02_e02 [P2/short] At Monica's apartment, Joey and Chandler experience a uncomfortable situation when Carol breast - feeds Ben in front of them.",
+  "s02_e02 [P2/short] Rachel is stops talking to Monica for what she did, and explains to Monica how Julie has not only stolen her potential boyfriend, but is now stealing her too.",
+  "s02_e02 [P2/full] Rachel does her best to try and make nice to Julie, but is still pretty much disturbed by her.",
+  "s02_e04 [P2/short] Phoebe is surprised to hear from Duncan that he is not gay.",
+  "s02_e04 [P1/full] When Pheobe asks Duncan what Duncan wants, Duncan requests a divorce from phoebe.",
+  "s02_e04 [P2/short] Everyone watches the movie, but Rachel does n't want to call it a night, so she engages Julie in a long conversation in the hope of putting her off sex with Ross.",
+  "s02_e05 [P2/full] Ross says that Jade will realize that Chandler is not Bob.",
+  "s02_e06 [P2/full] Chandler and Joey babysit Ross's baby.",
+  "s02_e07 [P2/full] Rachel ruins a first date with Michael by being obsessed over closure with Ross.",
+  "s02_e08 [P0/full] Ross, Joey, and Chandler are making pros and cons on Rachel and Julie.",
+  "s02_e08 [P2/full] Ross trying to decide on which woman he want to be with.",
+  "s02_e08 [P1/full] Ross requests a song on the radio to apologize to Rachel but Rachel does not accept the apology.",
+  "s02_e09 [P2/full] Ross tells Rachel to make a list about him, so Rachel does ; Ross obsesses about Rachel's complaints.",
+  "s02_e10 [P2/short] At the coffeehouse, a devastated Russ tells the guys that Rachel dumped Russ, when Julie enters with a bunch of Ross'stuff.",
+  "s02_e11 [P1/short] Carol and Susan are getting married ; Ross does n't want to attend, but when Carol's parent's do n't approve of the wedding, Ross convinces Carol that Carol should do it anyway, and Ross gives away the bride.",
+  "s02_e11 [P2/full] Phoebe, Ross, Joey, and Chandler are at Susan and Carol's Wedding.",
+  "s02_e11 [P2/full] Ross knows Carol is right, so the preparations resume.",
+  "s02_e11 [P2/short] At Susan and Carol's Wedding, Phoebe is possessed by Mrs. Adelman so she interrupts the wedding.",
+  "s02_e12 [P2/short] Joey begins dating a stalker who thinks Joey is really the soap opera character, Dr. Drake Ramoray.",
+  "s02_e13 [P2/short] Chandler tells Monica, Phoebe and Ross how he missed out on the perfect woman.",
+  "s02_e14 [P1/short] When Phoebe receives blank looks, the explanation is given : \" It's a known fact that lobsters fall in love and mate for life.",
+  "s02_e14 [P2/full] Ross is pining over Rachel.",
+  "s02_e15 [P1/full] Dr. Burke is recently divorced and seems to enjoy conversing with Monica",
+  "s02_e15 [P2/full] Monica and Phoebe discuss if Monica likes Richard.",
+  "s02_e15 [P2/full] Rose and Rachel discuss their date and try to have a better one the next night",
+  "s02_e15 [P0/full] Ross and Rachel being to make love for the first time but it is interrupted early by an awkward moment.",
+  "s02_e17 [P1/full] Joey shows off the decorations in his new apartment.",
+  "s02_e18 [P1/full] Joey is starting to find success in playing Dr. Drake Ramoray on TV series Days Of Our Lives.",
+  "s02_e18 [P1/full] One of the writer's kills off Joeys character by having his him fall down an elevator shaft and Joey is mad about it.",
+  "s02_e18 [P2/short] Chandler tells Eddie that Chandler did n't sleep with Eddie's girlfriend.",
+  "s02_e19 [P2/short] Ross and Rachel bicker after Rachel reads a book urging women to not let men steal their wind.",
+  "s02_e20 [P2/full] Ross, bothered that he's missing significant steps in Ben's development, takes Ben for a weekend.",
+  "s02_e20 [P2/short] Joey and Chandler are impressed by Monica's boyfriend Richard, and relay what happened while they were out with Richard.",
+  "s02_e20 [P2/full] Monica's boyfriend let Chandler and Joey drive the expensive car.",
+  "s02_e22 [P2/full] Rachel is talking to Chandler about her parents getting divorced.",
+  "s02_e23 [P2/full] Joey's character, Joseph has two kids and a wife, Karen.",
+  "s02_e23 [P2/full] Rachel is turned on by uniforms ; Ross gets one.",
+  "s02_e24 [P1/full] While dancing, Richard offers to have kids with Monica if Richard has to.",
+  "s02_e24 [P1/full] She turns out to be Janice.",
+  "s03_e01 [P1/full] The friends discuss how Monica is feeling about her recent break up",
+  "s03_e01 [P2/full] Joey can not stand that Chandler is dating Janice again.",
+  "s03_e04 [P2/short] Joey tells Chandler to face Chandler's fear so Chandler meets with Janice and gives Janice a drawer.",
+  "s03_e04 [P2/full] Ross tries to interest Ben in GI Joe and dinosaurs instead.",
+  "s03_e04 [P2/full] Phoebe impersonates an agent to get Joey good for auditions.",
+  "s03_e04 [P2/short] Monica and Rachel tell Chandler what to do about a phone call from Janice",
+  "s03_e04 [P2/full] Ross hides in the bathroom as Carol and others laugh at a memory.",
+  "s03_e07 [P2/full] Joey discovers Janice kissing her ex-husband.",
+  "s03_e08 [P2/short] Joey wonders if he should tell Chandler about seeing Janice kiss her ex-husband.",
+  "s03_e08 [P2/short] Ross finds out that Ross's sister bumped Ben's head while babysitting, and Ross plays a joke on Ross's sister.",
+  "s03_e10 [P2/short] Rachel had been to an interview where a job could'nt be obtained.",
+  "s03_e11 [P2/short] Chandler tells the whole group he just saw his ex-girlfriend Janice",
+  "s03_e11 [P0/full] Rachel meets Mark, who gets Rachel an interview at Bloomingdale's ; Ross worries about Mark's motives.",
+  "s03_e11 [P2/full] Rachel hugs Mark ignoring Ross on getting a job.",
+  "s03_e12 [P2/short] Joey interrupts a conversation between Ross and Chandler to announce that he got an audition.",
+  "s03_e12 [P2/short] Out of jealousy, he covers Rachel's entire desk with love cards, flowers and musical bugs ; he even sends a barbershop quartet to her workplace to sing her a song.",
+  "s03_e12 [P1/full] Ross thinks that Mark is kissing Rachel and yells at Mark, and then realizes that Rachel is behind Ross.",
+  "s03_e13 [P2/full] Monica has a chance encounter with Richard at the video store.",
+  "s03_e14 [P2/full] Monica drags Ross out of office because of Ross's jealous attitude.",
+  "s03_e14 [P2/full] Rachels is talking about going to a fashion panel with Mark.",
+  "s03_e15 [P2/short] Ross calls Rachel's apartment and asks to make up from the fight Ross and Rachel had, but then Ross hears Mark's voice and Ross gets angry and hangs up.",
+  "s03_e15 [P2/short] Rachel tells mark that Rachel does not want an egg roll, and then reaches for an egg roll, presumably to eat it.",
+  "s03_e16 [P2/full] Mark came over when Ross left.",
+  "s03_e16 [P0/full] Ross has to tell Rachel about Jasmine.",
+  "s03_e16 [P1/full] Phoebe says things have been quiet and then the group find Rachel sleeping on the couch and Ross gone.",
+  "s03_e17 [P1/short] Ross, grieving over his loss of Rachel, asks the gang to have a laser disc marathon weekend with him, only to find out that Rachel has invited the gang to her sister's cabin.",
+  "s03_e17 [P2/full] Joey and Monica discuss is Ross is still upset with them about going skiing with Rachel.",
+  "s03_e17 [P2/full] Ross brings Carol a battery, and Carol shoos Ross away.",
+  "s03_e18 [P2/full] Phoebe has no choice but to accept the marriage.",
+  "s03_e18 [P2/full] Phoebe encourages Alice to explain to Frank why the relationship will not work.",
+  "s03_e18 [P1/full] Phoebe is excited about his fianc\u00e9e, until Phoee sees it's Alice, a woman who is 26 years Frank's senior.",
+  "s03_e19 [P2/micro] Phoebe, Joey and Chandler make Pete dakota jokes about him buying a state while when he leaves Monica says she feels nothing for her boyfriend",
+  "s03_e19 [P2/full] Rather than kiss Pete, Monica rubs Pete's head.",
+  "s03_e19 [P1/full] Rachel deals with the breakup after Ross drops a box of things off to Monica.",
+  "s03_e20 [P2/full] Joey and Kate discuss what went on between them.",
+  "s03_e21 [P2/full] Monica is offered a large opportunity with possible strings attached.",
+  "s03_e22 [P1/full] Kate gets a job offer in L.A. and decides to leave.",
+  "s03_e23 [P1/short] Pete finally takes Monica into Pete's living room, sets the romantic atmosphere, and announces to Monica - that Pete wants to conquer the physical world.",
+  "s03_e24 [P2/short] Rachel realizes that Rachel is sad because Rachel did n't expect Ross to be dating other women so soon after break - up.",
+  "s03_e25 [P2/short] When Phoebe breaks in Abbott's house to look for information about Frank, Phoebe wakes Abbott up.",
+  "s03_e25 [P0/full] Ross asks for an explanation to this, and Bonnie reveals Rachel as to being behind the whole shave - the - head idea.",
+  "s03_e25 [P1/full] Phoebe Sr seems to know Frank, Phoebe's father, but is reluctant to give Phoebe any more information about Phoebe's father."
+ ]
+}

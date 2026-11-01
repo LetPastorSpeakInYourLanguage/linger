@@ -1,0 +1,2821 @@
+[
+{
+"ep": "s01_e01",
+"beats": [
+{
+"id": "s01_e01_b0",
+"scene": "s01_e01_c04",
+"text": "Meanwhile, the guys attempt to construct Ross'new furniture.",
+"centrality": 0.637
+},
+{
+"id": "s01_e01_b1",
+"scene": "s01_e01_c10",
+"text": "After Joey leaves to go out on on a date with a woman whose name he has trouble remembering, Ross asks Chandler,",
+"centrality": 1.0
+},
+{
+"id": "s01_e01_b2",
+"scene": "s01_e01_c10",
+"text": "Ross gazes out of the window, and in the next clip, we see Rachel sitting on the window seat at Monica's apartment with a saddened, lonely expression.",
+"centrality": 0.828
+},
+{
+"id": "s01_e01_b3",
+"scene": "s01_e01_c12",
+"text": "Monica slept with Paul the Wine Guy.",
+"centrality": 0.747
+},
+{
+"id": "s01_e01_b4",
+"scene": "s01_e01_c13",
+"text": "Rachel just went through twelve interviews in one day, but did n't get hired.",
+"centrality": 0.613
+},
+{
+"id": "s01_e01_b5",
+"scene": "s01_e01_c15",
+"text": "When the gang ask Rachel if she has made the coffee, she tells them that she is just serving it - so they feel safe to drink it.",
+"centrality": 0.721
+}
+]
+},
+{
+"ep": "s01_e02",
+"beats": [
+{
+"id": "s01_e02_b0",
+"scene": "s01_e02_c02",
+"text": "It is a little uncomfortable between them, so Carol announces that she is pregnant with his child.",
+"centrality": 0.822
+},
+{
+"id": "s01_e02_b1",
+"scene": "s01_e02_c02",
+"text": "Ross'homosexual ex-wife Carol arrives, and Carol makes it clear to Ross that Carol is still a lesbian.",
+"centrality": 0.901
+},
+{
+"id": "s01_e02_b2",
+"scene": "s01_e02_c07",
+"text": "Rachel explains to Robbie why she has just had an awkward exchange with Dr Farber.",
+"centrality": 0.857
+},
+{
+"id": "s01_e02_b3",
+"scene": "s01_e02_c09",
+"text": "Rachel is upset to learn that Barry went on their honeymoon without Rachel.",
+"centrality": 0.972
+},
+{
+"id": "s01_e02_b4",
+"scene": "s01_e02_c10",
+"text": "Ross argues With Carol and Susan over the last name of their child.",
+"centrality": 0.912
+},
+{
+"id": "s01_e02_b5",
+"scene": "s01_e02_c11",
+"text": "Ross is showing everyone his sonogram, they ca n't really tell what it is but Monica is touched and begins to well up. Rachel puts Mindy down over the phone.",
+"centrality": 1.0
+}
+]
+},
+{
+"ep": "s01_e03",
+"beats": [
+{
+"id": "s01_e03_b0",
+"scene": "s01_e03_c01",
+"text": "Joey explains the nuances to the phrase'It's not you'when dating.",
+"centrality": 0.63
+},
+{
+"id": "s01_e03_b1",
+"scene": "s01_e03_c02",
+"text": "Joey becomes concerned that Chandler smoked a cigarette after being free from them for so long.",
+"centrality": 1.0
+},
+{
+"id": "s01_e03_b2",
+"scene": "s01_e03_c06",
+"text": "Monica's new boyfriend ( Alan ) is a hit with Monica's friends, but Monica is not too sure.",
+"centrality": 0.813
+},
+{
+"id": "s01_e03_b3",
+"scene": "s01_e03_c06",
+"text": "Ross, Phoebe, Chandler, Monica, and Joey all discuss how a softball game occurred as well as how improbable it was they had won except for the secret to their win.",
+"centrality": 0.773
+},
+{
+"id": "s01_e03_b4",
+"scene": "s01_e03_c07",
+"text": "Phoebe gives the money and the phone away to Lizzy, a homeless acquaintance.",
+"centrality": 0.764
+},
+{
+"id": "s01_e03_b5",
+"scene": "s01_e03_c11",
+"text": "Ross is yelled at over the phone by Allan.",
+"centrality": 0.656
+}
+]
+},
+{
+"ep": "s01_e04",
+"beats": [
+{
+"id": "s01_e04_b0",
+"scene": "s01_e04_c01",
+"text": "Monica, Roos, Phoebe, Chandler and Rachel discuss what they would do if they were omnipotent.",
+"centrality": 0.766
+},
+{
+"id": "s01_e04_b1",
+"scene": "s01_e04_c05",
+"text": "Rachel enters, and starts drinking",
+"centrality": 0.803
+},
+{
+"id": "s01_e04_b2",
+"scene": "s01_e04_c13",
+"text": "Ross, upset about it being the anniversary of his first time with Carol, goes to a hockey game with Chandler and Joey and gets a puck in the face ; they end up at the hospital, where Ross reveals that Carol is the only woman he's even been intimate with.",
+"centrality": 1.0
+},
+{
+"id": "s01_e04_b3",
+"scene": "s01_e04_c14",
+"text": "Rachel tells Monica that Rachel left a fake valentine for Monica.",
+"centrality": 0.787
+},
+{
+"id": "s01_e04_b4",
+"scene": "s01_e04_c14",
+"text": "The girls beg George to drop George's towel, and they are very happy when George does.",
+"centrality": 0.534
+},
+{
+"id": "s01_e04_b5",
+"scene": "s01_e04_c16",
+"text": "The phone rings - it is Rachel's credit card company.",
+"centrality": 0.692
+}
+]
+},
+{
+"ep": "s01_e05",
+"beats": [
+{
+"id": "s01_e05_b0",
+"scene": "s01_e05_c01",
+"text": "Ross, Joey, Chandler, Rachel and Monica compare the differences between men and women.",
+"centrality": 0.831
+},
+{
+"id": "s01_e05_b1",
+"scene": "s01_e05_c01",
+"text": "Rachel points out that guys can urinate standing up, while Joey notes that women can see breasts whenever they want.",
+"centrality": 0.88
+},
+{
+"id": "s01_e05_b2",
+"scene": "s01_e05_c05",
+"text": "However, when Angela and Bob arrive, she finds him attractive, so she forgives Joey. yes",
+"centrality": 0.798
+},
+{
+"id": "s01_e05_b3",
+"scene": "s01_e05_c15",
+"text": "Ross and Rachel stand up to the laundry mat bully.",
+"centrality": 1.0
+},
+{
+"id": "s01_e05_b4",
+"scene": "s01_e05_c15",
+"text": "Feeling victorious, Rachel kisses Ross.",
+"centrality": 0.889
+},
+{
+"id": "s01_e05_b5",
+"scene": "s01_e05_c16",
+"text": "Rachel asks where Chandler is, and Phoebe responds that Chandler needed time to grieve, only to see Chandler running down the street, joyously yelling,",
+"centrality": 0.808
+}
+]
+},
+{
+"ep": "s01_e06",
+"beats": [
+{
+"id": "s01_e06_b0",
+"scene": "s01_e06_c01",
+"text": "Ross, Phoebe, and Ross attend Joey's new musical, Freud!",
+"centrality": 1.0
+},
+{
+"id": "s01_e06_b1",
+"scene": "s01_e06_c01",
+"text": "Ross, Rachel, Chandler, and Phoebe watch a play about Freud.",
+"centrality": 0.901
+},
+{
+"id": "s01_e06_b2",
+"scene": "s01_e06_c05",
+"text": "Chandler and Joey are in the other apartment using stuff from there.",
+"centrality": 0.876
+},
+{
+"id": "s01_e06_b3",
+"scene": "s01_e06_c05",
+"text": "Joey, meanwhile, notes that Joey has to know Joey's dating more people than Joey's girlfriend.",
+"centrality": 0.835
+},
+{
+"id": "s01_e06_b4",
+"scene": "s01_e06_c05",
+"text": "Joey takes a bath at Monica's",
+"centrality": 0.854
+},
+{
+"id": "s01_e06_b5",
+"scene": "s01_e06_c05",
+"text": "Chandler is enjoying things with Aurora, but deep down, he wants to commit.",
+"centrality": 0.647
+}
+]
+},
+{
+"ep": "s01_e07",
+"beats": [
+{
+"id": "s01_e07_b0",
+"scene": "s01_e07_c03",
+"text": "The rest of the gang hangs out at Monica and Rachel's apartment.",
+"centrality": 0.754
+},
+{
+"id": "s01_e07_b1",
+"scene": "s01_e07_c04",
+"text": "Chandler, to Chandler's delight finds Chandler trapped inside an ATM vestibule with Victoria's Secret model Jill Goodacre.",
+"centrality": 0.854
+},
+{
+"id": "s01_e07_b2",
+"scene": "s01_e07_c11",
+"text": "This all happens while Phoebe, Monica, and Joey sing, oblivious to Ross's struggle.",
+"centrality": 0.88
+},
+{
+"id": "s01_e07_b3",
+"scene": "s01_e07_c16",
+"text": "Phoebe comes in and says she could n't find the cat.",
+"centrality": 1.0
+},
+{
+"id": "s01_e07_b4",
+"scene": "s01_e07_c16",
+"text": "On the mission, the girls bump into the hunky, and actual cat - owner, Paolo, who only speaks Italian.",
+"centrality": 0.699
+},
+{
+"id": "s01_e07_b5",
+"scene": "s01_e07_c21",
+"text": "Once power is restored, Jill kisses him and leaves, which leads Chandler to talk to the bank security camera, requesting a copy of the security tape.",
+"centrality": 0.745
+}
+]
+},
+{
+"ep": "s01_e08",
+"beats": [
+{
+"id": "s01_e08_b0",
+"scene": "s01_e08_c04",
+"text": "Phoebe recalls Phoebe's lost loved ones.",
+"centrality": 0.737
+},
+{
+"id": "s01_e08_b1",
+"scene": "s01_e08_c07",
+"text": "Chandler asks Shelley what it is that made her think he was gay, Chandler's offended when Shelley suggests he would have been cute with Lowell and not Brian who is out of Chandler's League.",
+"centrality": 1.0
+},
+{
+"id": "s01_e08_b2",
+"scene": "s01_e08_c09",
+"text": "Chandler and Phoebe find themselves on different wavelengths when discussing Phoebe's custom, imported attire.",
+"centrality": 0.781
+},
+{
+"id": "s01_e08_b3",
+"scene": "s01_e08_c10",
+"text": "At the funeral, several incidents happen : Ross falls in an open grave and is given painkillers by Ross's mother Judy ; Monica is picked on by Monica's mother at the funeral when Judy advises Monica to start using night cream and leave Monica's hair down as Monica's ears are n't Monica's",
+"centrality": 0.745
+},
+{
+"id": "s01_e08_b4",
+"scene": "s01_e08_c10",
+"text": "Rachel is upset her Paolo shows get dirty",
+"centrality": 0.73
+},
+{
+"id": "s01_e08_b5",
+"scene": "s01_e08_c12",
+"text": "Chandler's baby naked picture was revealed",
+"centrality": 0.779
+}
+]
+},
+{
+"ep": "s01_e09",
+"beats": [
+{
+"id": "s01_e09_b0",
+"scene": "s01_e09_c04",
+"text": "The friends pitch in and give Rachel the money that she needs to see her family",
+"centrality": 1.0
+},
+{
+"id": "s01_e09_b1",
+"scene": "s01_e09_c04",
+"text": "Chandler explains a bad memory involving Thanksgiving",
+"centrality": 0.823
+},
+{
+"id": "s01_e09_b2",
+"scene": "s01_e09_c04",
+"text": "Monica and Ross decide to have Thanksgiving dinner at Monica's.",
+"centrality": 0.865
+},
+{
+"id": "s01_e09_b3",
+"scene": "s01_e09_c05",
+"text": "Joey poses for a health poster, but later finds out Joey's become the V.D. poster boy.",
+"centrality": 0.656
+},
+{
+"id": "s01_e09_b4",
+"scene": "s01_e09_c10",
+"text": "Joey and Chandler have a copy of the key.",
+"centrality": 0.764
+},
+{
+"id": "s01_e09_b5",
+"scene": "s01_e09_c11",
+"text": "When Carol reminds Ross not to do this to be in competition with Susan, Ross gets over it and starts recounting the story of Ross's life to the fetus.",
+"centrality": 0.765
+}
+]
+},
+{
+"ep": "s01_e10",
+"beats": [
+{
+"id": "s01_e10_b0",
+"scene": "s01_e10_c01",
+"text": "Ross gets a monkey named Marcel.",
+"centrality": 0.829
+},
+{
+"id": "s01_e10_b1",
+"scene": "s01_e10_c01",
+"text": "Monia's brother gets a pet monkey, Marcel, and is questioned by Monica, Phoebe and Chandler",
+"centrality": 0.783
+},
+{
+"id": "s01_e10_b2",
+"scene": "s01_e10_c06",
+"text": "Just as Phoebe's night promises to be a good one, Max reveals to David how despite David's decision to stay, he's still going to Minsk.",
+"centrality": 1.0
+},
+{
+"id": "s01_e10_b3",
+"scene": "s01_e10_c06",
+"text": "Phoebe and Ross were discussing asking someone to stay instead of go to Minsk",
+"centrality": 0.877
+},
+{
+"id": "s01_e10_b4",
+"scene": "s01_e10_c06",
+"text": "However, David is not sure whether to go because of Phoebe, and when David asks Phoebe to decide for David, Phoebe makes David stay.",
+"centrality": 0.902
+},
+{
+"id": "s01_e10_b5",
+"scene": "s01_e10_c06",
+"text": "Max leaves because David does not want to work abroad.",
+"centrality": 0.825
+}
+]
+},
+{
+"ep": "s01_e11",
+"beats": [
+{
+"id": "s01_e11_b0",
+"scene": "s01_e11_c01",
+"text": "Monica wanted to be cool.",
+"centrality": 0.833
+},
+{
+"id": "s01_e11_b1",
+"scene": "s01_e11_c01",
+"text": "Phoebe incites Monica to whistle at a cute guy the two see walking on the street.",
+"centrality": 0.984
+},
+{
+"id": "s01_e11_b2",
+"scene": "s01_e11_c07",
+"text": "Monica discovers that Phoebe is visiting the guy in a coma without Monica.",
+"centrality": 1.0
+},
+{
+"id": "s01_e11_b3",
+"scene": "s01_e11_c08",
+"text": "Ross tries to explain everything to Joey, who is mad at Ross for \" breaking the code ( of never kissing a friend's mom ) \" and also for not thinking that Joey's mom is as attractive as Mrs. Bing.",
+"centrality": 0.907
+},
+{
+"id": "s01_e11_b4",
+"scene": "s01_e11_c08",
+"text": "Paolo kissed Chandler's mom much to Chandler's surprise.",
+"centrality": 0.92
+},
+{
+"id": "s01_e11_b5",
+"scene": "s01_e11_c08",
+"text": "Unsurprisingly, Chandler gets mad at Ross and remains angry at Ross for some time, until Chandler gets the courage to face his mother, after which Chandler makes his peace with Ross'incident.",
+"centrality": 0.936
+}
+]
+},
+{
+"ep": "s01_e12",
+"beats": [
+{
+"id": "s01_e12_b0",
+"scene": "s01_e12_c05",
+"text": "At the furniture store, Joey and Chandler debate over who should purchase a new table.",
+"centrality": 0.872
+},
+{
+"id": "s01_e12_b1",
+"scene": "s01_e12_c06",
+"text": "Phoebe and Phoebe's assistant talk about Phoebe's schedule for the rest of the day until Phoebe returns to work.",
+"centrality": 0.742
+},
+{
+"id": "s01_e12_b2",
+"scene": "s01_e12_c10",
+"text": "Phoebe makes the best oatmeal - raisin cookies in the world and Rachel agrees.",
+"centrality": 0.647
+},
+{
+"id": "s01_e12_b3",
+"scene": "s01_e12_c11",
+"text": "Chandler and Joey got a foosball table, and Monica beat them on their first game.",
+"centrality": 0.931
+},
+{
+"id": "s01_e12_b4",
+"scene": "s01_e12_c13",
+"text": "Joey and Chandler encourage Ross to take advantage of Rachel's break up with Paolo.",
+"centrality": 1.0
+},
+{
+"id": "s01_e12_b5",
+"scene": "s01_e12_c13",
+"text": "They talk about Rachel being ready to be swooned.",
+"centrality": 0.721
+}
+]
+},
+{
+"ep": "s01_e13",
+"beats": [
+{
+"id": "s01_e13_b0",
+"scene": "s01_e13_c07",
+"text": "Chandler's initial peep on Rachel leads to a series of people trying to even the score by seeing their peeper nude.",
+"centrality": 0.659
+},
+{
+"id": "s01_e13_b1",
+"scene": "s01_e13_c08",
+"text": "Ronni stops by Rachel's apartment to use Rachel's shower.",
+"centrality": 0.656
+},
+{
+"id": "s01_e13_b2",
+"scene": "s01_e13_c08",
+"text": "Joey was behind a curtain naked.",
+"centrality": 0.767
+},
+{
+"id": "s01_e13_b3",
+"scene": "s01_e13_c11",
+"text": "The friends come to see this, and tell Phoebe they hate him.",
+"centrality": 0.75
+},
+{
+"id": "s01_e13_b4",
+"scene": "s01_e13_c12",
+"text": "Joey's mom pretends she does n't know of Joey's dad affairs and Rachel and Chandler discuss about the possibity of becoming like them soon.",
+"centrality": 1.0
+},
+{
+"id": "s01_e13_b5",
+"scene": "s01_e13_c13",
+"text": "Monica tries to get back at Chandler's roommate by surprising him in the bathroom, only to find his dad in the shower.",
+"centrality": 0.748
+}
+]
+},
+{
+"ep": "s01_e14",
+"beats": [
+{
+"id": "s01_e14_b0",
+"scene": "s01_e14_c02",
+"text": "Joey has a beautiful date for the night before Valentine's Day, but she insists that they double date with her friend, so Joey pulls Chandler along.",
+"centrality": 0.949
+},
+{
+"id": "s01_e14_b1",
+"scene": "s01_e14_c05",
+"text": "Rachel and Monica are discussing past boyfriends when Phoebe gives them a suggestion she got from a friend on how to break the bad boyfriend cycle.",
+"centrality": 1.0
+},
+{
+"id": "s01_e14_b2",
+"scene": "s01_e14_c10",
+"text": "However, things get out of control as Rachel pours Paolo's remaining grappa in the bonfire, which almost burns the apartment.",
+"centrality": 0.68
+},
+{
+"id": "s01_e14_b3",
+"scene": "s01_e14_c10",
+"text": "Phoebe throws the directions for the ceremony in the fire.",
+"centrality": 0.695
+},
+{
+"id": "s01_e14_b4",
+"scene": "s01_e14_c12",
+"text": "Ross makes his date with Kristin awkward by inviting Carol to join.",
+"centrality": 0.983
+},
+{
+"id": "s01_e14_b5",
+"scene": "s01_e14_c14",
+"text": "Janice reminds Chandler that Janice thinks they're meant to be together.",
+"centrality": 0.887
+}
+]
+},
+{
+"ep": "s01_e15",
+"beats": [
+{
+"id": "s01_e15_b0",
+"scene": "s01_e15_c01",
+"text": "Joey, Ross, and Monica obtain hot drinks and Monica notices a pencil in her cider instead of a cinamon stick.",
+"centrality": 0.974
+},
+{
+"id": "s01_e15_b1",
+"scene": "s01_e15_c12",
+"text": "he goes out with Celia, a woman from the museum, who wants him to talk dirty ; it's a skill he has n't quite mastered... at first.",
+"centrality": 0.862
+},
+{
+"id": "s01_e15_b2",
+"scene": "s01_e15_c14",
+"text": "In revenge for ruining Monica's new job opportunity, Phoebe massages Steve, jabbing Steve with Pheobe's elbows up and down Steve's back, causing Steve to yell in pain.",
+"centrality": 1.0
+}
+]
+},
+{
+"ep": "s01_e16",
+"beats": [
+{
+"id": "s01_e16_b0",
+"scene": "s01_e16_c01",
+"text": "While dining out, Joey and Chandler meet Phoebe's twin sister, Ursula.",
+"centrality": 0.83
+},
+{
+"id": "s01_e16_b1",
+"scene": "s01_e16_c03",
+"text": "Ross attends Lamaze classes with Carol and Susan.",
+"centrality": 0.806
+},
+{
+"id": "s01_e16_b2",
+"scene": "s01_e16_c03",
+"text": "Carol thinks marriage is little complicted.",
+"centrality": 0.626
+},
+{
+"id": "s01_e16_b3",
+"scene": "s01_e16_c11",
+"text": "Nina escapes her encounter with Mr. Douglas but Chandler is left to trying to explain why she has n't been fired.",
+"centrality": 1.0
+},
+{
+"id": "s01_e16_b4",
+"scene": "s01_e16_c13",
+"text": "Ross worries about raising a child while Rachel comforts him",
+"centrality": 0.817
+},
+{
+"id": "s01_e16_b5",
+"scene": "s01_e16_c16",
+"text": "Rachel finally gets around to taking down the Christmas lights, but falls off the balcony in the process, and ends up hanging upside down outside Mr. Heckles'window.",
+"centrality": 0.752
+}
+]
+},
+{
+"ep": "s01_e17",
+"beats": [
+{
+"id": "s01_e17_b0",
+"scene": "s01_e17_c05",
+"text": "Ross talks with Ross'father over lunch about Ross'fears, which Jack talks Ross out of by recounting the first moment Jack had with Ross as a baby after birth, when Ross grabbed Jack's finger with Ross'tiny hand.",
+"centrality": 0.802
+},
+{
+"id": "s01_e17_b1",
+"scene": "s01_e17_c11",
+"text": "Ross escorts his monkey to the hospital, where Rachel's and Monica's date doctors take a look at him and extract the scrabble tiles out of him.",
+"centrality": 1.0
+},
+{
+"id": "s01_e17_b2",
+"scene": "s01_e17_c11",
+"text": "Marcel chokes on scrabble tiles and has to be rushed to the hospital ; Ross realizes that it's possible to cope with the responsibilities of parenthood.",
+"centrality": 0.923
+},
+{
+"id": "s01_e17_b3",
+"scene": "s01_e17_c13",
+"text": "Chandler says that rescuing Marcell was a very dad thing to do",
+"centrality": 0.767
+},
+{
+"id": "s01_e17_b4",
+"scene": "s01_e17_c13",
+"text": "Marcel regains consciousness, and grabs Ross'finger with his whole hand, and Ross comes to appreciate the bond he and his son will come to have.",
+"centrality": 0.877
+},
+{
+"id": "s01_e17_b5",
+"scene": "s01_e17_c14",
+"text": "Confusion leads to laughter when Joey, Monica and Ross try ordering at a Chinese restaurant.",
+"centrality": 0.814
+}
+]
+},
+{
+"ep": "s01_e18",
+"beats": [
+{
+"id": "s01_e18_b0",
+"scene": "s01_e18_c05",
+"text": "Rachel proves that she can shuffle a deck of cards.",
+"centrality": 1.0
+},
+{
+"id": "s01_e18_b1",
+"scene": "s01_e18_c08",
+"text": "Joey and Phoebe could n't guess what Monica drew while Joey was able to guess correctly on another drawing.",
+"centrality": 1.0
+}
+]
+},
+{
+"ep": "s01_e19",
+"beats": [
+{
+"id": "s01_e19_b0",
+"scene": "s01_e19_c08",
+"text": "Ross is attempting to share a romantic moment with Rachel but is interepted by Barry.",
+"centrality": 1.0
+},
+{
+"id": "s01_e19_b1",
+"scene": "s01_e19_c08",
+"text": "Barry tells Rachel that he's still in love with her and ca n't marry Mindy because of this.",
+"centrality": 0.976
+}
+]
+},
+{
+"ep": "s01_e20",
+"beats": [
+{
+"id": "s01_e20_b0",
+"scene": "s01_e20_c01",
+"text": "Monica, while looking into neighbor's windows, notices a neighbor looking through a telescope into Monica's apartment ; Pheobe notices Ugly Naked Guy's new boots.",
+"centrality": 0.955
+},
+{
+"id": "s01_e20_b1",
+"scene": "s01_e20_c04",
+"text": "Monica, Phoebe, and Joey complain about the guy with the telescope and Joey reveals Joey cooks naked.",
+"centrality": 1.0
+},
+{
+"id": "s01_e20_b2",
+"scene": "s01_e20_c05",
+"text": "Rachel is with Barry after having sex with him and a young patient walks in the room soon after",
+"centrality": 0.91
+},
+{
+"id": "s01_e20_b3",
+"scene": "s01_e20_c09",
+"text": "Someone is peeping into the apartment building with a telescope ; Joey discovers it's a woman, and that she's very complimentary.",
+"centrality": 0.933
+},
+{
+"id": "s01_e20_b4",
+"scene": "s01_e20_c09",
+"text": "Sidney Marks compliments Joey and Monica who become less angry about the peeping.",
+"centrality": 0.931
+},
+{
+"id": "s01_e20_b5",
+"scene": "s01_e20_c12",
+"text": "Although the guys interpret this as a nice gesture, Chandler is unsure about a second date with Danielle, as Chandler thinks it's needy.",
+"centrality": 0.842
+}
+]
+},
+{
+"ep": "s01_e21",
+"beats": [
+{
+"id": "s01_e21_b0",
+"scene": "s01_e21_c01",
+"text": "Joey asks Monica how someone could get a hold of Monica's credit card number and Monica is surprised at how much was spent.",
+"centrality": 0.96
+},
+{
+"id": "s01_e21_b1",
+"scene": "s01_e21_c03",
+"text": "Chandler is helping to come up with a stage name debating between the names Joe, Stalin, Joe Stalin, Pepponi and Joseph.",
+"centrality": 0.652
+},
+{
+"id": "s01_e21_b2",
+"scene": "s01_e21_c08",
+"text": "The thief turns out to be so charming and inspiring that, instead of reporting the thief to the police, Monica hangs out with the thief, gatecrashing parties, auditioning for Broadway musicals, and getting drunk.",
+"centrality": 0.805
+},
+{
+"id": "s01_e21_b3",
+"scene": "s01_e21_c10",
+"text": "Just as he's on the verge to give up Marcel to an animal - fighting ring owner, Dr. Baldharan, Joey and Chandler bring news - Marcel has been accepted to San Diego Zoo.",
+"centrality": 0.749
+},
+{
+"id": "s01_e21_b4",
+"scene": "s01_e21_c11",
+"text": "Rachel and Monica are discussing the antics Rachel and Monica have done and are going to do.",
+"centrality": 0.885
+},
+{
+"id": "s01_e21_b5",
+"scene": "s01_e21_c14",
+"text": "Ross tells Joey to say what Joey feels.",
+"centrality": 1.0
+}
+]
+},
+{
+"ep": "s01_e22",
+"beats": [
+{
+"id": "s01_e22_b0",
+"scene": "s01_e22_c01",
+"text": "Ross wonders why Rachel would have a sex dream about Chandler.",
+"centrality": 1.0
+},
+{
+"id": "s01_e22_b1",
+"scene": "s01_e22_c03",
+"text": "Phoebe talks on the phone and tells the person Mr. Bing is in a meeting, but it's not true.",
+"centrality": 0.722
+},
+{
+"id": "s01_e22_b2",
+"scene": "s01_e22_c10",
+"text": "Monica and Ethan is just having a inconsequential discussion about each other",
+"centrality": 0.819
+},
+{
+"id": "s01_e22_b3",
+"scene": "s01_e22_c10",
+"text": "Ross, Joey, and Rachel go into the bathroom to leave Monica and Ethan alone.",
+"centrality": 0.907
+},
+{
+"id": "s01_e22_b4",
+"scene": "s01_e22_c10",
+"text": "People are paging Ross's pager wanting to speak with Andre.",
+"centrality": 0.64
+},
+{
+"id": "s01_e22_b5",
+"scene": "s01_e22_c11",
+"text": "This leads to Chandler's discover that the people at the office do n't like Chandler anymore... and they even mimic Chandler's unique way of talking.",
+"centrality": 0.79
+}
+]
+},
+{
+"ep": "s01_e23",
+"beats": [
+{
+"id": "s01_e23_b0",
+"scene": "s01_e23_c02",
+"text": "When Ross'ex-wife Carol is rushed to the hospital to have their baby, all the friends come along, but prove less than helpful.",
+"centrality": 0.997
+},
+{
+"id": "s01_e23_b1",
+"scene": "s01_e23_c08",
+"text": "Phoebe attempts to stop the argument between Ross and Susan but creates another problem.",
+"centrality": 1.0
+},
+{
+"id": "s01_e23_b2",
+"scene": "s01_e23_c16",
+"text": "Phoebe says that, when Phoebe was a kid, Phoebe barely had enough pieces of parents to make one whole one, but Ross's baby is n't even born yet and he has three people fighting over which one of them gets to love Ross's baby the most, and Ross's baby is just the luckiest baby in the world.",
+"centrality": 0.969
+},
+{
+"id": "s01_e23_b3",
+"scene": "s01_e23_c18",
+"text": "When Phoebe puts on the janitor's outfit with a nametag reading \" Ben \", it inspired Ross and Susan to propose Ben as the new name for Phoebe.",
+"centrality": 0.925
+},
+{
+"id": "s01_e23_b4",
+"scene": "s01_e23_c19",
+"text": "Phoebe watches Carol give birth from the vent system above the room.",
+"centrality": 0.943
+},
+{
+"id": "s01_e23_b5",
+"scene": "s01_e23_c20",
+"text": "Ross suggests a name for a baby and Susan agrees while greeting it.",
+"centrality": 0.959
+}
+]
+},
+{
+"ep": "s01_e24",
+"beats": [
+{
+"id": "s01_e24_b0",
+"scene": "s01_e24_c03",
+"text": "Monica, Chandler and Phoebe try and stop Rachel from going to the airport to confront Ross.",
+"centrality": 0.942
+},
+{
+"id": "s01_e24_b1",
+"scene": "s01_e24_c04",
+"text": "Unaware of this, Rachel waits for Ross.",
+"centrality": 1.0
+},
+{
+"id": "s01_e24_b2",
+"scene": "s01_e24_c07",
+"text": "Joey and Chandler are having a conversation about sex.",
+"centrality": 0.815
+},
+{
+"id": "s01_e24_b3",
+"scene": "s01_e24_c08",
+"text": "Carl is there for his date.",
+"centrality": 0.56
+},
+{
+"id": "s01_e24_b4",
+"scene": "s01_e24_c11",
+"text": "The Man is flustered and says that there is no Rachel, then a woman drops one of the woman's bags.",
+"centrality": 0.847
+},
+{
+"id": "s01_e24_b5",
+"scene": "s01_e24_c11",
+"text": "Just when Ross is about to leave the gates, Ross picks up a bag that a girl dropped.",
+"centrality": 0.907
+}
+]
+},
+{
+"ep": "s02_e01",
+"beats": [
+{
+"id": "s02_e01_b0",
+"scene": "s02_e01_c02",
+"text": "Rachel is upset Ross is with Julie.",
+"centrality": 1.0
+},
+{
+"id": "s02_e01_b1",
+"scene": "s02_e01_c02",
+"text": "Having decided to tell Ross that Rachel loves Ross ( continuing from the cliff - hanger ending in The One Where Rachel Finds Out ), Rachel goes to the airport to wait for Ross with a bunch of flowers.",
+"centrality": 0.887
+},
+{
+"id": "s02_e01_b2",
+"scene": "s02_e01_c02",
+"text": "Rachel : so, are you guy dating ( as Rachel tries to hold back a squeaky voice )",
+"centrality": 0.783
+},
+{
+"id": "s02_e01_b3",
+"scene": "s02_e01_c04",
+"text": "Rachel uses Chandler to find out why Ross is with a new girl",
+"centrality": 0.985
+},
+{
+"id": "s02_e01_b4",
+"scene": "s02_e01_c06",
+"text": "The next morning, Rachel reveals what she",
+"centrality": 0.902
+},
+{
+"id": "s02_e01_b5",
+"scene": "s02_e01_c08",
+"text": "Monica asks Phoebe to cut Monica's hair like Demi Moore.",
+"centrality": 0.756
+}
+]
+},
+{
+"ep": "s02_e02",
+"beats": [
+{
+"id": "s02_e02_b0",
+"scene": "s02_e02_c01",
+"text": "At Monica's apartment, Joey and Chandler experience a uncomfortable situation when Carol breast - feeds Ben in front of them.",
+"centrality": 0.975
+},
+{
+"id": "s02_e02_b1",
+"scene": "s02_e02_c03",
+"text": "\" The Hombre Man \" moves in on Joey's territory at the department store where Joey works.",
+"centrality": 0.757
+},
+{
+"id": "s02_e02_b2",
+"scene": "s02_e02_c03",
+"text": "Rachel tells Joey about the new fragrance man, Joey decides to confront him.",
+"centrality": 0.897
+},
+{
+"id": "s02_e02_b3",
+"scene": "s02_e02_c09",
+"text": "Although not uncomfortable with breast - feeding, Ross ( together with Rachel and Chandler ) finds the idea of tasting it nasty, and Ross flips out when Phoebe and Joey taste it.",
+"centrality": 1.0
+},
+{
+"id": "s02_e02_b4",
+"scene": "s02_e02_c11",
+"text": "Rachel is stops talking to Monica for what she did, and explains to Monica how Julie has not only stolen her potential boyfriend, but is now stealing her too.",
+"centrality": 0.863
+},
+{
+"id": "s02_e02_b5",
+"scene": "s02_e02_c13",
+"text": "Rachel does her best to try and make nice to Julie, but is still pretty much disturbed by her.",
+"centrality": 0.89
+}
+]
+},
+{
+"ep": "s02_e03",
+"beats": [
+{
+"id": "s02_e03_b0",
+"scene": "s02_e03_c02",
+"text": "Everyone scoffs at Phoebe when Phoebe yells at Mr. Heckles'soul, but when Phoebe brings up the evolution theory as one of the things Phoebe does n't believe, Ross takes it on a personal level.",
+"centrality": 1.0
+},
+{
+"id": "s02_e03_b1",
+"scene": "s02_e03_c02",
+"text": "Phoebe has a hard time believing in gravity.",
+"centrality": 0.795
+},
+{
+"id": "s02_e03_b2",
+"scene": "s02_e03_c06",
+"text": "Most, if not all of this stuff, is trashy toys and furniture which Monica finds tacky, but which Rachel adores.",
+"centrality": 0.638
+},
+{
+"id": "s02_e03_b3",
+"scene": "s02_e03_c06",
+"text": "Chandler and Joey look at a book of grievances.",
+"centrality": 0.741
+},
+{
+"id": "s02_e03_b4",
+"scene": "s02_e03_c10",
+"text": "Ross comes over with a briefcase of fossils to show to Phoebe, but she does n't even let him start.",
+"centrality": 0.956
+},
+{
+"id": "s02_e03_b5",
+"scene": "s02_e03_c10",
+"text": "Ross is trying to prove evolution to Phoebe.",
+"centrality": 1.0
+}
+]
+},
+{
+"ep": "s02_e04",
+"beats": [
+{
+"id": "s02_e04_b0",
+"scene": "s02_e04_c01",
+"text": "Phoebe's not home and Rachel offers to leave a message, the Stranger tells Rachel to tell Phoebe that Phoebe's husband stopped by.",
+"centrality": 0.885
+},
+{
+"id": "s02_e04_b1",
+"scene": "s02_e04_c03",
+"text": "Ross, Chandler and Julie discuss about Chandler's third nipple ; Rachel and Monica converse about Julie ; Phoebe plans to go visit her gay husband.",
+"centrality": 1.0
+},
+{
+"id": "s02_e04_b2",
+"scene": "s02_e04_c05",
+"text": "Phoebe meets Duncan in his dressing room at Madison Square Garden, he says he missed her and leaves to get dressed.",
+"centrality": 0.912
+},
+{
+"id": "s02_e04_b3",
+"scene": "s02_e04_c08",
+"text": "When Pheobe asks Duncan what Duncan wants, Duncan requests a divorce from phoebe.",
+"centrality": 0.917
+},
+{
+"id": "s02_e04_b4",
+"scene": "s02_e04_c08",
+"text": "Phoebe is surprised to hear from Duncan that he is not gay.",
+"centrality": 0.98
+},
+{
+"id": "s02_e04_b5",
+"scene": "s02_e04_c09",
+"text": "Everyone watches the movie, but Rachel does n't want to call it a night, so she engages Julie in a long conversation in the hope of putting her off sex with Ross.",
+"centrality": 0.908
+}
+]
+},
+{
+"ep": "s02_e05",
+"beats": [
+{
+"id": "s02_e05_b0",
+"scene": "s02_e05_c01",
+"text": "On the phone, Chandler pretends to be Bob and arranges to meet Jade, so Chandler can console Jade when \" Bob \" stands Jade up.",
+"centrality": 1.0
+},
+{
+"id": "s02_e05_b1",
+"scene": "s02_e05_c01",
+"text": "Chandler pretends to be someone named Bob to get a date with a girl named Jade who calls the wrong number",
+"centrality": 0.969
+},
+{
+"id": "s02_e05_b2",
+"scene": "s02_e05_c01",
+"text": "When a sexy woman named Jade calls Chandler and Joey's by mistake, looking for Jade's ex-boyfriend Bob, Chandler answers the phone pretending to be Bob and fixes Chandler up on a date with Jade at the coffeehouse.",
+"centrality": 0.986
+},
+{
+"id": "s02_e05_b3",
+"scene": "s02_e05_c01",
+"text": "Ross says that Jade will realize that Chandler is not Bob.",
+"centrality": 0.931
+}
+]
+},
+{
+"ep": "s02_e06",
+"beats": [
+{
+"id": "s02_e06_b0",
+"scene": "s02_e06_c02",
+"text": "Rachel is sad for Phoebe, and comforts Phoebe on the street.",
+"centrality": 0.77
+},
+{
+"id": "s02_e06_b1",
+"scene": "s02_e06_c03",
+"text": "Caroline mistakes Joey and Chandler for a gay couple.",
+"centrality": 1.0
+},
+{
+"id": "s02_e06_b2",
+"scene": "s02_e06_c03",
+"text": "Chandler and Joey babysit Ross's baby.",
+"centrality": 0.93
+},
+{
+"id": "s02_e06_b3",
+"scene": "s02_e06_c03",
+"text": "Chandler and Joey hit on woman who thinks that they are a couple.",
+"centrality": 0.965
+}
+]
+},
+{
+"ep": "s02_e07",
+"beats": [
+{
+"id": "s02_e07_b0",
+"scene": "s02_e07_c01",
+"text": "Chandler is having problems because he's put on weight, so Monica offers to be his personal trainer.",
+"centrality": 0.874
+},
+{
+"id": "s02_e07_b1",
+"scene": "s02_e07_c05",
+"text": "Rachel is distracted by the thoughts of a friend getting a cat with his girlfriend while on a blind date with Micheal.",
+"centrality": 0.807
+},
+{
+"id": "s02_e07_b2",
+"scene": "s02_e07_c05",
+"text": "At the restaurant, Rachel is not listening to a word of Michael's, and instead keeps asking him about cats and how she finds it weird that Ross is getting one whilst gulping down endless glasses of wine.",
+"centrality": 0.908
+},
+{
+"id": "s02_e07_b3",
+"scene": "s02_e07_c07",
+"text": "Rachel ruins a first date with Michael by being obsessed over closure with Ross.",
+"centrality": 1.0
+},
+{
+"id": "s02_e07_b4",
+"scene": "s02_e07_c10",
+"text": "Phoebe realizes this when Joey's reaction to their discussion is :",
+"centrality": 0.742
+},
+{
+"id": "s02_e07_b5",
+"scene": "s02_e07_c12",
+"text": "With one pound to go, he picks on Monica's weaknesses - no job, no boyfriend, no confessions of anything to her parents - to convince her to lie down on his couch and for him to go back to bed.",
+"centrality": 0.82
+}
+]
+},
+{
+"ep": "s02_e08",
+"beats": [
+{
+"id": "s02_e08_b0",
+"scene": "s02_e08_c04",
+"text": "Monica is in a job interview but finds it hard to be happy with the company's product.",
+"centrality": 0.797
+},
+{
+"id": "s02_e08_b1",
+"scene": "s02_e08_c04",
+"text": "Monica has a job interview, for which she has to produce a number of recipes using Mockolate, a synthetic chocolate substitute which they hope to capitalise for Thanksgiving.",
+"centrality": 0.789
+},
+{
+"id": "s02_e08_b2",
+"scene": "s02_e08_c06",
+"text": "Ross trying to decide on which woman he want to be with.",
+"centrality": 0.893
+},
+{
+"id": "s02_e08_b3",
+"scene": "s02_e08_c06",
+"text": "Ross, Joey, and Chandler are making pros and cons on Rachel and Julie.",
+"centrality": 0.973
+},
+{
+"id": "s02_e08_b4",
+"scene": "s02_e08_c07",
+"text": "Monica makes food with Mockolate and Rachel and Phoebe think it's disgusting.",
+"centrality": 1.0
+},
+{
+"id": "s02_e08_b5",
+"scene": "s02_e08_c12",
+"text": "Ross requests a song on the radio to apologize to Rachel but Rachel does not accept the apology.",
+"centrality": 0.814
+}
+]
+},
+{
+"ep": "s02_e09",
+"beats": [
+{
+"id": "s02_e09_b0",
+"scene": "s02_e09_c03",
+"text": "Phoebe discovers that everything Phoebe thought Phoebe knew about Phoebe's biological father ( including the father's picture ) is a lie.",
+"centrality": 0.799
+},
+{
+"id": "s02_e09_b1",
+"scene": "s02_e09_c04",
+"text": "Chandler and Rachel talk about a Christmas in the past.",
+"centrality": 1.0
+},
+{
+"id": "s02_e09_b2",
+"scene": "s02_e09_c04",
+"text": "Ross tells Rachel to make a list about him, so Rachel does ; Ross obsesses about Rachel's complaints.",
+"centrality": 0.854
+},
+{
+"id": "s02_e09_b3",
+"scene": "s02_e09_c07",
+"text": "When Monica asks him to turn off the heat, Ross breaks the knob off, causing the heat to leak.",
+"centrality": 0.769
+},
+{
+"id": "s02_e09_b4",
+"scene": "s02_e09_c07",
+"text": "The cookies, apparently, go down well only with Treeger.",
+"centrality": 0.334
+},
+{
+"id": "s02_e09_b5",
+"scene": "s02_e09_c12",
+"text": "Ross and Monica gladly exchange their gifts.",
+"centrality": 0.901
+}
+]
+},
+{
+"ep": "s02_e10",
+"beats": [
+{
+"id": "s02_e10_b0",
+"scene": "s02_e10_c03",
+"text": "Joey meets with his agent and tells her that he thinks he would get the part if he would sleep with the casting director.",
+"centrality": 1.0
+},
+{
+"id": "s02_e10_b1",
+"scene": "s02_e10_c09",
+"text": "At the coffeehouse, a devastated Russ tells the guys that Rachel dumped Russ, when Julie enters with a bunch of Ross'stuff.",
+"centrality": 0.743
+}
+]
+},
+{
+"ep": "s02_e11",
+"beats": [
+{
+"id": "s02_e11_b0",
+"scene": "s02_e11_c01",
+"text": "Carol and Susan are getting married ; Ross does n't want to attend, but when Carol's parent's do n't approve of the wedding, Ross convinces Carol that Carol should do it anyway, and Ross gives away the bride.",
+"centrality": 1.0
+},
+{
+"id": "s02_e11_b1",
+"scene": "s02_e11_c03",
+"text": "Phoebe talks about one of Phoebe's clients dying during Phoebe's massage.",
+"centrality": 0.743
+},
+{
+"id": "s02_e11_b2",
+"scene": "s02_e11_c07",
+"text": "Monica plans the food preparation badly, with very little time for everything to be ready on schedule, so Monica everyone helping.",
+"centrality": 0.599
+},
+{
+"id": "s02_e11_b3",
+"scene": "s02_e11_c08",
+"text": "At Susan and Carol's Wedding, Phoebe is possessed by Mrs. Adelman so she interrupts the wedding.",
+"centrality": 0.955
+},
+{
+"id": "s02_e11_b4",
+"scene": "s02_e11_c08",
+"text": "Ross knows Carol is right, so the preparations resume.",
+"centrality": 0.766
+},
+{
+"id": "s02_e11_b5",
+"scene": "s02_e11_c08",
+"text": "Phoebe, Ross, Joey, and Chandler are at Susan and Carol's Wedding.",
+"centrality": 0.997
+}
+]
+},
+{
+"ep": "s02_e12",
+"beats": [
+{
+"id": "s02_e12_b0",
+"scene": "s02_e12_c02",
+"text": "Phoebe is hired by a cute guy, Rob, at a library to sing to children.",
+"centrality": 1.0
+},
+{
+"id": "s02_e12_b1",
+"scene": "s02_e12_c04",
+"text": "Once there, he is told by a zoo representative that Marcel has died ; however, an eccentric zoo keeper tells him Marcel was stolen and put into show business.",
+"centrality": 0.858
+},
+{
+"id": "s02_e12_b2",
+"scene": "s02_e12_c05",
+"text": "Joey begins dating a stalker who thinks Joey is really the soap opera character, Dr. Drake Ramoray.",
+"centrality": 0.88
+},
+{
+"id": "s02_e12_b3",
+"scene": "s02_e12_c11",
+"text": "After some research and calls, Ross discovers that the monkey starring in the Monkeyshine Beer ad is actually the one he used to keep as a pet.",
+"centrality": 0.868
+},
+{
+"id": "s02_e12_b4",
+"scene": "s02_e12_c11",
+"text": "Phoebe takes a break from singing about animal slaughter to speak with Ross and Changler.",
+"centrality": 0.951
+},
+{
+"id": "s02_e12_b5",
+"scene": "s02_e12_c15",
+"text": "Ross and Chandler visit the set, but are not allowed anywhere near Marcel.",
+"centrality": 0.877
+}
+]
+},
+{
+"ep": "s02_e13",
+"beats": [
+{
+"id": "s02_e13_b0",
+"scene": "s02_e13_c02",
+"text": "Ross cancels racketball with Joey in order to play with Marcel, a monkey.",
+"centrality": 0.817
+},
+{
+"id": "s02_e13_b1",
+"scene": "s02_e13_c02",
+"text": "Chandler tells Monica, Phoebe and Ross how he missed out on the perfect woman.",
+"centrality": 0.906
+},
+{
+"id": "s02_e13_b2",
+"scene": "s02_e13_c03",
+"text": "The two prepare for a big night, when Susie asks Chandler to wear her underwear ( revealing that she may be wearing none ).",
+"centrality": 0.77
+},
+{
+"id": "s02_e13_b3",
+"scene": "s02_e13_c07",
+"text": "Monica and Rachel see Jean - Claude Van Damme ; when Rachel tries to get him interested in Monica, he asks Rachel out instead, causing a rift between the roommates.",
+"centrality": 1.0
+},
+{
+"id": "s02_e13_b4",
+"scene": "s02_e13_c07",
+"text": "Rachel does this, but tells Van Damme that Monica is doing this so as to have a threesome with him and Drew Barrymore.",
+"centrality": 0.967
+},
+{
+"id": "s02_e13_b5",
+"scene": "s02_e13_c08",
+"text": "Monica and Rachel end up fighting again, this time taking it to an even more personal level ( Monica rips Rachel's favorite sweater and Rachel pours a jar of marinara sauce in Monica's purse, which unbeknown to Rachel, has a pair of her gloves in it ).",
+"centrality": 0.849
+}
+]
+},
+{
+"ep": "s02_e14",
+"beats": [
+{
+"id": "s02_e14_b0",
+"scene": "s02_e14_c03",
+"text": "Ross is pining over Rachel.",
+"centrality": 0.773
+},
+{
+"id": "s02_e14_b1",
+"scene": "s02_e14_c03",
+"text": "When Phoebe receives blank looks, the explanation is given : \" It's a known fact that lobsters fall in love and mate for life.",
+"centrality": 0.59
+},
+{
+"id": "s02_e14_b2",
+"scene": "s02_e14_c07",
+"text": "Chandler is trying to repair his friendship with Joey.",
+"centrality": 1.0
+},
+{
+"id": "s02_e14_b3",
+"scene": "s02_e14_c08",
+"text": "Monica tells them about losing her job, but she just ca n't get the courage to ask them for money.",
+"centrality": 0.707
+},
+{
+"id": "s02_e14_b4",
+"scene": "s02_e14_c08",
+"text": "Jack and Judy Geller bring boxes of Monica's possessions to her apartment because they are turning Monicas room into a gym.",
+"centrality": 0.762
+},
+{
+"id": "s02_e14_b5",
+"scene": "s02_e14_c11",
+"text": "During the end credits, Monica finishes watching the tape, and inadvertently finds a recording of Jack and Judy having sex.",
+"centrality": 0.768
+}
+]
+},
+{
+"ep": "s02_e15",
+"beats": [
+{
+"id": "s02_e15_b0",
+"scene": "s02_e15_c05",
+"text": "Monica and Phoebe discuss if Monica likes Richard.",
+"centrality": 1.0
+},
+{
+"id": "s02_e15_b1",
+"scene": "s02_e15_c05",
+"text": "Dr. Burke is recently divorced and seems to enjoy conversing with Monica",
+"centrality": 0.804
+},
+{
+"id": "s02_e15_b2",
+"scene": "s02_e15_c07",
+"text": "Ross discusses the previous night's events with the Chandler and Joey",
+"centrality": 0.963
+},
+{
+"id": "s02_e15_b3",
+"scene": "s02_e15_c07",
+"text": "Rose and Rachel discuss their date and try to have a better one the next night",
+"centrality": 0.829
+},
+{
+"id": "s02_e15_b4",
+"scene": "s02_e15_c13",
+"text": "Ross and Rachel being to make love for the first time but it is interrupted early by an awkward moment.",
+"centrality": 0.891
+},
+{
+"id": "s02_e15_b5",
+"scene": "s02_e15_c15",
+"text": "At the end, Joey and Chandler are STILL in those recliners : even a fire alarm wo n't get them out.",
+"centrality": 0.781
+}
+]
+},
+{
+"ep": "s02_e16",
+"beats": [
+{
+"id": "s02_e16_b0",
+"scene": "s02_e16_c04",
+"text": "Mrs. Geller and a family friend are talking about Monica while Monica is in the same room, and Mrs. Geller and the friend are completely unaware.",
+"centrality": 0.754
+},
+{
+"id": "s02_e16_b1",
+"scene": "s02_e16_c07",
+"text": "Ironically, Phoebe lacks all of this courage and does n't get hers, whilst Rachel has a heart drawn on Rachel's left hip.",
+"centrality": 0.795
+},
+{
+"id": "s02_e16_b2",
+"scene": "s02_e16_c08",
+"text": "Richard goes out first, but Monica does n't leave in time and is stuck in the bathroom with Monica's mother and father, who do n't know Monica is there.",
+"centrality": 0.857
+},
+{
+"id": "s02_e16_b3",
+"scene": "s02_e16_c08",
+"text": "Jack admits to Judy how Richard's very happy with Richard's new girl, and how Richard is thinking Richard is falling in love with Monica.",
+"centrality": 0.719
+},
+{
+"id": "s02_e16_b4",
+"scene": "s02_e16_c09",
+"text": "Back at their apartment, Chandler takes it on Joey for considering the other guy's apartment.",
+"centrality": 1.0
+},
+{
+"id": "s02_e16_b5",
+"scene": "s02_e16_c09",
+"text": "Joey, however, is giving it some serious thought, and states how he thinks he's old enough to start living alone.",
+"centrality": 0.763
+}
+]
+},
+{
+"ep": "s02_e17",
+"beats": [
+{
+"id": "s02_e17_b0",
+"scene": "s02_e17_c01",
+"text": "Joey shows off the decorations in his new apartment.",
+"centrality": 0.715
+},
+{
+"id": "s02_e17_b1",
+"scene": "s02_e17_c02",
+"text": "Phoebe is discovered by a record producer, who wants to make a music video with Smelly Cat.",
+"centrality": 0.789
+},
+{
+"id": "s02_e17_b2",
+"scene": "s02_e17_c06",
+"text": "Chandler has a conversation with Rachel and Ross about Joey moving back in.",
+"centrality": 1.0
+},
+{
+"id": "s02_e17_b3",
+"scene": "s02_e17_c10",
+"text": "Phoebe however, thinks it's herself.",
+"centrality": 0.894
+},
+{
+"id": "s02_e17_b4",
+"scene": "s02_e17_c14",
+"text": "Time gives an answer to Chandler, however, as Eddie lacks the features which made he and Joey great friends, as Eddie likes neither foosball nor Baywatch.",
+"centrality": 0.804
+},
+{
+"id": "s02_e17_b5",
+"scene": "s02_e17_c14",
+"text": "instead of her, use Chandler, use Eddie.",
+"centrality": 0.782
+}
+]
+},
+{
+"ep": "s02_e18",
+"beats": [
+{
+"id": "s02_e18_b0",
+"scene": "s02_e18_c01",
+"text": "Joey is starting to find success in playing Dr. Drake Ramoray on TV series Days Of Our Lives.",
+"centrality": 0.566
+},
+{
+"id": "s02_e18_b1",
+"scene": "s02_e18_c02",
+"text": "Phoebe plays a trick on Chandler.",
+"centrality": 0.829
+},
+{
+"id": "s02_e18_b2",
+"scene": "s02_e18_c08",
+"text": "One of the writer's kills off Joeys character by having his him fall down an elevator shaft and Joey is mad about it.",
+"centrality": 0.674
+},
+{
+"id": "s02_e18_b3",
+"scene": "s02_e18_c10",
+"text": "Chandler tells Eddie that Chandler did n't sleep with Eddie's girlfriend.",
+"centrality": 1.0
+},
+{
+"id": "s02_e18_b4",
+"scene": "s02_e18_c10",
+"text": "He even accuses Chandler of stealing Buddy, his goldfish, even though the fish tank Tilly dropped off is empty.",
+"centrality": 0.849
+},
+{
+"id": "s02_e18_b5",
+"scene": "s02_e18_c13",
+"text": "Monica's OCD is always in overdrive, even when comforting a friend.",
+"centrality": 0.61
+}
+]
+},
+{
+"ep": "s02_e19",
+"beats": [
+{
+"id": "s02_e19_b0",
+"scene": "s02_e19_c01",
+"text": "Chandler wakes in the night to find Eddie watching him sleep ; they argue and Eddie agrees to leave.",
+"centrality": 0.926
+},
+{
+"id": "s02_e19_b1",
+"scene": "s02_e19_c04",
+"text": "Ross and Rachel bicker after Rachel reads a book urging women to not let men steal their wind.",
+"centrality": 0.437
+},
+{
+"id": "s02_e19_b2",
+"scene": "s02_e19_c07",
+"text": "And when he goes to Central Perk for some lemonade, he learns from Gunther that before becoming a waiter, he was Bryce on All My Children.",
+"centrality": 0.543
+},
+{
+"id": "s02_e19_b3",
+"scene": "s02_e19_c08",
+"text": "To prevent the basket - case from watching him sleep, Chandler crashes on Monica's couch, and over-reacts upon waking up and finding that Monica is affectionately watching him sleep.",
+"centrality": 0.723
+},
+{
+"id": "s02_e19_b4",
+"scene": "s02_e19_c14",
+"text": "Joey and Chandler make Eddie think he does n't live in the apartment any more.",
+"centrality": 1.0
+},
+{
+"id": "s02_e19_b5",
+"scene": "s02_e19_c14",
+"text": "When Eddie knocks, Chandler answers the door, and pretends not to know Eddie at all.",
+"centrality": 0.916
+}
+]
+},
+{
+"ep": "s02_e20",
+"beats": [
+{
+"id": "s02_e20_b0",
+"scene": "s02_e20_c02",
+"text": "When Joey and Chandler have an extra ticket for a Knicks game, Monica convinces them to take Richard, but Joey & Chandler do it only because they can go to the game in his Jaguar.",
+"centrality": 0.841
+},
+{
+"id": "s02_e20_b1",
+"scene": "s02_e20_c03",
+"text": "Ross, bothered that he's missing significant steps in Ben's development, takes Ben for a weekend.",
+"centrality": 0.718
+},
+{
+"id": "s02_e20_b2",
+"scene": "s02_e20_c04",
+"text": "When Monica, Richard, Ross and Rachel are watching Old Yeller, Phoebe finds out that Phoebe's mother never showed her the ends of sad movies to shield Pheobe from the pain,",
+"centrality": 1.0
+},
+{
+"id": "s02_e20_b3",
+"scene": "s02_e20_c04",
+"text": "Monica's boyfriend let Chandler and Joey drive the expensive car.",
+"centrality": 0.905
+},
+{
+"id": "s02_e20_b4",
+"scene": "s02_e20_c04",
+"text": "Joey and Chandler are impressed by Monica's boyfriend Richard, and relay what happened while they were out with Richard.",
+"centrality": 0.947
+},
+{
+"id": "s02_e20_b5",
+"scene": "s02_e20_c11",
+"text": "In the closing credits, Phoebe is seen watching Sesame Street with Ben, telling Ben not to worry that Bert is gone, since Ernie would find him later on. Phoebe is also glad that Ernie is there.",
+"centrality": 0.847
+}
+]
+},
+{
+"ep": "s02_e21",
+"beats": [
+{
+"id": "s02_e21_b0",
+"scene": "s02_e21_c04",
+"text": "Phoebe, Rachel, and Joey are stuck in a car until a dog attacking Phoebe goes away.",
+"centrality": 0.699
+},
+{
+"id": "s02_e21_b1",
+"scene": "s02_e21_c08",
+"text": "Ross and Chandler make cappuccino.",
+"centrality": 1.0
+},
+{
+"id": "s02_e21_b2",
+"scene": "s02_e21_c08",
+"text": "Ross contemplates getting beat up in order to get some real coffee.",
+"centrality": 0.826
+},
+{
+"id": "s02_e21_b3",
+"scene": "s02_e21_c08",
+"text": "Chandler, Joey, and Ross chat while discussing how to make cappucino.",
+"centrality": 0.955
+}
+]
+},
+{
+"ep": "s02_e22",
+"beats": [
+{
+"id": "s02_e22_b0",
+"scene": "s02_e22_c01",
+"text": "At Monica's new workplace, the Moondance Diner, Ross, Phoebe, Joey, and Chandler discuss Rachel's birthday.",
+"centrality": 0.913
+},
+{
+"id": "s02_e22_b1",
+"scene": "s02_e22_c02",
+"text": "The invite list is almost made up, but on Rachel's revelation that Rachel's parents yelled at each other during her sister's graduation, Monica invites only Rachel's mother to the party.",
+"centrality": 0.904
+},
+{
+"id": "s02_e22_b2",
+"scene": "s02_e22_c06",
+"text": "Rachel is talking to Chandler about her parents getting divorced.",
+"centrality": 0.868
+},
+{
+"id": "s02_e22_b3",
+"scene": "s02_e22_c07",
+"text": "Phoebe smuggles guests out of Monica's boring party and into Chandler and Joey's raging celebration.",
+"centrality": 1.0
+},
+{
+"id": "s02_e22_b4",
+"scene": "s02_e22_c07",
+"text": "As Dr. Green leaves Monica's, Joey turns Rachel's mom and kisses her on the lips until Rachel's dad is gone.",
+"centrality": 0.935
+},
+{
+"id": "s02_e22_b5",
+"scene": "s02_e22_c08",
+"text": "Monica makes flan instead of cake.",
+"centrality": 0.618
+}
+]
+},
+{
+"ep": "s02_e23",
+"beats": [
+{
+"id": "s02_e23_b0",
+"scene": "s02_e23_c03",
+"text": "Chandler gets Joey a job at his office, and tells him to act like a processor.",
+"centrality": 1.0
+},
+{
+"id": "s02_e23_b1",
+"scene": "s02_e23_c05",
+"text": "Ryan also has n't had the chicken pox, but Ryan would n't let the pox stand between Ryan and Phoebe, resulting in both having the chicken pox and the itching, driving Ryan and Phoebe crazy.",
+"centrality": 0.861
+},
+{
+"id": "s02_e23_b2",
+"scene": "s02_e23_c05",
+"text": "Ben gets scared of a lightning making Phoebe think it was because of the way her face looks.",
+"centrality": 0.721
+},
+{
+"id": "s02_e23_b3",
+"scene": "s02_e23_c06",
+"text": "Joey's character, Joseph has two kids and a wife, Karen.",
+"centrality": 0.859
+},
+{
+"id": "s02_e23_b4",
+"scene": "s02_e23_c11",
+"text": "Rachel is turned on by uniforms ; Ross gets one.",
+"centrality": 0.803
+},
+{
+"id": "s02_e23_b5",
+"scene": "s02_e23_c12",
+"text": "Monica is upset that Richard does n't have one little thing that he is obsessive about, but in the end he discovers that he has one obsessive thing ( he has to sleep in the left side of the bed ).",
+"centrality": 0.68
+}
+]
+},
+{
+"ep": "s02_e24",
+"beats": [
+{
+"id": "s02_e24_b0",
+"scene": "s02_e24_c01",
+"text": "Eventually, Ross, out of guilt, sucks it up and kisses Joey, who reveals that the audition is over and he did n't get the part.",
+"centrality": 0.913
+},
+{
+"id": "s02_e24_b1",
+"scene": "s02_e24_c09",
+"text": "Phoebe is trying to get Chandler to meet the person who he is chatting with on the computer.",
+"centrality": 0.853
+},
+{
+"id": "s02_e24_b2",
+"scene": "s02_e24_c10",
+"text": "Rachel is trying not to look foolish at Barry and Mindy's wedding.",
+"centrality": 1.0
+},
+{
+"id": "s02_e24_b3",
+"scene": "s02_e24_c10",
+"text": "Monica walked out on Barry because she did not love Barru anymore, and now is with Ross.",
+"centrality": 0.971
+},
+{
+"id": "s02_e24_b4",
+"scene": "s02_e24_c11",
+"text": "While dancing, Richard offers to have kids with Monica if Richard has to.",
+"centrality": 0.964
+},
+{
+"id": "s02_e24_b5",
+"scene": "s02_e24_c12",
+"text": "She turns out to be Janice.",
+"centrality": 0.726
+}
+]
+},
+{
+"ep": "s03_e01",
+"beats": [
+{
+"id": "s03_e01_b0",
+"scene": "s03_e01_c02",
+"text": "The friends discuss how Monica is feeling about her recent break up",
+"centrality": 0.854
+},
+{
+"id": "s03_e01_b1",
+"scene": "s03_e01_c05",
+"text": "After much prodding, Ross admits to Rachel that Ross fantasizes about the scene in Return of the Jedi where Princess Leia wears a gold bikini.",
+"centrality": 0.811
+},
+{
+"id": "s03_e01_b2",
+"scene": "s03_e01_c08",
+"text": "Rachel had told a sexual fantasy to her friends /.",
+"centrality": 0.84
+},
+{
+"id": "s03_e01_b3",
+"scene": "s03_e01_c12",
+"text": "Joey can not stand that Chandler is dating Janice again.",
+"centrality": 1.0
+},
+{
+"id": "s03_e01_b4",
+"scene": "s03_e01_c13",
+"text": "When Monica's father Jack drops by to talk to Monica, Jack reveals to Monica that Richard is also a mess - much more than Richard was after Richard's marriage - which is good enough for Monica to start getting some closure with Richard.",
+"centrality": 0.73
+},
+{
+"id": "s03_e01_b5",
+"scene": "s03_e01_c14",
+"text": "During a sexual encounter, Mrs. Geller appears in a vision because of Chandler.",
+"centrality": 0.691
+}
+]
+},
+{
+"ep": "s03_e02",
+"beats": [
+{
+"id": "s03_e02_b0",
+"scene": "s03_e02_c01",
+"text": "Joey and Chandler are talking about the fat in the fridge.",
+"centrality": 1.0
+}
+]
+},
+{
+"ep": "s03_e03",
+"beats": [
+{
+"id": "s03_e03_b0",
+"scene": "s03_e03_c02",
+"text": "Monica, Ross, Rachel and Chandler talk about Monica's jam.",
+"centrality": 0.943
+},
+{
+"id": "s03_e03_b1",
+"scene": "s03_e03_c03",
+"text": "Guy is sad that Phoebe does not trust Guy and has taken to stalking Guy, but as it turns out, Malcolm is still stalking Ursula.",
+"centrality": 1.0
+},
+{
+"id": "s03_e03_b2",
+"scene": "s03_e03_c09",
+"text": "With a wrist in a cast, Janice is explaining to Rachel how it happened.",
+"centrality": 0.74
+},
+{
+"id": "s03_e03_b3",
+"scene": "s03_e03_c12",
+"text": "Joey complains about why no one wants Joey to be the children's father.",
+"centrality": 0.666
+},
+{
+"id": "s03_e03_b4",
+"scene": "s03_e03_c12",
+"text": "Joey talks about his recent trip to the sperm bank with Chandler, Ross, and Rachel",
+"centrality": 0.957
+},
+{
+"id": "s03_e03_b5",
+"scene": "s03_e03_c12",
+"text": "Chandler went to talk to Ross and Ross smacks Chandler over the head with a magazine.",
+"centrality": 0.928
+}
+]
+},
+{
+"ep": "s03_e04",
+"beats": [
+{
+"id": "s03_e04_b0",
+"scene": "s03_e04_c01",
+"text": "Phoebe, Rachel, Ross, and Chandler talk about an informercial.",
+"centrality": 0.899
+},
+{
+"id": "s03_e04_b1",
+"scene": "s03_e04_c05",
+"text": "Joey tells Chandler to face Chandler's fear so Chandler meets with Janice and gives Janice a drawer.",
+"centrality": 0.996
+},
+{
+"id": "s03_e04_b2",
+"scene": "s03_e04_c07",
+"text": "Ross tries to interest Ben in GI Joe and dinosaurs instead.",
+"centrality": 0.591
+},
+{
+"id": "s03_e04_b3",
+"scene": "s03_e04_c09",
+"text": "Phoebe impersonates an agent to get Joey good for auditions.",
+"centrality": 0.862
+},
+{
+"id": "s03_e04_b4",
+"scene": "s03_e04_c10",
+"text": "Monica and Rachel tell Chandler what to do about a phone call from Janice",
+"centrality": 1.0
+},
+{
+"id": "s03_e04_b5",
+"scene": "s03_e04_c11",
+"text": "Ross hides in the bathroom as Carol and others laugh at a memory.",
+"centrality": 0.704
+}
+]
+},
+{
+"ep": "s03_e05",
+"beats": [
+{
+"id": "s03_e05_b0",
+"scene": "s03_e05_c01",
+"text": "Joey gets carried away with a mailbox project and ends up building an entertainment center ; Joey mistakenly cuts Chandler's door in half in the process.",
+"centrality": 0.913
+},
+{
+"id": "s03_e05_b1",
+"scene": "s03_e05_c05",
+"text": "Then joey gets sidetracked on re-tiling Monica's bathroom floor.",
+"centrality": 1.0
+},
+{
+"id": "s03_e05_b2",
+"scene": "s03_e05_c07",
+"text": "Chandler is poking holes in choices for a list of celebrities to sleep with.",
+"centrality": 0.971
+},
+{
+"id": "s03_e05_b3",
+"scene": "s03_e05_c10",
+"text": "Phoebe gets called in to work at the massage place and asks Frank if he wants to come along.",
+"centrality": 0.955
+},
+{
+"id": "s03_e05_b4",
+"scene": "s03_e05_c11",
+"text": "While Chandler visits the bathroom, Monica inspects the little card listing the actresses printed up by Chandler",
+"centrality": 0.939
+},
+{
+"id": "s03_e05_b5",
+"scene": "s03_e05_c13",
+"text": "Joe, Chandler, Ross, all, Phone, and Rachel move an entertainment center into a room that is n't quite big enough.",
+"centrality": 0.97
+}
+]
+},
+{
+"ep": "s03_e06",
+"beats": [
+{
+"id": "s03_e06_b0",
+"scene": "s03_e06_c01",
+"text": "Joey, Rachel, Ross, Monica, Phoebe, Monica, and rachel all answer a question about whether any of them have had sex with each other.",
+"centrality": 0.872
+},
+{
+"id": "s03_e06_b1",
+"scene": "s03_e06_c07",
+"text": "Mr. Heckles shows up and when Eric informs Heckles that Eric is moving in with Chandler, Heckles claims that Heckle's is Chandler's roommate and sends Eric away.",
+"centrality": 0.783
+},
+{
+"id": "s03_e06_b2",
+"scene": "s03_e06_c08",
+"text": "Joey misinterprets Monica invitation, and strips naked.",
+"centrality": 0.85
+},
+{
+"id": "s03_e06_b3",
+"scene": "s03_e06_c08",
+"text": "While Joey is moving into Chandler's apartment, Chandler leaves for work and says hello to Monica in the hallway.",
+"centrality": 0.868
+},
+{
+"id": "s03_e06_b4",
+"scene": "s03_e06_c13",
+"text": "Ross enters the bar, knocks back some shots, and tells Phoebe that his marriage to Carol might be over as she is a lesbian.",
+"centrality": 1.0
+},
+{
+"id": "s03_e06_b5",
+"scene": "s03_e06_c16",
+"text": "Rachel has a daydream about kissing Chandler in a bar.",
+"centrality": 0.907
+}
+]
+},
+{
+"ep": "s03_e07",
+"beats": [
+{
+"id": "s03_e07_b0",
+"scene": "s03_e07_c01",
+"text": "Monica pokes fun at Ross for telling another story about dinosaurs in the museum.",
+"centrality": 0.75
+},
+{
+"id": "s03_e07_b1",
+"scene": "s03_e07_c04",
+"text": "Phoebe warns that it is odd for Monica to buy a bed from someone who Chandler used to be involved with",
+"centrality": 1.0
+},
+{
+"id": "s03_e07_b2",
+"scene": "s03_e07_c04",
+"text": "Phoebe tells a joke to the child looking at the race car bed in the store.",
+"centrality": 0.744
+},
+{
+"id": "s03_e07_b3",
+"scene": "s03_e07_c07",
+"text": "Rachel's father is Dr. Green.",
+"centrality": 0.688
+},
+{
+"id": "s03_e07_b4",
+"scene": "s03_e07_c16",
+"text": "Joey discovers Janice kissing her ex-husband.",
+"centrality": 0.776
+},
+{
+"id": "s03_e07_b5",
+"scene": "s03_e07_c16",
+"text": "Monica buys a bed from Janice's ex-husband, but the wrong one is delivered so she tries to return it.",
+"centrality": 0.901
+}
+]
+},
+{
+"ep": "s03_e08",
+"beats": [
+{
+"id": "s03_e08_b0",
+"scene": "s03_e08_c02",
+"text": "Joey wonders if he should tell Chandler about seeing Janice kiss her ex-husband.",
+"centrality": 1.0
+},
+{
+"id": "s03_e08_b1",
+"scene": "s03_e08_c02",
+"text": "Phoebe bites in to an apple in pain, Rachel convinces Phoebe to go to the dentist.",
+"centrality": 0.784
+},
+{
+"id": "s03_e08_b2",
+"scene": "s03_e08_c02",
+"text": "Gunther continues to brood over Rachel.",
+"centrality": 0.676
+},
+{
+"id": "s03_e08_b3",
+"scene": "s03_e08_c10",
+"text": "Ross finds out that Ross's sister bumped Ben's head while babysitting, and Ross plays a joke on Ross's sister.",
+"centrality": 0.742
+},
+{
+"id": "s03_e08_b4",
+"scene": "s03_e08_c12",
+"text": "After Joey constructs a giant poking device with chopsticks, the gang poke all the way from Monica's apartment to Ugly Naked Guy's apartment to see if Ugly Naked Guy is still alive.",
+"centrality": 0.733
+},
+{
+"id": "s03_e08_b5",
+"scene": "s03_e08_c13",
+"text": "Chandler is singing Lionel Richie when Phoebe walks into the room and sings along with him.",
+"centrality": 0.733
+}
+]
+},
+{
+"ep": "s03_e09",
+"beats": [
+{
+"id": "s03_e09_b0",
+"scene": "s03_e09_c01",
+"text": "The gang is gathered for Thanksgiving with the guys watching football and the girls cooking while Rachel sticks a marshmellow up Monica's nose.",
+"centrality": 1.0
+},
+{
+"id": "s03_e09_b1",
+"scene": "s03_e09_c01",
+"text": "The guys are watching the game on TV and Rachel is asking the guys for help in preparing Thanksgiving dinner.",
+"centrality": 0.913
+},
+{
+"id": "s03_e09_b2",
+"scene": "s03_e09_c05",
+"text": "Phoebe, Chandler, and Joey talk about football over Thanksgiving dinner.",
+"centrality": 0.848
+}
+]
+},
+{
+"ep": "s03_e10",
+"beats": [
+{
+"id": "s03_e10_b0",
+"scene": "s03_e10_c04",
+"text": "Ross goes to Sarah's house and buys enough boxes to top the sales.",
+"centrality": 0.92
+},
+{
+"id": "s03_e10_b1",
+"scene": "s03_e10_c04",
+"text": "The dad keeps losing money going the the slots in Atlantic city and Ross facetiously wishes the Dad good luck.",
+"centrality": 0.631
+},
+{
+"id": "s03_e10_b2",
+"scene": "s03_e10_c05",
+"text": "Ross accidentally breaks a little girl's leg, and ends up selling Brown Bird Cookies for her so she can go to Space Camp.",
+"centrality": 1.0
+},
+{
+"id": "s03_e10_b3",
+"scene": "s03_e10_c06",
+"text": "Joey gets a job at a Christmas tree lot.",
+"centrality": 0.839
+},
+{
+"id": "s03_e10_b4",
+"scene": "s03_e10_c09",
+"text": "Monica is picking out Monica's Christmas tree and Phoebe shows Monica a dead one after which Monica and Phoebe discuss Monica's mother's death around christmas",
+"centrality": 0.813
+},
+{
+"id": "s03_e10_b5",
+"scene": "s03_e10_c11",
+"text": "Rachel had been to an interview where a job could'nt be obtained.",
+"centrality": 0.75
+}
+]
+},
+{
+"ep": "s03_e11",
+"beats": [
+{
+"id": "s03_e11_b0",
+"scene": "s03_e11_c02",
+"text": "Chandler tells the whole group he just saw his ex-girlfriend Janice",
+"centrality": 0.785
+},
+{
+"id": "s03_e11_b1",
+"scene": "s03_e11_c04",
+"text": "Rachel vents Rachel's frustration with the wrong person - classy chef Monica, in Rachel's fake boobs at the Moondance 60's diner - but Rachel runs into the right person - Mark, who manages to get Rachel an interview at Bloomingdale's and coaches Rachel through it.",
+"centrality": 0.883
+},
+{
+"id": "s03_e11_b2",
+"scene": "s03_e11_c08",
+"text": "The most common friend combinations with fewer than six friends present were Ross and Rachel, followed by Chandler and Monica. But those pairings also represent the two couples in the sitcom.",
+"centrality": 0.818
+},
+{
+"id": "s03_e11_b3",
+"scene": "s03_e11_c13",
+"text": "Rachel hugs Mark ignoring Ross on getting a job.",
+"centrality": 0.913
+},
+{
+"id": "s03_e11_b4",
+"scene": "s03_e11_c13",
+"text": "Rachel meets Mark, who gets Rachel an interview at Bloomingdale's ; Ross worries about Mark's motives.",
+"centrality": 0.97
+},
+{
+"id": "s03_e11_b5",
+"scene": "s03_e11_c14",
+"text": "While Rachel and Monica comfort Phoebe by telling Phoebe that the guy",
+"centrality": 1.0
+}
+]
+},
+{
+"ep": "s03_e12",
+"beats": [
+{
+"id": "s03_e12_b0",
+"scene": "s03_e12_c02",
+"text": "Joey interrupts a conversation between Ross and Chandler to announce that he got an audition.",
+"centrality": 0.942
+},
+{
+"id": "s03_e12_b1",
+"scene": "s03_e12_c05",
+"text": "Joey is auditioning for a part and questions whether or not he will have to dance, Director tells him it will be fine with his background as a dancer.",
+"centrality": 0.712
+},
+{
+"id": "s03_e12_b2",
+"scene": "s03_e12_c07",
+"text": "Out of jealousy, he covers Rachel's entire desk with love cards, flowers and musical bugs ; he even sends a barbershop quartet to her workplace to sing her a song.",
+"centrality": 0.828
+},
+{
+"id": "s03_e12_b3",
+"scene": "s03_e12_c10",
+"text": "Ross thinks that Mark is kissing Rachel and yells at Mark, and then realizes that Rachel is behind Ross.",
+"centrality": 1.0
+},
+{
+"id": "s03_e12_b4",
+"scene": "s03_e12_c12",
+"text": "Monica falls for Julio, a co-worker at the diner who writes a poetry ; Julio writes a poem for Monica which is n't very flattering.",
+"centrality": 0.697
+},
+{
+"id": "s03_e12_b5",
+"scene": "s03_e12_c16",
+"text": "Out of anger, Monica sends Ross'barbershop quartet to Julio to ridicule Ross in front of everyone as Ross is hitting on another fellow worker.",
+"centrality": 0.837
+}
+]
+},
+{
+"ep": "s03_e13",
+"beats": [
+{
+"id": "s03_e13_b0",
+"scene": "s03_e13_c01",
+"text": "Monica has a chance encounter with Richard at the video store.",
+"centrality": 0.898
+},
+{
+"id": "s03_e13_b1",
+"scene": "s03_e13_c04",
+"text": "Rachel finds a copy of The Shining in Joey's freezer and Rachel wants to read it.",
+"centrality": 1.0
+},
+{
+"id": "s03_e13_b2",
+"scene": "s03_e13_c04",
+"text": "Rachel comes back from office asking for ice from Joey and Chandler.",
+"centrality": 0.951
+},
+{
+"id": "s03_e13_b3",
+"scene": "s03_e13_c11",
+"text": "Monica comes home upset about her day, Rachel tells her that her day could pick up and Monica goes into her bedroom to find Richard waiting for her.",
+"centrality": 0.923
+},
+{
+"id": "s03_e13_b4",
+"scene": "s03_e13_c12",
+"text": "No one knows how to solve this problem, but Gunther does it for them when he prompts Robert to",
+"centrality": 0.505
+},
+{
+"id": "s03_e13_b5",
+"scene": "s03_e13_c14",
+"text": "Beth is really sick and there's not much Jo can do.",
+"centrality": 0.456
+}
+]
+},
+{
+"ep": "s03_e14",
+"beats": [
+{
+"id": "s03_e14_b0",
+"scene": "s03_e14_c02",
+"text": "Although still mad at Leslie, deep down, Phoebe wants to get back together with Leslie and does so halfway through the episode.",
+"centrality": 1.0
+},
+{
+"id": "s03_e14_b1",
+"scene": "s03_e14_c02",
+"text": "Chandler, Joey, Monica, Ross, and guitar girl are having confronted my someone when once crossed guitar girl and guitar girl is now mean to her.",
+"centrality": 0.891
+},
+{
+"id": "s03_e14_b2",
+"scene": "s03_e14_c05",
+"text": "Monica drags Ross out of office because of Ross's jealous attitude.",
+"centrality": 0.829
+},
+{
+"id": "s03_e14_b3",
+"scene": "s03_e14_c08",
+"text": "Rachels is talking about going to a fashion panel with Mark.",
+"centrality": 0.841
+},
+{
+"id": "s03_e14_b4",
+"scene": "s03_e14_c14",
+"text": "Joey jokes to Monica about Ginger's leg.",
+"centrality": 0.947
+},
+{
+"id": "s03_e14_b5",
+"scene": "s03_e14_c16",
+"text": "Chandler admits that Chandler has a third nipple.",
+"centrality": 0.866
+}
+]
+},
+{
+"ep": "s03_e15",
+"beats": [
+{
+"id": "s03_e15_b0",
+"scene": "s03_e15_c02",
+"text": "Joey and Chandler have a crush on Chloe, and she invites them out to see Issac DJ.",
+"centrality": 0.975
+},
+{
+"id": "s03_e15_b1",
+"scene": "s03_e15_c03",
+"text": "Although Phoebe does n't mind this, she's a little annoyed by Mischa, Sergei's translator, who follows them on dates and keeps interrupting with out-of - place translations.",
+"centrality": 1.0
+},
+{
+"id": "s03_e15_b2",
+"scene": "s03_e15_c08",
+"text": "Chloe excitedly greets Ross when he enters.",
+"centrality": 0.86
+},
+{
+"id": "s03_e15_b3",
+"scene": "s03_e15_c12",
+"text": "Rachel tells mark that Rachel does not want an egg roll, and then reaches for an egg roll, presumably to eat it.",
+"centrality": 0.821
+},
+{
+"id": "s03_e15_b4",
+"scene": "s03_e15_c12",
+"text": "Ross calls Rachel's apartment and asks to make up from the fight Ross and Rachel had, but then Ross hears Mark's voice and Ross gets angry and hangs up.",
+"centrality": 0.965
+},
+{
+"id": "s03_e15_b5",
+"scene": "s03_e15_c13",
+"text": "After getting into an argument with Sergei, Mischa resigns and leaves the restaurant, taking Monica along.",
+"centrality": 0.845
+}
+]
+},
+{
+"ep": "s03_e16",
+"beats": [
+{
+"id": "s03_e16_b0",
+"scene": "s03_e16_c02",
+"text": "Mark is excited with chinese food and asks people including Monica for drink.",
+"centrality": 0.677
+},
+{
+"id": "s03_e16_b1",
+"scene": "s03_e16_c04",
+"text": "Mark came over when Ross left.",
+"centrality": 0.763
+},
+{
+"id": "s03_e16_b2",
+"scene": "s03_e16_c08",
+"text": "Chandler thinks Ross is crazy for cheating on Rachel, whilst Joey urges Ross to find out \" the trail \" - the list of people between the girl Ross slept with and the girl Ross does n't want to find out what happened.",
+"centrality": 1.0
+},
+{
+"id": "s03_e16_b3",
+"scene": "s03_e16_c08",
+"text": "Ross has to tell Rachel about Jasmine.",
+"centrality": 0.969
+},
+{
+"id": "s03_e16_b4",
+"scene": "s03_e16_c09",
+"text": "Monica and Phoebe try out a \" painless \" leg waxing kit.",
+"centrality": 0.798
+},
+{
+"id": "s03_e16_b5",
+"scene": "s03_e16_c14",
+"text": "Phoebe says things have been quiet and then the group find Rachel sleeping on the couch and Ross gone.",
+"centrality": 0.932
+}
+]
+},
+{
+"ep": "s03_e17",
+"beats": [
+{
+"id": "s03_e17_b0",
+"scene": "s03_e17_c03",
+"text": "Phoebe considers staying instead of going to cabin, but Phoebe needs to drive so Monica says she will stay instead.",
+"centrality": 0.895
+},
+{
+"id": "s03_e17_b1",
+"scene": "s03_e17_c03",
+"text": "Ross, grieving over his loss of Rachel, asks the gang to have a laser disc marathon weekend with him, only to find out that Rachel has invited the gang to her sister's cabin.",
+"centrality": 0.913
+},
+{
+"id": "s03_e17_b2",
+"scene": "s03_e17_c04",
+"text": "Joey and Monica discuss is Ross is still upset with them about going skiing with Rachel.",
+"centrality": 0.954
+},
+{
+"id": "s03_e17_b3",
+"scene": "s03_e17_c05",
+"text": "Rachel, however, closes the door of the cab, which has the keys locked inside.",
+"centrality": 0.781
+},
+{
+"id": "s03_e17_b4",
+"scene": "s03_e17_c08",
+"text": "Meanwhile, Monica distracts Rachel and Phoebe calls Ross for help.",
+"centrality": 1.0
+},
+{
+"id": "s03_e17_b5",
+"scene": "s03_e17_c11",
+"text": "Ross brings Carol a battery, and Carol shoos Ross away.",
+"centrality": 0.933
+}
+]
+},
+{
+"ep": "s03_e18",
+"beats": [
+{
+"id": "s03_e18_b0",
+"scene": "s03_e18_c04",
+"text": "After freaking out about the only two guys she went out with in a whole year ( Richard and Julio ), Monica is asked out by a client at Moondance named Pete.",
+"centrality": 0.845
+},
+{
+"id": "s03_e18_b1",
+"scene": "s03_e18_c04",
+"text": "Rachel works in the fashion industry and meets a lot of eligible straight men as a result.",
+"centrality": 0.612
+},
+{
+"id": "s03_e18_b2",
+"scene": "s03_e18_c08",
+"text": "Phoebe ends up asking Joey and Ross to talk to Frank, but Joey and Ross end up best man and ring - bearer respectively.",
+"centrality": 1.0
+},
+{
+"id": "s03_e18_b3",
+"scene": "s03_e18_c09",
+"text": "Phoebe has no choice but to accept the marriage.",
+"centrality": 0.832
+},
+{
+"id": "s03_e18_b4",
+"scene": "s03_e18_c15",
+"text": "Phoebe is excited about his fianc\u00e9e, until Phoee sees it's Alice, a woman who is 26 years Frank's senior.",
+"centrality": 0.95
+},
+{
+"id": "s03_e18_b5",
+"scene": "s03_e18_c15",
+"text": "Phoebe encourages Alice to explain to Frank why the relationship will not work.",
+"centrality": 0.999
+}
+]
+},
+{
+"ep": "s03_e19",
+"beats": [
+{
+"id": "s03_e19_b0",
+"scene": "s03_e19_c04",
+"text": "Rachel tells Phoebe about being asked out by Mark.",
+"centrality": 1.0
+},
+{
+"id": "s03_e19_b1",
+"scene": "s03_e19_c04",
+"text": "Gunther is overhearing the conversation of the couple.",
+"centrality": 0.385
+},
+{
+"id": "s03_e19_b2",
+"scene": "s03_e19_c07",
+"text": "Rather than kiss Pete, Monica rubs Pete's head.",
+"centrality": 0.878
+},
+{
+"id": "s03_e19_b3",
+"scene": "s03_e19_c07",
+"text": "Phoebe, Joey and Chandler make Pete dakota jokes about him buying a state while when he leaves Monica says she feels nothing for her boyfriend",
+"centrality": 0.944
+},
+{
+"id": "s03_e19_b4",
+"scene": "s03_e19_c08",
+"text": "Joey gets a lead part in a play, but ca n't stand the female lead... until he realizes he likes her.",
+"centrality": 0.788
+},
+{
+"id": "s03_e19_b5",
+"scene": "s03_e19_c15",
+"text": "Rachel deals with the breakup after Ross drops a box of things off to Monica.",
+"centrality": 0.808
+}
+]
+},
+{
+"ep": "s03_e20",
+"beats": [
+{
+"id": "s03_e20_b0",
+"scene": "s03_e20_c01",
+"text": "Monica starts screaming with joy, stating that Aunt Silvia was a",
+"centrality": 0.709
+},
+{
+"id": "s03_e20_b1",
+"scene": "s03_e20_c01",
+"text": "Joey loves a woman who does n't love Joey back, and Joey says this must be what it feels like to be Chandler!",
+"centrality": 0.996
+},
+{
+"id": "s03_e20_b2",
+"scene": "s03_e20_c01",
+"text": "Joey talks about his crush while Ross tells the group that his Aunt Silvia died.",
+"centrality": 0.93
+},
+{
+"id": "s03_e20_b3",
+"scene": "s03_e20_c10",
+"text": "Rachel sets Chandler up on a date with Rachel's boss ; Rache's boss likes Chandler, but Chandler thinks Rachel's boss a big dull dud ; Chandler tells Rachel Chandler will call even though Chandler does n't intend to.",
+"centrality": 0.783
+},
+{
+"id": "s03_e20_b4",
+"scene": "s03_e20_c11",
+"text": "Unfortunately, Phoebe does n't get to enjoy Phoebe's new dollhouse much as it catches fire ; Ross is the one who's there when it happens, and Ross extinguishes it in Monica's shower, surprising Monica, who happens to be in the shower too.",
+"centrality": 0.863
+},
+{
+"id": "s03_e20_b5",
+"scene": "s03_e20_c12",
+"text": "Joey and Kate discuss what went on between them.",
+"centrality": 1.0
+}
+]
+},
+{
+"ep": "s03_e21",
+"beats": [
+{
+"id": "s03_e21_b0",
+"scene": "s03_e21_c02",
+"text": "Ross obtains a part in a panel for the Discovery Channel, and Ross is really excited about it.",
+"centrality": 0.631
+},
+{
+"id": "s03_e21_b1",
+"scene": "s03_e21_c03",
+"text": "Monica is offered a large opportunity with possible strings attached.",
+"centrality": 0.724
+},
+{
+"id": "s03_e21_b2",
+"scene": "s03_e21_c08",
+"text": "Rachel is sick, and gets hurt as Rachel tries to pickup aspirin using toes.",
+"centrality": 0.727
+},
+{
+"id": "s03_e21_b3",
+"scene": "s03_e21_c10",
+"text": "Chandler keeps a sock by his bed.",
+"centrality": 0.644
+},
+{
+"id": "s03_e21_b4",
+"scene": "s03_e21_c12",
+"text": "Pete makes up a story about another woman so Monica will think Pete's over her ; Phoebe sees right through it but promises not to tell Monica.",
+"centrality": 1.0
+},
+{
+"id": "s03_e21_b5",
+"scene": "s03_e21_c13",
+"text": "Joey has a pet chick named Yasmine whom Joey was planning to return, but was gladly able to keep",
+"centrality": 0.643
+}
+]
+},
+{
+"ep": "s03_e22",
+"beats": [
+{
+"id": "s03_e22_b0",
+"scene": "s03_e22_c05",
+"text": "Phoebe keeps busy while holding on the line by swapping around items in the two bedrooms.",
+"centrality": 0.802
+},
+{
+"id": "s03_e22_b1",
+"scene": "s03_e22_c08",
+"text": "Phoebe is on hold on the phone and Joey and Monica are talking about Joey's date the night before.",
+"centrality": 1.0
+},
+{
+"id": "s03_e22_b2",
+"scene": "s03_e22_c08",
+"text": "Katie, still destroyed by the review, reveals to Joey that the director dumped her after the review, and Joey supports her by staying with her at her apartment, where she passes out, and the two spend",
+"centrality": 0.816
+},
+{
+"id": "s03_e22_b3",
+"scene": "s03_e22_c10",
+"text": "Kate gets a job offer in L.A. and decides to leave.",
+"centrality": 0.677
+},
+{
+"id": "s03_e22_b4",
+"scene": "s03_e22_c10",
+"text": "Lauren who is standing in for Kate shouts at Vic asking him what he got under the trap, with the stage manager holding the curtain and calling out.",
+"centrality": 0.652
+},
+{
+"id": "s03_e22_b5",
+"scene": "s03_e22_c13",
+"text": "Phoebe breaks Monica and Rachel's phone while hanging it up after realizing the number being dialed is not toll - free.",
+"centrality": 0.91
+}
+]
+},
+{
+"ep": "s03_e23",
+"beats": [
+{
+"id": "s03_e23_b0",
+"scene": "s03_e23_c04",
+"text": "Ross's third nipple befuddles his doctors.",
+"centrality": 0.728
+},
+{
+"id": "s03_e23_b1",
+"scene": "s03_e23_c08",
+"text": "Phoebe is unhappy about the break up with Vince.",
+"centrality": 1.0
+},
+{
+"id": "s03_e23_b2",
+"scene": "s03_e23_c10",
+"text": "Monica, Phoebe, and Rachel are talking about the wedding.",
+"centrality": 0.876
+},
+{
+"id": "s03_e23_b3",
+"scene": "s03_e23_c13",
+"text": "Pete finally takes Monica into Pete's living room, sets the romantic atmosphere, and announces to Monica - that Pete wants to conquer the physical world.",
+"centrality": 0.833
+},
+{
+"id": "s03_e23_b4",
+"scene": "s03_e23_c14",
+"text": "Pheobe ends up explaining to both guys how Pheobe and Jason were not exclusive.",
+"centrality": 0.597
+},
+{
+"id": "s03_e23_b5",
+"scene": "s03_e23_c15",
+"text": "Guru Saj suggests feeding the duck a bat to cure its cough.",
+"centrality": 0.313
+}
+]
+},
+{
+"ep": "s03_e24",
+"beats": [
+{
+"id": "s03_e24_b0",
+"scene": "s03_e24_c02",
+"text": "Joey, Chandler and Ross explained what ultimate fighting competitions were about.",
+"centrality": 0.83
+},
+{
+"id": "s03_e24_b1",
+"scene": "s03_e24_c06",
+"text": "When Rachel asks for info about Bonnie, Phoebe tells Rachel that Bonnie was bald, to which Rachel consents.",
+"centrality": 0.858
+},
+{
+"id": "s03_e24_b2",
+"scene": "s03_e24_c08",
+"text": "Nevertheless, Ross goes with Monica to watch Pete's first fight - or rather, Pete's torture at the hands of Tank Abbot, who ends up standing on Pete's neck until he passes out.",
+"centrality": 1.0
+},
+{
+"id": "s03_e24_b3",
+"scene": "s03_e24_c09",
+"text": "Pete is puzzled by her remark about",
+"centrality": 0.748
+},
+{
+"id": "s03_e24_b4",
+"scene": "s03_e24_c11",
+"text": "Chandler is uncomfortable with this, but his colleagues are all jealous of him because the fact that Doug only ever slaps Chandler's backside shows them that Doug is n't really noticing their good work, only Chandler's.",
+"centrality": 0.671
+},
+{
+"id": "s03_e24_b5",
+"scene": "s03_e24_c12",
+"text": "Rachel realizes that Rachel is sad because Rachel did n't expect Ross to be dating other women so soon after break - up.",
+"centrality": 0.804
+}
+]
+},
+{
+"ep": "s03_e25",
+"beats": [
+{
+"id": "s03_e25_b0",
+"scene": "s03_e25_c01",
+"text": "Phoebe makes plans to go to the beach house, but Bonnie ca n't go because of work.",
+"centrality": 1.0
+},
+{
+"id": "s03_e25_b1",
+"scene": "s03_e25_c01",
+"text": "Joey says he learned something from hearing Bonnie discuss all the places in the world where Bonnie has had sex.",
+"centrality": 0.862
+},
+{
+"id": "s03_e25_b2",
+"scene": "s03_e25_c04",
+"text": "When Phoebe breaks in Abbott's house to look for information about Frank, Phoebe wakes Abbott up.",
+"centrality": 0.893
+},
+{
+"id": "s03_e25_b3",
+"scene": "s03_e25_c06",
+"text": "\" Monica laughs, which prompts on - going efforts by Chandler to prove Chandler's boyfriend material.",
+"centrality": 0.82
+},
+{
+"id": "s03_e25_b4",
+"scene": "s03_e25_c07",
+"text": "Ross asks for an explanation to this, and Bonnie reveals Rachel as to being behind the whole shave - the - head idea.",
+"centrality": 0.88
+},
+{
+"id": "s03_e25_b5",
+"scene": "s03_e25_c10",
+"text": "Phoebe Sr seems to know Frank, Phoebe's father, but is reluctant to give Phoebe any more information about Phoebe's father.",
+"centrality": 0.737
+}
+]
+}
+]
