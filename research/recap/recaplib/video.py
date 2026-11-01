@@ -112,3 +112,20 @@ class FaceEmotion:
                                  "expr": self.LABELS[int(p.argmax())], "p": round(float(p.max()), 3),
                                  "probs": {l: round(float(v), 3) for l, v in zip(self.LABELS, p)}})
         return out
+
+
+def silero_vad(wav, threshold=0.5):
+    """Silero VAD v5 (ONNX, from the silero-vad wheel) -> speech probability per 32 ms frame.
+    Neural VAD trained on 6000+ languages: robust to music/effects where WebRTC VAD fires on everything."""
+    import onnxruntime as ort, soundfile as sf
+    x, sr = sf.read(wav, dtype="float32")
+    assert sr == 16000, "expects 16 kHz mono"
+    sess = ort.InferenceSession(os.path.join(MODELS, "silero_vad.onnx"))
+    state = np.zeros((2, 1, 128), np.float32); ctx = np.zeros(64, np.float32)
+    n = 512; probs = []
+    for i in range(0, len(x) - n + 1, n):
+        chunk = np.concatenate([ctx, x[i:i + n]])[None, :]
+        out, state = sess.run(None, {"input": chunk, "state": state, "sr": np.array(16000, np.int64)})
+        probs.append(float(out[0, 0])); ctx = x[i + n - 64:i + n]
+    p = np.array(probs, np.float32)
+    return p, n / sr
