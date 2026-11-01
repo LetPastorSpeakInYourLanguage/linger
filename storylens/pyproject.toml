@@ -9,7 +9,6 @@ description = "Subtitle-first story understanding (evidence -> facts -> structur
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-  "anthropic>=0.70",
   "fastapi>=0.110",
   "uvicorn>=0.29",
   "python-multipart>=0.0.9",
@@ -32,4 +31,4 @@ storylens = "storylens.cli:main"
 include = ["storylens*"]
 
 [tool.setuptools.package-data]
-storylens = ["static/*", "samples/*"]
+storylens = ["static/*", "samples/*", "CLAUDE_WORKSPACE.md"]

@@ -1,6 +1,6 @@
-"""Zoom-in detail harvest, script writing (style cards), and independent verification (research exp12)."""
+"""Script writing from the exact lines (style cards), deterministic checks, and the optional Claude review (research exp12)."""
 from __future__ import annotations
-from concurrent.futures import ThreadPoolExecutor
+import re
 from . import prompts as P, schemas as SC, store
 from .util import slug, split_media
 
@@ -26,20 +26,19 @@ def source_label(ws, tid, it):
     return " · ".join(x for x in (who + ("?" if who and it.get("speaker_uncertain") else ""), src) if x)
 
 
-def zoom(ws, llm, tid, items, tag):
-    batches = [items[i:i + 15] for i in range(0, len(items), 15)]
-    def run(kb):
-        k, b = kb
-        txt = "\n\n".join(f"ITEM {it['ref']} ({it['media']}): {it['text']}\n{item_lines(ws, tid, it)}" for it in b)
-        return llm.json(f"zoom-{tag}-{k:03d}", P.ZOOM_SYSTEM, txt, SC.ZOOM, role="bulk", effort_key="zoom", hint={"items": b})
-    details, corrections = [], []
-    with ThreadPoolExecutor(ws.s.max_parallel) as ex:
-        for r in ex.map(run, enumerate(batches)):
-            details += r["details"]; corrections += r["corrections"]
-    return details, corrections
+def quotes_ok(text, evidence):
+    """Every quoted phrase in the narration must appear (fuzzily) in the cited lines."""
+    from difflib import SequenceMatcher
+    ev = " ".join(re.findall(r"[a-z0-9']+", evidence.lower()))
+    bad = []
+    for q in re.findall(r"[\"“]([^\"”]{8,})[\"”]", text):
+        qn = " ".join(re.findall(r"[a-z0-9']+", q.lower()))
+        if qn and qn not in ev and SequenceMatcher(None, qn, ev).find_longest_match(0, len(qn), 0, len(ev)).size < 0.8 * len(qn):
+            bad.append(q)
+    return bad
 
 
-def write(ws, llm, tid, U, view, sel, style, target_s, details, instructions, tag, hero_seconds=None):
+def write(ws, llm, tid, U, view, sel, style, target_s, instructions, tag, hero_seconds=None):
     hero = HERO_SECONDS.get(style, 20) if hero_seconds is None else hero_seconds
     if target_s: hero = min(hero, int(target_s * 0.45))
     max_words = int(((target_s or 0) - (hero if target_s else 0)) * ws.s.wps) if target_s else 4000
@@ -47,18 +46,19 @@ def write(ws, llm, tid, U, view, sel, style, target_s, details, instructions, ta
         who = f"[{it['speaker']}{'?' if it.get('speaker_uncertain') else ''}] " if it.get("speaker") else ""
         src = f"{it['title']} · " if it.get("title") else ""
         body = it["text"] if it.get("form") != "micro" else it.get("short", it["text"])
+        lab = f" (on-screen label: {it['label']})" if it.get("label") else ""
+        lines = item_lines(ws, tid, it)
         return (f"{it['ref']} | {src}{it['media']} | L{it['lines'][0]}-L{it['lines'][1]} | {it['tier']} | {who}{body}"
-                + (f" (why: {it['why']})" if it.get("why") else ""))
+                + (f" (why: {it['why']})" if it.get("why") else "") + lab + ("\n    " + lines.replace("\n", "\n    ") if lines else ""))
     items = "\n".join(item_row(it) for it in sel)
-    det = "\n".join(f"{d['ref']} | L{d['line']} | {d['detail']}" for d in details) or "-"
     moments = "\n".join(f"{f['media']} | L{f['lines'][0]}-L{f['lines'][1]} | {f['text']}" for f in U.get("facts", [])
                         if f["kind"] == "moment" and f.get("intensity", 0) >= 2 and any(f["media"] == s["media"] and s["t0"] - 120 <= f["t0"] <= s["t1"] + 120 for s in sel))[:6000] or "-"
     lens = f"{view['title']} — {view.get('summary', '')}"
     prompt = P.SCRIPT_USER.format(style=style, style_card=P.STYLE_CARDS.get(style, style), target=f"{target_s} seconds total" if target_s else "no time limit — cover every item",
                                   wps=ws.s.wps, max_words=max_words, hero_seconds=hero, logline=U["bible"].get("logline", ""), lens=lens,
-                                  instructions=instructions or "-", items=items, details=det, moments=moments)
-    out = llm.json(f"script-{tag}", P.SCRIPT_SYSTEM, prompt, SC.SCRIPT, role="main", effort_key="script",
-                   hint={"items": sel, "style": style})
+                                  instructions=instructions or "-", items=items, moments=moments)
+    out = llm.json(f"script-{tag}", P.SCRIPT_SYSTEM, prompt, SC.SCRIPT, hint={"items": sel, "style": style},
+                   summary=f"Write the {style} script: {view['title']} ({target_s or 'unlimited'} s)")
     valid_media = {m["id"] for m in ws.title(tid)["media"]} if tid else {it["media"] for it in sel}
     by = {it["ref"]: it for it in sel}
     for s in out["segments"]:
@@ -66,27 +66,47 @@ def write(ws, llm, tid, U, view, sel, style, target_s, details, instructions, ta
         if s.get("media") not in valid_media and ref: s["media"] = ref["media"]
         if (not s.get("lines") or len(s["lines"]) < 2) and ref: s["lines"] = list(ref["lines"])
         if s["type"] not in ("narration", "hero_clip", "title_card"): s["type"] = "narration"
-    # every clip must say whose words these are: auto lower-third "Speaker · Source S01E02" when the writer left it empty
+    # talks / cross-source cuts: every clip must say whose words these are: auto lower-third "Speaker · Source S01E02"
+    # when the writer left it empty (films and series don't need it)
+    from .workspace import profile
+    discourse = not tid or profile(ws.title(tid)) == "discourse" or style == "clips"
     for sgm in out["segments"]:
-        if sgm["type"] == "hero_clip" and not sgm.get("text"):
-            ref = next((by[r] for r in sgm.get("refs", []) if r in by), None)
-            if ref: sgm["text"] = source_label(ws, tid, ref)
+        ref = next((by[r] for r in sgm.get("refs", []) if r in by), None) if sgm["type"] == "hero_clip" and not sgm.get("text") else None
+        if ref and (discourse or ref.get("label")):
+            if ref: sgm["text"] = (f"{ref['label']} — " if ref.get("label") else "") + source_label(ws, tid, ref)
     out["meta"] = {"style": style, "target_s": target_s, "hero_seconds": hero, "max_words": max_words,
                    "narration_words": sum(len(s["text"].split()) for s in out["segments"] if s["type"] == "narration")}
     return out
 
 
-def verify(ws, llm, tid, script, tag):
+def check(ws, tid, script, valid_refs):
+    """Deterministic checks (always): citations exist, quotes appear in the cited lines, clips are clips."""
+    checks = []
+    for i, sgm in enumerate(script["segments"]):
+        t, m = split_media(tid, sgm["media"])
+        ls = store.lines(ws, t, m, sgm["lines"][0], sgm["lines"][1], pad=1) if sgm.get("lines") else []
+        issue = []
+        if not ls: issue.append("cited lines not found")
+        if sgm.get("refs") and not any(r in valid_refs for r in sgm["refs"]): issue.append("cites no selected item")
+        if sgm["type"] == "narration":
+            bad = quotes_ok(sgm["text"], " ".join(l["text"] for l in ls))
+            if bad: issue.append("quote not in cited lines: " + "; ".join(bad[:2]))
+        checks.append({"index": i, "verdict": "unsupported" if "cited lines not found" in issue else "partly" if issue else "supported",
+                       "issue": "; ".join(issue), "fix": ""})
+    return {"checks": checks, "leakage": []}
+
+
+def review(ws, llm, tid, script, tag):
+    """Optional Claude review task (settings.review or per recap)."""
     blocks = []
-    for i, s in enumerate(script["segments"]):
-        if s["type"] == "hero_clip": continue
-        t, m = split_media(tid, s["media"])
-        ls = store.lines(ws, t, m, s["lines"][0], s["lines"][1], pad=1)
-        ev = " / ".join(f"L{l['idx']} {l['text']}" for l in ls)[:1500]
-        blocks.append(f"SEGMENT {i} ({s['type']}): {s['text']}\nCITED LINES: {ev}")
+    for i, sgm in enumerate(script["segments"]):
+        if sgm["type"] == "hero_clip": continue
+        t, m = split_media(tid, sgm["media"])
+        ls = store.lines(ws, t, m, sgm["lines"][0], sgm["lines"][1], pad=1)
+        blocks.append(f"SEGMENT {i} ({sgm['type']}): {sgm['text']}\nCITED LINES: " + " / ".join(f"L{l['idx']} {l['text']}" for l in ls)[:1500])
     if not blocks: return {"checks": [], "leakage": []}
-    return llm.json(f"verify-{tag}", P.VERIFY_SYSTEM, "\n\n".join(blocks), SC.VERIFY, role="main", effort_key="verify",
-                    hint={"segments": script["segments"]})
+    return llm.json(f"review-{tag}", P.REVIEW_SYSTEM, "\n\n".join(blocks), SC.REVIEW, hint={"segments": script["segments"]},
+                    summary="Review the script against its cited lines")
 
 
 def metrics(script, checks, wps):

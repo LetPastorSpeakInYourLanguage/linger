@@ -1,26 +1,35 @@
 # storylens
 
-**Subtitle-first understanding and automatic recaps** for films, series and telenovelas, and for **podcasts, talk
-shows, sermons and lectures**, in any spoken language, as long as you have English subtitles or a timestamped
-transcript.
+**A local understanding layer for stories and talks, and recaps made from it.** It works for films, series and
+telenovelas, and for **podcasts, talk shows, sermons and lectures**, in any spoken language, as long as you have
+English subtitles or a timestamped transcript.
 
-It builds a durable **understanding** of a title once, then produces as many **recaps** as you like from it:
-- the main story at any length (60 s … unlimited; a shorter recap is always contained in a longer one),
-- **a character's story**: the villain's side of a hero movie, or a side character's hidden arc across seasons,
-- **trait / theme compilations**: "all the times Leo was a good friend",
-- **what someone said about a topic** ("what Pastor X said about women", "what a guest said about the meaning of
-  life"), as a **no-narrator supercut** of their own words with lower thirds,
-- **across all your sources at once**: search everything at the level of title, episode, point, claim or line; build
-  collections; recap a whole set of sources,
-- styles: recap-channel, dramatic/comedic, short & direct, fan cut, detailed, character, compilation, clips-only.
+**You, storylens and the Claude desktop app share one folder:**
+- **storylens** does the mechanical work: reading files, aligning, indexing, selecting, checking and rendering.
+- **Claude** does all the thinking, by answering task files in the folder.
+- **You** review.
 
-You review at gates (understanding → script → final cut), and an AI agent (or you) can do any LLM step through
-plain files.
+There is no API key and nothing leaves your laptop except what Claude reads in that folder.
+
+From one **understanding** per title, made once, you can make:
+- the main story at any length: 60 s to unlimited, where a shorter recap is always contained in a longer one, and
+  a 15-minute recap of three seasons keeps only the top-priority story;
+- **a character's story**: the villain's side of a hero movie, or a side character's hidden arc across seasons;
+- **trait / theme compilations**: "all the times Leo was a good friend";
+- **what someone said about a topic**: "what Pastor X said about women", as a **no-narrator supercut** of their
+  own words with lower thirds;
+- **how a speaker builds ideas**: the recurring pattern of a preacher's moves (question → reading → story →
+  application), shown as clips labelled by step;
+- **the gist of a talk**: e.g. "under 5 minutes", narrated;
+- **across all your sources at once**: search everything at the level of title, episode, point, claim or line,
+  build collections, and recap a whole set of sources.
+
+Styles: recap-channel, dramatic/comedic, short & direct, fan cut, detailed, character, compilation, clips-only.
 
 ```
-evidence (subtitles, speech, shots) ─▶ FACTS (what every character does, learns, feels, reveals)
-        ─▶ STRUCTURE (beats, tiers, threads, turning points, causes) ─▶ LENSES (main · character · trait · storyline)
-        ─▶ selection ─▶ script ─▶ independent verification ─▶ your review ─▶ voice + render
+evidence (subtitles, speech, shots) ─▶ FACTS (what every character/speaker does, says, feels, reveals; topics, stance)
+        ─▶ STRUCTURE (beats/points, tiers P0–P3, threads/themes, turning/key points, causes) ─▶ LENSES
+        ─▶ selection ─▶ script from the exact lines ─▶ checks ─▶ your review ─▶ voice + render
 ```
 
 ## Quick start (laptop)
@@ -28,31 +37,30 @@ evidence (subtitles, speech, shots) ─▶ FACTS (what every character does, lea
 ```bash
 git clone <this repo> && cd linger/storylens
 python -m venv .venv && source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -e ".[voice]"                                  # add ,system-voice for an offline system voice fallback
-storylens demo                                             # sample story, offline mock LLM — checks your setup
-export ANTHROPIC_API_KEY=sk-ant-...                        # Windows: setx ANTHROPIC_API_KEY sk-ant-...  (new terminal)
-storylens serve                                            # → http://127.0.0.1:8765
+pip install -e ".[voice]"
+storylens demo                     # sample film + podcast, answered offline: checks ffmpeg, voices, rendering
+storylens serve                    # → http://127.0.0.1:8765, and the workspace is ~/storylens-workspace
 ```
 
-You also need **Python 3.10+** and **ffmpeg** on your PATH for video. Step-by-step instructions for
-Windows, macOS and Linux, the first-title walkthrough and troubleshooting are in **[docs/QUICKSTART.md](docs/QUICKSTART.md)**.
+Then, in the **Claude desktop app**, give Claude the folder `~/storylens-workspace` and say **"do the storylens
+queue"**. Claude reads `CLAUDE.md` there and takes it from there. You can also just talk to Claude:
+- "Add my sermons folder as *Grace Church* and understand it."
+- "What did the pastor say about forgiveness?"
+- "Make a 3-minute recap-channel video of season 1."
+
+Claude turns these into requests for storylens and answers the tasks they create.
+
+You need **Python 3.10+** and **ffmpeg**. Step-by-step setup for Windows, macOS and Linux:
+**[docs/QUICKSTART.md](docs/QUICKSTART.md)**.
 
 ## Documentation
 
 | | |
 |---|---|
-| [docs/QUICKSTART.md](docs/QUICKSTART.md) | install, first title, CLI cheatsheet, costs, troubleshooting |
-| [docs/METHODOLOGY.md](docs/METHODOLOGY.md) | the method in depth: four tiers, every pass and prompt, lenses, selection, verification, rendering, and the research behind each choice |
-| [docs/AGENTIC.md](docs/AGENTIC.md) | the folder protocol: let Claude Code (or a person) answer LLM steps, review gates, instructions, autonomy |
-| [../research/recap/](../research/recap/) | the experiments this design comes from (15 experiments, literature review) |
-
-## LLM backends
-
-| backend | when | notes |
-|---|---|---|
-| `anthropic` | `ANTHROPIC_API_KEY` set (auto-detected) | Claude via the official SDK. Default model `claude-opus-5-5`, with JSON-schema structured outputs, streaming, prompt caching, and **server-side refusal fallback enabled** (`fallbacks: "default"`; disable with `"fallbacks": false` in settings). Set `bulk_model` (e.g. `claude-sonnet-5-5`) to make the per-chunk passes cheaper. |
-| `folder` | no key; or you want an agent / human in the loop | every LLM step waits as files until Claude Code (see AGENTS.md in your workspace) or you write the answer |
-| `mock` | demos & tests | deterministic offline heuristics, low quality |
+| [docs/QUICKSTART.md](docs/QUICKSTART.md) | install, first title, CLI cheatsheet, troubleshooting |
+| [docs/AGENTIC.md](docs/AGENTIC.md) | **working with Claude**: the workspace, tasks (`TASK.md` → `answer.json`), requests, review gates, instructions, corrections |
+| [docs/METHODOLOGY.md](docs/METHODOLOGY.md) | the method in depth: the four tiers, every pass, lenses, selection, checks, rendering, and the research behind each choice |
+| [../research/recap/](../research/recap/) | the experiments this design comes from (16 experiments, literature review) |
 
 ## Tests
 

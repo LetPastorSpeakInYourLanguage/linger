@@ -6,7 +6,7 @@ from storylens.demo import sample_srt
 
 @pytest.fixture
 def ws(tmp_path):
-    s = C.load(tmp_path / "ws"); s.llm_backend = "mock"; s.tts = "none"
+    s = C.load(tmp_path / "ws"); s.answerer = "mock"; s.tts = "none"
     return Workspace(s).init()
 
 

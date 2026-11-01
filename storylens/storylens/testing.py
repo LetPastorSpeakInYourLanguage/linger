@@ -1,6 +1,5 @@
-"""Offline mock LLM: deterministic heuristics that return schema-valid answers for every pass.
-Quality is intentionally basic — it exists so the whole app (UI, jobs, gates, lenses, render) runs and is testable
-without an API key. Use llm_backend = anthropic (or folder + an agent) for real understanding."""
+"""Offline stand-in for Claude: deterministic heuristics that return schema-valid answers for every task type.
+Used only by the tests and `storylens demo --offline`. Real understanding comes from Claude answering tasks/."""
 from __future__ import annotations
 import re
 from collections import Counter
@@ -32,23 +31,20 @@ def _names(texts):
     return [w for w, n in c.most_common(12) if n >= 2]
 
 
-class MockBackend:
-    name = "mock"
-
-    def __init__(self, settings): self.s = settings
-
-    def complete(self, call):
-        t, h = call.task, call.hint or {}
-        for prefix, fn in (("vision", self.vision), ("cards", self.cards), ("integrate", self.integrate), ("causal", self.causal),
+class MockAnswerer:
+    def answer(self, t, h):
+        h = h or {}
+        for prefix, fn in (("vision", self.vision), ("cards", self.cards), ("integrate", self.integrate),
                            ("lens-character", self.character), ("lens-trait-map", self.trait_map), ("lens-trait-check", self.trait_check),
                            ("lens-topic-map", self.topic_map), ("lens-topic-check", self.topic_check),
-                           ("zoom", self.zoom), ("script", self.script), ("verify", self.verify)):
-            if t.startswith(prefix): return fn(h), {"input_tokens": len(call.prompt) // 4, "output_tokens": 0}
+                           ("script", self.script), ("review", self.review),
+                           ("lens-pattern", self.pattern)):
+            if t.startswith(prefix): return fn(h)
         raise ValueError(f"mock: unknown task {t}")
 
     def vision(self, h):
-        return {"events": [{"text": "a wordless stretch: the action continues on screen", "kind": "action", "who": []}],
-                "onscreen_text": "", "setting": "", "is_credits": False}
+        return {"gaps": [{"id": r.split(" | ")[0], "events": [{"text": "a wordless stretch: the action continues on screen", "kind": "action", "who": []}],
+                          "onscreen_text": "", "setting": "", "is_credits": False} for r in h.get("gaps", [])]}
 
     def cards(self, h):
         cues, cid = h["cues"], h["chunk_id"]
@@ -68,7 +64,7 @@ class MockBackend:
             who = chars[:3]
             beats.append({"id": bid, "text": f"{' and '.join(who) or 'Someone'}: \"{longest['text'][:90]}\"", "lines": [g[0]["idx"], g[-1]["idx"]],
                           "kind": "plot", "local_importance": min(5, 2 + len(g) // 5), "emotion": "tense" if "!" in longest["text"] else "neutral",
-                          "intensity": min(3, sum(c["text"].count("!") for c in g)), "who": who})
+                          "intensity": min(3, sum(c["text"].count("!") for c in g)), "who": who, "caused_by": who[:1], "revealed_by": []})
             for c in g:
                 low = c["text"].lower(); actor = c.get("speaker_label") or "?"
                 for w, act in ACT_WORDS:
@@ -92,7 +88,10 @@ class MockBackend:
             for c in g:   # discourse-style claims: every substantial line becomes a claim with naive topics
                 if len(c["text"].split()) >= 9:
                     fn += 1
-                    facts.append({"id": f"{cid}-f{fn}", "kind": "claim", "actor": c.get("speaker_label") or "?", "act_type": "asserts", "target": "",
+                    acts = ("asks" if "?" in c["text"] or c["text"].startswith(("what", "how", "why", "so let")) else
+                        "illustrates" if any(w in c["text"] for w in ("when ", "story", "once", "last month")) else
+                        "advises" if any(w in c["text"] for w in ("advice", "find ", "look at", "tell them")) else "argues")
+                facts.append({"id": f"{cid}-f{fn}", "kind": "claim", "actor": c.get("speaker_label") or "?", "act_type": acts, "target": "",
                                   "cost": 0, "field": "", "value": c["text"][:120], "text": c["text"][:140], "lines": [c["idx"], c["idx"]],
                                   "intensity": 1, "beat_id": bid, "topics": _topics(c["text"]), "stance": ""})
             scenes.append({"id": f"{cid}-s{k + 1}", "lines": [g[0]["idx"], g[-1]["idx"]], "setting": "", "characters": chars, "speakers": spk,
@@ -115,9 +114,6 @@ class MockBackend:
                 "beats": [{"id": b["id"], "global_importance": min(100, b["local_importance"] * 18 + b["intensity"] * 3), "tier": tier[b["id"]],
                            "requires": [], "pays_off": [], "thread": "T1", "short": b["text"][:60], "spoiler_level": 1} for b in beats],
                 "themes": []}
-
-    def causal(self, h):
-        return {"links": [{"beat_id": b["id"], "caused_by": b["who"][:1], "revealed_by": [], "witnessed_by": b["who"][1:], "evidence_facts": []} for b in h["beats"]]}
 
     def character(self, h):
         items = h["items"]
@@ -146,9 +142,6 @@ class MockBackend:
                         "claim": i.get("text", "")[:140], "stance": "", "strength": 2 if rel else 0, "first_line": i["lines"][0], "last_line": i["lines"][1]})
         return {"checks": out}
 
-    def zoom(self, h):
-        return {"details": [{"ref": i["ref"], "detail": i["text"][:80], "line": i["lines"][0]} for i in h["items"]], "corrections": []}
-
     def script(self, h):
         segs, style = [], h["style"]
         for i, it in enumerate(h["items"]):
@@ -160,6 +153,11 @@ class MockBackend:
                              "lines": [it["lines"][0], min(it["lines"][1], it["lines"][0] + 2)], "mood": "neutral"})
         return {"title": f"Recap ({style}, mock)", "segments": segs}
 
-    def verify(self, h):
+    def pattern(self, h):
+        moves = h["ranked"][0]
+        return {"name": "mock pattern", "description": " -> ".join(moves), "steps": [{"move": m, "label": f"{i + 1} · {m}"} for i, m in enumerate(moves)],
+                "best_examples": h["examples"][0][:2]}
+
+    def review(self, h):
         return {"checks": [{"index": i, "verdict": "supported", "issue": "", "fix": ""} for i, s in enumerate(h["segments"]) if s["type"] != "hero_clip"],
                 "leakage": []}

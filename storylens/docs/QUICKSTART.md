@@ -24,47 +24,59 @@ pip install -e ".[voice]"            # neural voice (Kokoro) + subtitle re-sync 
 The Kokoro voice model (~350 MB) and the Silero VAD model (~2 MB) download automatically from GitHub the first
 time they are needed, into `<workspace>/.models`.
 
-## 3. Check everything works (no key needed)
+## 3. Check everything works
 
 ```bash
 storylens demo
 ```
 
-This creates a workspace in `~/storylens-workspace`, adds a short original sample story with a generated test
-video, and runs understanding plus three recaps (main story, Victor's story, "Leo being a good friend") with the
-**offline mock LLM**. The output is basic, but it proves ffmpeg, voices and rendering work.
+This creates the workspace `~/storylens-workspace`, adds a short original sample story (with a generated test
+video) and a two-episode sample podcast, then runs understanding and several recaps: main story, Victor's story,
+"Leo being a good friend", a podcast topic supercut, and a cross-source clips recap. All tasks are answered by
+the **built-in offline heuristic**, so the output is crude, but it proves ffmpeg, voices and rendering work.
+`storylens demo --claude` runs the same demo with real tasks for Claude.
 
-## 4. Connect Claude
-
-```bash
-# macOS/Linux
-export ANTHROPIC_API_KEY=sk-ant-...
-# Windows (persists for new terminals)
-setx ANTHROPIC_API_KEY sk-ant-...
-```
-
-`storylens serve` then uses Claude automatically (`llm_backend: auto`). With no key, the backend is `folder`: steps
-wait for an agent or for you (see [AGENTIC.md](AGENTIC.md)).
-
-## 5. Run the app
+## 4. Start storylens and connect the Claude desktop app
 
 ```bash
-storylens serve           # → http://127.0.0.1:8765   (use --port to change; -w PATH for another workspace)
+storylens serve           # → http://127.0.0.1:8765   (--port to change; -w PATH for another workspace)
 ```
+
+`serve` runs the web app **and** the folder watcher. If you don't want the web app, use `storylens watch`.
+
+In the **Claude desktop app**, give Claude access to the workspace folder (`~/storylens-workspace`, or the path
+shown on the Settings page), then say:
+
+> **Do the storylens queue.**
+
+Claude reads `CLAUDE.md` in that folder (storylens writes it) and from then on knows the whole protocol:
+- **Tasks:** `tasks/QUEUE.md` lists what is waiting. Claude answers each `TASK.md` with an `answer.json`.
+- **Requests:** Claude can start work itself (add a title, understand, build a lens, make a recap, search
+  everything) by writing small JSON files into `requests/new/`.
+- **Catalog:** `CATALOG.md` tells Claude what already exists.
+
+Details: [AGENTIC.md](AGENTIC.md). The web app's **Claude tasks** page shows the same queue. It also lets you copy
+a task into any Claude chat and paste the answer back.
+
+## 5. Your first title
+
+In the web app (or ask Claude, e.g. *"add D:\Shows\My Show as a series with cast Ana, Luis, Marta and understand
+it"*):
 
 1. **Library → Add title.** Give a name, film or series, and optionally the main character names (cast) and a
    folder to scan. The scan pairs `Movie.mkv` with `Movie.srt` / `Movie.en.srt` and detects `S01E02` episode numbers.
    You can also add single files by path or upload a subtitle file. Files are read in place and never modified.
-2. **Overview → Understand.** This reads the subtitles chunk by chunk and writes scene cards plus the fact ledger,
-   integrates the story, and links causes. When it pauses at **G1**, review the logline, characters, turning points
-   and spine. Fix things in **Story** (tiers) or the title instructions, then approve.
+2. **Overview → Understand.** storylens queues one task per part of every episode (about 220 subtitle lines each),
+   then an integration task. Ask Claude to do the queue. When the job pauses at **G1**, review the logline,
+   characters, turning points and spine. Fix things in **Story** (tiers) or the title instructions, then approve.
 3. Explore **Story**, **Characters** and **Fact ledger**: every beat and fact links back to its subtitle lines and
    the video.
 4. **Lenses**: build the main story, a character's story, a trait compilation ("being a good friend" + a
-   character; tick *deep sweep* for exhaustive), or a storyline.
+   character; tick *deep sweep* for exhaustive), a storyline, a topic, or a speaker's pattern.
 5. **Make a recap**: pick a lens, style, duration, voice and review mode, then add instructions.
-   - The job pauses at **G2** with the script and the verifier's verdict per segment. Edit text inline, approve,
-     or ask for a revision with notes.
+   - Claude writes the script, then storylens checks every citation and quote.
+   - The job pauses at **G2** with the script and each segment's verdict. Edit text inline, approve, or ask for a
+     revision with notes.
    - It pauses at **G3** with the rendered video.
    - Results are kept in the job's `artifacts/`.
 
@@ -76,6 +88,8 @@ storylens serve           # → http://127.0.0.1:8765   (use --port to change; -
 2. **Understand**: segments, points and a **claim ledger** (who said what, topics, stance) for every episode.
 3. **Lenses → "What someone said about a topic"** (speaker + topic), then **Make a recap → "Clips only — no
    narrator"**: a supercut of the speakers' own words with lower thirds.
+   - **"How a speaker builds ideas (pattern)"** shows the speaker's recurring moves as clips labelled by step.
+   - A **main** lens with **Short & direct** and a 4–5 minute duration narrates the gist of a sermon or episode.
 4. **Explore** (top menu): search *everything you have understood* (films, series, podcasts, sermons) at the level of
    title / episode / point / claim / line. Create **collections** and build cross-source lenses and recaps.
 
@@ -91,7 +105,7 @@ storylens lens my-show "character:Marta"
 storylens lens my-show "trait:Luis/being a good friend" --deep
 storylens recap my-show --lens main --style recap_channel --duration 600
 storylens recap my-show --lens "character:Marta" --style character --duration 180 --autopilot
-storylens jobs | storylens pending | storylens approve <job> G2_script | storylens send <job> "less snark"
+storylens jobs | storylens tasks | storylens approve <job> G2_script | storylens send <job> "less snark"
 storylens search my-show "wedding"
 storylens add "Grace Church" --kind sermon --folder "D:\Sermons" --cast "Pastor Ruth Adeyemi"
 storylens lens grace-church "topic:Pastor Ruth Adeyemi/women and marriage"
@@ -101,7 +115,15 @@ storylens find "meaning of life" --level claim --speaker Peterson
 storylens collection create "Philosophy" --titles within-reason,long-table
 storylens lens x "topic:Alex O'Connor/the meaning of life" --collection philosophy
 storylens recap x --collection philosophy --lens "topic:/free will" --style clips --duration 600
+storylens recap grace-church --lens "pattern:Pastor Ruth Adeyemi" --style clips --duration 240
+storylens recap grace-church --lens main --style short_direct --duration 270 --review   # the gist, < 5 min
+storylens request '{"do": "find", "query": "forgiveness", "level": "claim"}'           # anything Claude can request
+storylens watch                                       # run requests/new/*.json without the web app
+storylens --offline recap my-show ...                 # answer tasks with the offline heuristic (testing only)
 ```
+
+CLI commands that need thinking wait until Claude has answered their tasks. They print where the queue is every
+30 s.
 
 Review modes:
 - `gates` (default): a human approves G1/G2/G3.
@@ -113,26 +135,28 @@ Review modes:
 
 | key | default | meaning |
 |---|---|---|
-| `llm_backend` | `auto` | `anthropic` if a key is present, else `folder`; or `mock` |
-| `model` | `claude-opus-5-5` | integration, scripts, verification |
-| `bulk_model` | `claude-opus-5-5` | per-chunk extraction, lens checks (e.g. `claude-sonnet-5-5` to lower cost) |
-| `effort` | per pass | `low`…`max` per pass (`cards`, `integrate`, `causal`, `view`, `script`, `verify`, `zoom`) |
-| `fallbacks` | `true` | server-side refusal fallback |
-| `chunk_lines` | `160` | subtitle lines per understanding chunk |
-| `max_parallel` | `4` | parallel LLM calls (episodes, lens checks, verification) |
 | `autonomy` | `gates` | `gates` / `autopilot` / `auto` |
+| `chunk_lines` | `220` | subtitle lines per understanding task: bigger means fewer, longer tasks for Claude |
+| `vision` | `off` | `gaps`: one image task per media describing dialogue-free stretches (action, title cards) |
+| `review` | `false` | an extra Claude review task for every script (the automatic checks always run) |
 | `tts`, `voice` | `auto`, `am_michael` | `kokoro` / `system` / `none` (captions) |
+| `answerer` | `claude` | `mock` = the offline heuristic (demo/tests); also `--offline` or `STORYLENS_ANSWERER=mock` |
 
-## Cost & time expectations
+## How much work is it for Claude?
 
-Understanding is the expensive, one-time step, and it is cached per title version. Measured in the research
-(research/recap/README.md, exp07):
-- **P1 extraction:** about 1.6× the subtitle tokens as input, plus ~20% as output. That is ~20–30k input tokens for
-  a feature film and ~300k for three seasons of a sitcom.
-- **Recaps:** much cheaper, because they reuse the understanding.
+Understanding is the big, one-time step per title, and it is kept per version.
 
-Every LLM call's token usage is recorded in the job's `steps/*/meta.json` and summarized in `MANIFEST.json`.
-Identical prompts are never paid for twice (content-hash cache in `<workspace>/.cache/llm`).
+| media | tasks |
+|---|---|
+| feature film | ~6–8 understanding tasks + 1 integration |
+| 22-minute episode | ~2–3 tasks |
+| one-hour sermon or podcast | ~2–4 tasks |
+
+- **Input size:** each understanding task holds ~220 subtitle lines (≈ 4–6k words), and Claude's answer is
+  usually a little longer than its input. The research measured ~1.6× the subtitle tokens in and ~20% out
+  (research/recap/README.md, exp07).
+- **Recaps** reuse the understanding: one script task, plus a review task if you ask for one.
+- **Every answer is cached by content.** Re-running a job never asks the same question twice.
 
 ## Troubleshooting
 
@@ -142,5 +166,7 @@ Identical prompts are never paid for twice (content-hash cache in `<workspace>/.
 | ffmpeg not found | install it (step 1) and open a new terminal; the Settings page shows ✓/✗ |
 | recap has captions instead of a voice | voice engine unavailable: `pip install -e ".[voice]"` (Kokoro) or `".[system-voice]"` |
 | subtitles drift from the picture | install `.[voice]` (Silero VAD). Ingest re-syncs offset and 25↔23.976 fps stretch automatically; re-run Understand with *reingest* |
-| job shows "interrupted" | the server restarted mid-job: start it again; finished LLM steps are reused from the cache |
-| a step "waiting for an agent" | the backend is `folder`: set `ANTHROPIC_API_KEY`, or answer in **Agent steps** / with Claude Code |
+| job shows "interrupted" | storylens restarted mid-job: click **Run again** on the job page (or a `rerun` request). Every answer Claude already gave is reused, including answers written while storylens was stopped |
+| job "waiting for Claude" | open the workspace in the Claude desktop app and say "do the storylens queue"; or answer on the **Claude tasks** page |
+| Claude's answer keeps being rejected | open the task's `ANSWER_ERRORS.md` (also shown on its page in the web app): it lists the exact JSON problems |
+| a request file did nothing | is storylens running (`serve` or `watch`)? Look in `requests/failed/` for the error |

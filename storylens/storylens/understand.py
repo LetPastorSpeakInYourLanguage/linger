@@ -1,18 +1,18 @@
 """The understanding pipeline (T0 -> T1 -> T2). See docs/METHODOLOGY.md.
 
   P0  ingest            subtitles (+ optional re-sync, shots)                      -> evidence/<media>/
-  P1v vision (optional) keyframes of dialogue gaps -> visual notes                 -> visual.jsonl
-  P1  cards + ledger    per ~160-line chunk, incremental (story-so-far, roster)    -> cards/, scenes, beats, FACTS
-  P2  integrate         beats only (never raw facts) -> tiers, threads, TPs, edges -> bible.json
+  P1v vision (optional) ONE task per media: keyframes of dialogue gaps -> visual notes   -> visual.jsonl
+  P1  cards + ledger    ~220-line chunks, ALL queued at once (Claude carries the story from chunk to chunk);
+                        scenes, beats (+ who caused / revealed them), FACT ledger for every character
+  P2  integrate         beats only (never raw facts) -> tiers, threads, turning/key points, edges -> bible.json
       (series: per-episode integrate, then series integrate over episode P0/P1)
-  P2c causal links      P0/P1 beats + facts of their scene ±1 -> caused_by / revealed_by / witnessed_by
-  G1  review gate       human (or autopilot) approves; corrections.jsonl overrides apply on every load
+  G1  review gate       you approve (UI) or autopilot; corrections.jsonl overrides apply on every load
+Every "LLM" step is a task in <workspace>/tasks answered by Claude (see tasks.py).
 """
 from __future__ import annotations
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from . import ingest, media as M, prompts as P, schemas as SC, subs as S
-from .llm import LLMRunner
+from .tasks import TaskQueue
 from .util import write_json, write_jsonl, read_json, read_jsonl, ts, now
 from .workspace import profile
 
@@ -47,83 +47,101 @@ def chunk_text(cues, visual):
 
 
 # ---------------------------------------------------------------- P1v vision
-def vision_pass(ws, job, llm, tid, m, cues, roster_names, max_gaps=40, min_gap=8.0):
-    if not (m.get("video") and M.have_ffmpeg()): return []
+def vision_pass(ws, job, llm, tid, m, cues, roster_names, max_gaps=24, min_gap=8.0):
+    """One task per media: the middle keyframe of each dialogue-free stretch, labelled with its gap id."""
+    if not (m.get("video") and M.have_ffmpeg() and M.has_video_stream(m["video"])): return []
     gaps = [(a.end, b.start, k) for k, (a, b) in enumerate(zip(cues, cues[1:])) if b.start - a.end >= min_gap]
-    info = ingest.media_info(ws, tid, m["id"])
-    dur = info.get("duration") or 0
-    if dur and dur - cues[-1].end >= min_gap: gaps.append((cues[-1].end, dur, len(cues) - 1))
-    gaps = sorted(gaps, key=lambda g: -(g[1] - g[0]))[:max_gaps]
-    kdir = ws.edir(tid, m["id"]) / "keyframes"
-    out = []
-    def one(g):
-        t0, t1, k = g
-        imgs = []
-        for q in (0.2, 0.5, 0.8):
-            t = t0 + (t1 - t0) * q; f = kdir / f"k{t:09.1f}.jpg"
-            if f.exists() or M.frame(m["video"], t, f): imgs.append(f)
-        if not imgs: return None
-        before = " / ".join(c.text for c in cues[max(0, k - 2):k + 1]); after = " / ".join(c.text for c in cues[k + 1:k + 3])
-        r = llm.json(f"vision-{m['id']}-{int(t0)}", P.VISION_SYSTEM,
-                     P.VISION_USER.format(before=before, after=after, roster=", ".join(roster_names) or "unknown", n=len(imgs), t0=ts(t0), t1=ts(t1)),
-                     SC.VISION, role="bulk", effort_key="cards", images=imgs, hint={"t0": t0, "t1": t1})
-        return {"media": m["id"], "t0": round(t0, 2), "t1": round(t1, 2), "after_line": k, **r}
-    with ThreadPoolExecutor(ws.s.max_parallel) as ex:
-        for r in ex.map(one, gaps):
-            job.check_cancel()
-            if r: out.append(r)
-    return sorted(out, key=lambda v: v["t0"])
+    gaps = sorted(sorted(gaps, key=lambda g: -(g[1] - g[0]))[:max_gaps])
+    if not gaps: return []
+    kdir = ws.edir(tid, m["id"]) / "keyframes"; imgs, rows = [], []
+    for n, (t0, t1, k) in enumerate(gaps):
+        gid = f"g{n + 1:02d}"; t = (t0 + t1) / 2; f = kdir / f"{gid}_{int(t)}s.jpg"
+        if f.exists() or M.frame(m["video"], t, f, width=512):
+            imgs.append(f)
+            rows.append(f"{gid} | {ts(t0)}-{ts(t1)} | image {f.name} | before: {cues[k].text[:80]} | after: {cues[k + 1].text[:80] if k + 1 < len(cues) else ''}")
+    out = llm.json(f"vision-{m['id']}", P.VISION_SYSTEM,
+                   f"Known characters: {', '.join(roster_names) or 'unknown'}\nGAPS (id | time | image | subtitles around it):\n" + "\n".join(rows),
+                   SC.VISION_SHEET, images=imgs, hint={"gaps": [g for g in rows]}, summary=f"Describe {len(imgs)} keyframes of {m.get('label') or m['id']} (vision)")
+    by_id = {f"g{n + 1:02d}": g for n, g in enumerate(gaps)}
+    res = []
+    for g in out["gaps"]:
+        if g["id"] in by_id:
+            t0, t1, k = by_id[g["id"]]
+            res.append({"media": m["id"], "t0": round(t0, 2), "t1": round(t1, 2), "after_line": cues[k].idx, **{x: g[x] for x in ("events", "onscreen_text", "setting", "is_credits")}})
+    return sorted(res, key=lambda v: v["t0"])
 
 
 # ---------------------------------------------------------------- P1 cards + ledger
-def cards_pass(ws, job, llm, t, m, cues, visual, base_roster):
-    by = {c.idx: c for c in cues}
-    roster, story, cards = list(base_roster), "", []
+def cards_specs(ws, job, t, m, cues, visual, base_roster):
+    """One task per part of a media. Every part of every media is queued at once (see run), so Claude can work
+    through a whole season in one sitting."""
     chunks = make_chunks(cues, ws.s.chunk_lines)
+    roster_txt = "; ".join(f"{r['name']} ({r.get('who', '')})" for r in base_roster)
+    ins = ws.instructions(t["id"], job.dir)
+    system = P.DISCOURSE_CARDS_SYSTEM if profile(t) == "discourse" else P.CARDS_SYSTEM
+    specs = []
     for k, (a, b) in enumerate(chunks):
-        job.check_cancel()
         cid = f"{m['id']}-c{k + 1:02d}"
-        ctx = f"WORK: {t['name']} — {m.get('label') or m['id']}\n"
-        if roster: ctx += "KNOWN CHARACTERS: " + "; ".join(f"{r['name']} ({r.get('who', '')})" for r in roster[:60]) + "\n"
-        if story: ctx += f"STORY SO FAR: {story}\n"
-        ins = ws.instructions(t["id"], job.dir)
+        ctx = f"WORK: {t['name']} — {m.get('label') or m['id']}  (part {k + 1} of {len(chunks)})\n"
+        if roster_txt: ctx += f"KNOWN CHARACTERS/SPEAKERS: {roster_txt}\n"
+        if k: ctx += (f"CONTINUITY: this continues part {k} ({m['id']}-c{k:02d}). Do the parts in order and carry the story, the names "
+                      f"and the roster forward from your previous answers (their answer.json has story_so_far if you need it).\n")
         if ins: ctx += f"NOTES FROM THE USER:\n{ins}\n"
         prompt = P.CARDS_USER.format(context=ctx, chunk_id=cid, first=cues[a].idx, last=cues[b].idx, lines=chunk_text(cues[a:b + 1], visual))
-        system = P.DISCOURSE_CARDS_SYSTEM if profile(t) == "discourse" else P.CARDS_SYSTEM
-        out = llm.json(f"cards-{cid}", system, prompt, SC.CARDS, role="bulk", effort_key="cards",
-                       hint={"cues": [c.dict() for c in cues[a:b + 1]], "chunk_id": cid})
+        specs.append(dict(task=f"cards-{t['id']}-{cid}", system=system, prompt=prompt, schema=SC.CARDS,
+                          hint={"cues": [c.dict() for c in cues[a:b + 1]], "chunk_id": cid},
+                          summary=f"Understand {t['name']} — {m.get('label') or m['id']} part {k + 1}/{len(chunks)} (lines L{cues[a].idx}-L{cues[b].idx})"))
+    return chunks, specs
+
+
+def cards_collect(job, m, chunks, outs, base_roster):
+    cards, roster = [], list(base_roster)
+    for (k, _), out in zip(enumerate(chunks), outs):
         for r in out.get("roster_updates", []):
             if not any(x["name"].lower() == r["name"].lower() for x in roster): roster.append(r)
-        story = out.get("story_so_far") or story
-        out["chunk_id"], out["media"] = cid, m["id"]
+        out["chunk_id"], out["media"] = f"{m['id']}-c{k + 1:02d}", m["id"]
         cards.append(out)
-        job.log(f"{m['id']}: chunk {k + 1}/{len(chunks)} — {sum(len(s['beats']) for s in out['scenes'])} beats, "
-                f"{sum(len(s['facts']) for s in out['scenes'])} facts")
-    return cards, roster, story
+    job.log(f"{m['id']}: {len(chunks)} parts understood — {sum(len(s['beats']) for c in cards for s in c['scenes'])} beats, "
+            f"{sum(len(s['facts']) for c in cards for s in c['scenes'])} facts")
+    return cards, roster, cards[-1].get("story_so_far", "") if cards else ""
 
 
 def flatten(cards, cues_by_media):
+    """Cards -> flat tables. Ids in answers are not trusted: every id is made globally unique (<chunk>-<local id>), and
+    references inside the same part (beat_id, caused_by, revealed_by) are remapped; references to earlier parts that
+    already use a global id are kept."""
     scenes, beats, facts, speakers = [], [], [], []
+    used = set()
+    def uid(cid, raw, kind, n):
+        base = raw if raw and raw.startswith(cid) else f"{cid}-{raw or kind + str(n)}"
+        x, k = base, 1
+        while x in used: k += 1; x = f"{base}-{k}"
+        used.add(x); return x
     for c in cards:
-        mid = c["media"]; by = cues_by_media[mid]
+        mid, cid = c["media"], c["chunk_id"]; by = cues_by_media[mid]
         def span(lines):
-            a, z = (lines + lines)[:2] if lines else (0, 0)
+            a, z = (list(lines) + list(lines))[:2] if lines else (0, 0)
             ca, cz = by.get(a), by.get(z)
             return a, z, (ca.start if ca else 0.0), (cz.end if cz else (ca.end if ca else 0.0))
+        local = {}
+        for si, s in enumerate(c["scenes"]):
+            s["_id"] = uid(cid, s.get("id"), "s", si + 1)
+            for bi, b in enumerate(s["beats"]): local[b.get("id")] = b["_id"] = uid(cid, b.get("id"), "b", bi + 1)
+        remap = lambda xs: [local.get(x, x) for x in xs or []]
         for s in c["scenes"]:
-            a, z, t0, t1 = span(s["lines"])
-            sid = f"{s['id']}" if s["id"].startswith(mid) else f"{c['chunk_id']}-{s['id']}"
+            a, z, t0, t1 = span(s["lines"]); sid = s["_id"]
             scenes.append({"id": sid, "media": mid, "lines": [a, z], "t0": t0, "t1": t1, "setting": s["setting"],
                            "characters": s["characters"], "summary": s["summary"]})
             for sp in s.get("speakers", []): speakers.append({"media": mid, "line": sp["line"], "name": sp["name"]})
             for b in s["beats"]:
                 a2, z2, u0, u1 = span(b["lines"])
-                beats.append({"id": b["id"], "scene": sid, "media": mid, "lines": [a2, z2], "t0": u0, "t1": u1, "text": b["text"],
+                beats.append({"id": b["_id"], "scene": sid, "media": mid, "lines": [a2, z2], "t0": u0, "t1": u1, "text": b["text"],
                               "kind": b["kind"], "local_importance": b["local_importance"], "emotion": b["emotion"],
-                              "intensity": b["intensity"], "who": b["who"]})
-            for f in s["facts"]:
+                              "intensity": b["intensity"], "who": b["who"], "caused_by": remap(b.get("caused_by")), "revealed_by": remap(b.get("revealed_by"))})
+            for fi, f in enumerate(s["facts"]):
                 a3, z3, v0, v1 = span(f["lines"])
-                facts.append({**f, "scene": sid, "media": mid, "lines": [a3, z3], "t0": v0, "t1": v1, "source": "P1"})
+                facts.append({**f, "id": uid(cid, f.get("id"), "f", fi + 1), "beat_id": local.get(f.get("beat_id"), f.get("beat_id", "")),
+                              "scene": sid, "media": mid, "lines": [a3, z3], "t0": v0, "t1": v1, "source": "P1"})
     return scenes, beats, facts, speakers
 
 
@@ -142,23 +160,22 @@ def integrate_pass(ws, job, llm, t, beats, roster, media_label):
         return llm.json("integrate", I_SYS,
                         P.INTEGRATE_USER.format(title=t["name"], scope=t["kind"] if t["kind"] != "series" else "single episode", roster=roster_txt,
                                                 beats=_beat_lines(beats, media_label)),
-                        SC.INTEGRATE, role="main", effort_key="integrate", hint={"beats": beats, "roster": roster})
+                        SC.INTEGRATE, hint={"beats": beats, "roster": roster}, summary=f"Integrate the whole story of {t['name']} ({len(beats)} beats)")
     # series: per-episode first, then the series pass over each episode's P0/P1 beats
     mids = sorted({b["media"] for b in beats}, key=lambda x: x)
     def ep(mid):
         bs = [b for b in beats if b["media"] == mid]
-        return mid, llm.json(f"integrate-{mid}", I_SYS,
-                             P.INTEGRATE_USER.format(title=f"{t['name']} — {media_label.get(mid, mid)}", scope="single episode", roster=roster_txt,
-                                                     beats=_beat_lines(bs, media_label)),
-                             SC.INTEGRATE, role="main", effort_key="integrate", hint={"beats": bs, "roster": roster})
-    with ThreadPoolExecutor(ws.s.max_parallel) as ex:
-        eps = dict(ex.map(ep, mids))
+        return dict(task=f"integrate-{mid}", system=I_SYS,
+                    prompt=P.INTEGRATE_USER.format(title=f"{t['name']} — {media_label.get(mid, mid)}", scope="single episode", roster=roster_txt,
+                                                   beats=_beat_lines(bs, media_label)),
+                    schema=SC.INTEGRATE, hint={"beats": bs, "roster": roster}, summary=f"Integrate {t['name']} {media_label.get(mid, mid)} ({len(bs)} beats)")
+    eps = dict(zip(mids, llm.many([ep(mid) for mid in mids])))
     job.log(f"integrated {len(eps)} episodes; running the series pass")
     ep_rank = {x["id"]: x for r in eps.values() for x in r["beats"]}
     top = [b for b in beats if ep_rank.get(b["id"], {}).get("tier") in ("P0", "P1")]
     series = llm.json("integrate-series", S_SYS,
                       P.INTEGRATE_USER.format(title=t["name"], scope=f"series, {len(mids)} episodes", roster=roster_txt, beats=_beat_lines(top, media_label)),
-                      SC.INTEGRATE, role="main", effort_key="integrate", hint={"beats": top, "roster": roster})
+                      SC.INTEGRATE, hint={"beats": top, "roster": roster}, summary=f"Integrate the whole series {t['name']} ({len(top)} key beats)")
     # merge: series ranking wins for the beats it saw; other beats keep episode rank, shifted down one tier
     srank = {x["id"]: x for x in series["beats"]}
     shift = {"P0": "P1", "P1": "P2", "P2": "P3", "P3": "P3"}
@@ -173,35 +190,11 @@ def integrate_pass(ws, job, llm, t, beats, roster, media_label):
     return series
 
 
-# ---------------------------------------------------------------- P2c causal links
-def causal_pass(ws, job, llm, beats, facts, scenes, ranks):
-    order = {s["id"]: i for i, s in enumerate(scenes)}
-    facts_by_scene = {}
-    for f in facts: facts_by_scene.setdefault(f["scene"], []).append(f)
-    major = [b for b in beats if ranks.get(b["id"], {}).get("tier") in ("P0", "P1")]
-    def block(b):
-        i = order.get(b["scene"], 0)
-        near = [s["id"] for s in scenes[max(0, i - 1):i + 2] if s["media"] == b["media"]]
-        fs = [f for sid in near for f in facts_by_scene.get(sid, [])][:60]
-        lines = "\n".join(f"  {f['id']} | {f['kind']}:{f['act_type'] or f['field']} | {f['actor']} -> {f['target']} | {f['text']}" for f in fs)
-        return f"BEAT {b['id']}: {b['text']}\nFACTS:\n{lines}"
-    links = []
-    batches = [major[i:i + 8] for i in range(0, len(major), 8)]
-    def run(k_batch):
-        k, batch = k_batch
-        return llm.json(f"causal-{k:03d}", P.CAUSAL_SYSTEM, P.CAUSAL_USER.format(blocks="\n\n".join(block(b) for b in batch)),
-                        SC.CAUSAL, role="main", effort_key="causal", hint={"beats": batch, "facts": facts})
-    with ThreadPoolExecutor(ws.s.max_parallel) as ex:
-        for r in ex.map(run, enumerate(batches)):
-            job.check_cancel(); links += r["links"]
-    return links
-
-
 # ---------------------------------------------------------------- orchestration
 def run(ws, job, tid, reingest=False, vision="auto"):
     t = ws.title(tid)
     if not t["media"]: raise RuntimeError("add media (video + subtitles) to the title first")
-    llm = LLMRunner(ws, job.dir, cancelled=job.cancelled, log=job.log)
+    llm = TaskQueue(ws, job)
     job.stage("ingest", 0.02)
     cues_by_media, cue_lists = {}, {}
     for m in t["media"]:
@@ -215,7 +208,7 @@ def run(ws, job, tid, reingest=False, vision="auto"):
     media_label = {m["id"]: (f"S{m['season']:02d}E{m['episode']:02d}" if m.get("season") else m.get("label") or m["id"]) for m in t["media"]}
     # P1v
     visual = []
-    use_vision = vision == "on" or (vision == "auto" and llm.backend.name in ("anthropic", "mock"))
+    use_vision = vision == "on" or (vision in ("auto", None) and ws.s.vision == "gaps")
     if use_vision:
         job.stage("vision: keyframes of dialogue gaps", 0.06)
         for m in t["media"]:
@@ -224,12 +217,12 @@ def run(ws, job, tid, reingest=False, vision="auto"):
     # P1
     job.stage("P1: scene cards + fact ledger", 0.1)
     all_cards, rosters = [], []
-    def per_media(m):
-        vis = [v for v in visual if v["media"] == m["id"]]
-        return cards_pass(ws, job, llm, t, m, cue_lists[m["id"]], vis, base_roster)
-    with ThreadPoolExecutor(ws.s.max_parallel if len(t["media"]) > 1 else 1) as ex:
-        for cards, roster, _ in ex.map(per_media, t["media"]):
-            all_cards += cards; rosters.append(roster)
+    plan = [(m, *cards_specs(ws, job, t, m, cue_lists[m["id"]], [v for v in visual if v["media"] == m["id"]], base_roster)) for m in t["media"]]
+    outs = llm.many([sp for _, _, specs in plan for sp in specs])
+    k = 0
+    for m, chunks, specs in plan:
+        cards, roster, _ = cards_collect(job, m, chunks, outs[k:k + len(specs)], base_roster); k += len(specs)
+        all_cards += cards; rosters.append(roster)
     write_json(vd / "cards.json", all_cards)
     roster = []
     for r in [x for rs in rosters for x in rs]:
@@ -255,12 +248,9 @@ def run(ws, job, tid, reingest=False, vision="auto"):
         b["spoiler_level"] = r["spoiler_level"] if r else 1
     edges = [{"src": b["id"], "dst": d, "kind": "requires"} for b in bible["beats"] for d in b["requires"]]
     edges += [{"src": b["id"], "dst": d, "kind": "pays_off"} for b in bible["beats"] for d in b["pays_off"]]
-    # P2c
-    job.stage("P2c: causal links", 0.75)
-    links = causal_pass(ws, job, llm, beats, facts, scenes, ranks)
-    for l in links:
-        for kind in ("caused_by", "revealed_by", "witnessed_by"):
-            for who in l[kind]: edges.append({"src": l["beat_id"], "dst": who, "kind": kind, "evidence": l["evidence_facts"]})
+    for b in beats:   # causes were recorded during P1 (no separate pass)
+        for kind in ("caused_by", "revealed_by"):
+            for who in b.get(kind, []): edges.append({"src": b["id"], "dst": who, "kind": kind})
     # write T1/T2
     write_jsonl(vd / "scenes.jsonl", scenes); write_jsonl(vd / "beats.jsonl", beats); write_jsonl(vd / "facts.jsonl", facts)
     write_jsonl(vd / "edges.jsonl", edges); write_jsonl(vd / "speakers.jsonl", speakers)
@@ -277,7 +267,7 @@ def run(ws, job, tid, reingest=False, vision="auto"):
     total_lines = sum(len(v) for v in cue_lists.values())
     covered = sum(len(range(s["lines"][0], s["lines"][1] + 1)) for s in scenes)
     unknown = sum(1 for s in speakers if s["name"] in ("?", "")) / max(1, len(speakers))
-    manifest = {"version": version, "created": now(), "job": job.id, "backend": llm.backend.name, "model": ws.s.model, "bulk_model": ws.s.bulk_model,
+    manifest = {"version": version, "created": now(), "job": job.id, "answered_by": ws.s.answerer,
                 "media": len(t["media"]), "cues": total_lines, "scenes": len(scenes), "beats": len(beats), "facts": len(facts),
                 "visual_notes": len(visual), "edges": len(edges), "coverage": round(min(1.0, covered / max(1, total_lines)), 3),
                 "unknown_speaker_rate": round(unknown, 3), "usage": llm.usage}

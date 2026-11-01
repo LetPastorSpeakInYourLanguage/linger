@@ -1,12 +1,14 @@
 """Workspace = the folder that is the app's source of truth (see docs/AGENTIC.md).
 
-<ws>/settings.json  instructions.md  AGENTS.md
+<ws>/CLAUDE.md  CATALOG.md  settings.json  instructions.md
+<ws>/tasks/QUEUE.md  tasks/<NNNN-task>/{TASK.md, answer.json, meta.json}      what Claude answers (tasks.py)
+<ws>/requests/new|done|failed/*.json                                         what Claude asks for (watch.py, actions.py)
 <ws>/library/<title>/title.json  instructions.md  corrections.jsonl  index.sqlite
                     evidence/<media>/cues.jsonl media.json shots.json speech.json keyframes/
                     understanding/vNNN/{cards/,facts.jsonl,beats.jsonl,edges.jsonl,moments.jsonl,characters.json,bible.json,MANIFEST.json}
                     understanding/CURRENT
                     views/<view-id>/view.json
-<ws>/jobs/<job>/job.json state.json events.jsonl steps/ review/ inbox/ artifacts/
+<ws>/jobs/<job>/job.json state.json events.jsonl review/ inbox/ artifacts/
 """
 from __future__ import annotations
 import re, shutil
@@ -26,23 +28,7 @@ def profile(t) -> str:
     return KINDS.get(t.get("kind", "film"), "narrative")
 EP_RE = re.compile(r"[Ss](\d{1,2})[ ._-]?[Ee](\d{1,3})|(\d{1,2})x(\d{2})")
 
-AGENTS_MD = """# Instructions for agents working in this storylens workspace
-
-This folder is the app's source of truth. When the LLM backend is `folder`, storylens does not call an
-API itself: it writes each LLM step as files and waits for an agent (e.g. Claude Code) or a human to answer.
-
-## Answering pending steps
-1. `storylens pending` lists steps waiting for an answer (or look for `jobs/*/steps/*/WAITING`).
-2. In each waiting step folder read `prompt.md` (system + user prompt) and `schema.json` (the required JSON shape).
-3. Write the answer as **valid JSON matching schema.json** to `response.json` in the same folder.
-   Use only information in the prompt (the subtitles and context it contains); cite line ids exactly as given.
-4. storylens notices `response.json` and continues. Do not edit other files.
-
-## Review gates
-Jobs pause at gates (`jobs/<job>/review/<gate>.md`). A human approves in the web UI or by writing
-`review/<gate>.decision.json` = {"decision": "approve" | "revise" | "reject", "notes": "..."}.
-Agents must not approve gates unless the workspace setting `autonomy` is `autopilot`.
-"""
+CLAUDE_MD = (Path(__file__).parent / "CLAUDE_WORKSPACE.md").read_text(encoding="utf-8")
 
 
 class Workspace:
@@ -56,7 +42,10 @@ class Workspace:
     def init(self):
         for d in (self.library, self.jobs): d.mkdir(parents=True, exist_ok=True)
         if not (self.root / "settings.json").exists(): self.s.save()
-        if not (self.root / "AGENTS.md").exists(): write_text(self.root / "AGENTS.md", AGENTS_MD)
+        for sub in ("tasks", "requests/new", "requests/done", "requests/failed"): (self.root / sub).mkdir(parents=True, exist_ok=True)
+        cm = self.root / "CLAUDE.md"
+        if not cm.exists() or "<!-- storylens:managed" in cm.read_text(encoding="utf-8"):
+            write_text(cm, CLAUDE_MD + "\n<!-- storylens:managed — delete this line to keep your own edits -->\n")
         if not (self.root / "instructions.md").exists():
             write_text(self.root / "instructions.md", "# Global instructions (apply to every job)\n\n"
                        "- Present tense, chronological, cite subtitle line ids for every claim.\n"

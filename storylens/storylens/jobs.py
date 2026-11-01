@@ -1,9 +1,9 @@
 """Jobs: folder-based, resumable, reviewable units of work (docs/AGENTIC.md).
 
 jobs/<id>/job.json        {"kind", "title", "params", "instructions", "autonomy"}
-jobs/<id>/state.json      {"status": queued|running|awaiting_review|waiting_for_agent|done|failed|cancelled, "stage", "progress", "message"}
+jobs/<id>/state.json      {"status": queued|running|waiting_for_claude|awaiting_review|done|failed|cancelled, "stage", "progress", "message"}
 jobs/<id>/events.jsonl    append-only log
-jobs/<id>/steps/NNNN-*    one folder per LLM call (prompt.md, schema.json, response.json, meta.json)
+(the thinking steps of a job are Claude tasks in <ws>/tasks/, linked by meta.json "job")
 jobs/<id>/review/<gate>.md + <gate>.metrics.json -> <gate>.decision.json   (human or autopilot)
 jobs/<id>/inbox/*.md      instructions sent while the job runs (merged into later prompts)
 jobs/<id>/artifacts/      outputs (script.json, edl.json, recap.mp4, report.md …)
@@ -30,7 +30,7 @@ class Job:
     def create(cls, ws, kind, title, params=None, instructions="", autonomy=None):
         jid = new_id(kind)
         d = Path(ws.jobs) / jid
-        for sub in ("steps", "review", "inbox", "artifacts"): (d / sub).mkdir(parents=True, exist_ok=True)
+        for sub in ("review", "inbox", "artifacts"): (d / sub).mkdir(parents=True, exist_ok=True)
         write_json(d / "job.json", {"id": jid, "kind": kind, "title": title, "params": params or {}, "instructions": instructions,
                                     "autonomy": autonomy or ws.s.autonomy, "created": now()})  # autonomy: gates | autopilot | auto
         write_json(d / "state.json", {"status": "queued", "stage": "", "progress": 0.0, "message": "", "updated": now()})
@@ -82,6 +82,7 @@ class Job:
                 write_json(dec_p, {"decision": "approve", "by": "auto", "warnings": f"{len(failed)} gate rule(s) not met", "t": now()})
                 self.event("gate_warning", gate=name, failed_rules=failed, metrics=metrics)
         self.event("gate", gate=name); self.update(status="awaiting_review", stage=f"review: {name}")
+        from .tasks import write_queue; write_queue(self.ws)
         if not dec_p.exists() and self.on_gate:
             d = self.on_gate(name, markdown, metrics or {})
             if d: self.decide(name, d.get("decision", "approve"), d.get("notes", ""), d.get("edits"), by="cli")
@@ -89,6 +90,7 @@ class Job:
             self.check_cancel(); time.sleep(1.0)
         d = read_json(dec_p)
         self.event("gate_decided", gate=name, **d); self.update(status="running")
+        from .tasks import write_queue; write_queue(self.ws)
         if d.get("decision") == "reject": raise Cancelled(f"rejected at {name}: {d.get('notes', '')}")
         return d
 
@@ -104,28 +106,23 @@ def list_jobs(ws, title=None):
     return out
 
 
-def pending_steps(ws):
-    """Steps waiting for an agent/human answer — only in jobs that are still alive."""
-    out = []
-    for p in Path(ws.jobs).glob("*/steps/*/WAITING"):
-        st = read_json(p.parent.parent.parent / "state.json", {}).get("status")
-        if st in ("running", "queued", "awaiting_review", "waiting_for_agent"): out.append(str(p.parent))
-    return sorted(out)
-
-
 def run_job(job, fn, background=False):
     """Run fn(job) with status bookkeeping; in a thread when background=True (web server)."""
     def target():
         job.update(status="running"); job.event("started")
         try:
             fn(job)
-            job.update(status="done", progress=1.0, stage="done"); job.event("done")
+            job.update(status="done", progress=1.0, stage="done", message=""); job.event("done")
         except Cancelled as e:
             job.update(status="cancelled", message=str(e)); job.event("cancelled", msg=str(e))
         except Exception as e:
             job.update(status="failed", message=f"{type(e).__name__}: {e}")
             job.event("failed", error=str(e), trace=traceback.format_exc()[-3000:])
             if not background: raise
+        finally:
+            from . import catalog, tasks
+            catalog.write(job.ws)
+            if job.state.get("status") in ("cancelled", "failed"): tasks.cancel_job_tasks(job.ws, job.id)
     if background:
         th = threading.Thread(target=target, daemon=True); th.start(); return th
     target()

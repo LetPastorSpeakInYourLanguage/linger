@@ -7,19 +7,22 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Body
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from . import __version__, media as M, store, views, understand, recap, library
-from .jobs import Job, run_job, list_jobs, pending_steps
+from .jobs import Job, run_job, list_jobs
+from . import tasks as T, catalog, watch
 from .util import read_json, read_jsonl, write_json, write_text
 
 STATIC = Path(__file__).parent / "static"
 
 
-def create_app(ws):
+def create_app(ws, watcher=True):
     app = FastAPI(title="storylens", version=__version__)
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
     for p in Path(ws.jobs).glob("*/state.json"):     # jobs that were running when the server stopped
         st = read_json(p)
-        if st.get("status") in ("running", "queued", "awaiting_review", "waiting_for_agent"):
-            st["status"], st["message"] = "interrupted", "server restarted — start the job again (cached steps are reused)"; write_json(p, st)
+        if st.get("status") in ("running", "queued", "awaiting_review", "waiting_for_claude"):
+            st["status"], st["message"] = "interrupted", "storylens restarted — rerun the job (answered tasks are reused)"; write_json(p, st)
+    if watcher: watch.start_thread(ws)
+    else: T.mark_stale(ws)
 
     def U(tid):
         try: return understand.load(ws, tid)
@@ -31,23 +34,18 @@ def create_app(ws):
     # ---------------- status & settings
     @app.get("/api/status")
     def status():
-        from .llm.backends import make_backend
-        try: backend = make_backend(ws.s).name
-        except Exception as e: backend = f"error: {e}"
         def has(mod):
             try: __import__(mod); return True
             except Exception: return False
         return {"version": __version__, "workspace": str(ws.root), "settings": {k: v for k, v in vars(ws.s).items() if k != "workspace"},
-                "backend": backend, "api_key": bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")),
-                "ffmpeg": M.have_ffmpeg(), "kokoro": has("kokoro_onnx"), "pyttsx3": has("pyttsx3"), "vad": M.silero_available(),
-                "pending": len(pending_steps(ws))}
+                "answerer": ws.s.answerer, "ffmpeg": M.have_ffmpeg(), "kokoro": has("kokoro_onnx"), "pyttsx3": has("pyttsx3"),
+                "vad": M.silero_available(), "open_tasks": len(T.list_tasks(ws, "open")), "reviews": len(T.open_reviews(ws))}
 
     @app.post("/api/settings")
     def settings(d: dict = Body(...)):
         for k, v in d.items():
             if hasattr(ws.s, k) and k not in ("workspace",):
-                if k == "effort": ws.s.effort.update(v)
-                else: setattr(ws.s, k, type(getattr(ws.s, k))(v) if not isinstance(getattr(ws.s, k), (dict, list)) else v)
+                setattr(ws.s, k, type(getattr(ws.s, k))(v) if not isinstance(getattr(ws.s, k), (dict, list)) else v)
         ws.s.save(); return status()
 
     @app.get("/api/instructions")
@@ -171,7 +169,7 @@ def create_app(ws):
 
     @app.post("/api/collections/{cid}/recap")
     def lib_recap(cid: str, d: dict = Body(...)):
-        params = {k: d[k] for k in ("lens", "style", "duration", "render", "zoom", "voice", "hardsub_blur") if k in d}
+        params = {k: d[k] for k in ("lens", "style", "duration", "render", "review", "voice", "hardsub_blur") if k in d}
         return start("recap", cid, params, lambda j: recap.run(ws, j, None, params, collection=cid), d)
 
     @app.get("/api/titles/{tid}/views")
@@ -200,7 +198,7 @@ def create_app(ws):
 
     @app.post("/api/titles/{tid}/recap")
     def do_recap(tid: str, d: dict = Body(...)):
-        params = {k: d[k] for k in ("lens", "style", "duration", "render", "zoom", "voice", "hardsub_blur") if k in d}
+        params = {k: d[k] for k in ("lens", "style", "duration", "render", "review", "voice", "hardsub_blur") if k in d}
         return start("recap", tid, params, lambda j: recap.run(ws, j, tid, params), d)
 
     @app.get("/api/jobs")
@@ -215,11 +213,15 @@ def create_app(ws):
             g = md.stem
             gates.append({"gate": g, "markdown": md.read_text(encoding="utf-8"), "metrics": read_json(j.dir / "review" / f"{g}.metrics.json", {}),
                           "decision": read_json(j.dir / "review" / f"{g}.decision.json")})
-        steps = sorted(p.name for p in (j.dir / "steps").glob("*"))
-        waiting = [str(p.parent) for p in (j.dir / "steps").glob("*/WAITING")]
+        tl = [{"id": t["id"], "status": t["status"], "summary": t["summary"]} for t in T.list_tasks(ws) if t.get("job") == jid]
         return {"job": j.spec, "state": j.state, "events": read_jsonl(j.dir / "events.jsonl")[-80:], "gates": gates,
-                "artifacts": sorted(p.name for p in (j.dir / "artifacts").glob("*") if p.is_file()), "steps": steps, "waiting": waiting,
+                "artifacts": sorted(p.name for p in (j.dir / "artifacts").glob("*") if p.is_file()), "tasks": tl,
                 "script": read_json(j.dir / "artifacts" / "script.json"), "verify": read_json(j.dir / "artifacts" / "verify.json")}
+
+    @app.post("/api/jobs/{jid}/rerun")
+    def rerun(jid: str):
+        from . import actions
+        job, fn = actions.job_for(ws, {"do": "rerun", "job": jid}); run_job(job, fn, background=True); return {"job": job.id}
 
     @app.post("/api/jobs/{jid}/decide")
     def decide(jid: str, d: dict = Body(...)):
@@ -237,22 +239,32 @@ def create_app(ws):
         if not p.exists() or Job(ws, jid).dir.resolve() not in p.parents: raise HTTPException(404)
         return FileResponse(p)
 
-    # ---------------- agent / human answers for the folder backend
-    @app.get("/api/pending")
-    def pending():
-        out = []
-        for d in pending_steps(ws):
-            p = Path(d)
-            out.append({"step": d, "job": p.parent.parent.name, "task": p.name, "prompt": (p / "prompt.md").read_text(encoding="utf-8")[:20000],
-                        "schema": read_json(p / "schema.json")})
-        return out
+    # ---------------- Claude tasks (normally Claude answers them in the folder; the UI can paste an answer too)
+    @app.get("/api/tasks")
+    def task_list(status: str = "open"):
+        return {"tasks": T.list_tasks(ws, None if status == "all" else status)[-300:], "reviews": T.open_reviews(ws),
+                "queue": str(T.tasks_dir(ws) / "QUEUE.md"), "workspace": str(ws.root)}
 
-    @app.post("/api/pending/answer")
-    def answer(d: dict = Body(...)):
-        p = Path(d["step"]).resolve()
-        if Path(ws.jobs).resolve() not in p.parents or not (p / "WAITING").exists(): raise HTTPException(400, "not a waiting step")
-        data = d["response"] if isinstance(d["response"], (dict, list)) else json.loads(d["response"])
-        write_json(p / "response.json", data); return {"ok": True}
+    @app.get("/api/tasks/{tid_}")
+    def task_get(tid_: str):
+        d = (T.tasks_dir(ws) / tid_).resolve()
+        if T.tasks_dir(ws).resolve() not in d.parents or not (d / "TASK.md").exists(): raise HTTPException(404)
+        err = d / "ANSWER_ERRORS.md"
+        return {"id": tid_, "meta": read_json(d / "meta.json"), "task": (d / "TASK.md").read_text(encoding="utf-8"),
+                "answer": read_json(d / "answer.json"), "errors": err.read_text(encoding="utf-8") if err.exists() else ""}
+
+    @app.post("/api/tasks/{tid_}/answer")
+    def task_answer(tid_: str, d: dict = Body(...)):
+        p = (T.tasks_dir(ws) / tid_).resolve()
+        if T.tasks_dir(ws).resolve() not in p.parents or read_json(p / "meta.json", {}).get("status") not in ("open", "stale"):
+            raise HTTPException(400, "not an open task")
+        try: data = d["answer"] if isinstance(d["answer"], (dict, list)) else json.loads(d["answer"])
+        except json.JSONDecodeError as e: raise HTTPException(400, f"not valid JSON: {e}")
+        write_json(p / "answer.json", data); return {"ok": True}
+
+    @app.get("/api/catalog")
+    def get_catalog():
+        catalog.write(ws); return {"markdown": (Path(ws.root) / "CATALOG.md").read_text(encoding="utf-8")}
 
     # ---------------- media preview (original video, for the clip player)
     @app.get("/api/titles/{tid}/video/{mid}")
@@ -266,5 +278,6 @@ def create_app(ws):
 
 def serve(ws, host="127.0.0.1", port=8765):
     import uvicorn
-    print(f"storylens {__version__}  workspace: {ws.root}\n→ open http://{host}:{port}")
+    print(f"storylens {__version__}  workspace: {ws.root}\n→ open http://{host}:{port}\n"
+          f"  Claude desktop: share {ws.root} and ask Claude to follow CLAUDE.md (tasks/QUEUE.md, requests/new/)")
     uvicorn.run(create_app(ws), host=host, port=port, log_level="warning")

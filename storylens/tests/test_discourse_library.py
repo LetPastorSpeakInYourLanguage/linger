@@ -36,6 +36,17 @@ def test_discourse_topic_lens_and_clips(ws):
     assert sc["segments"] and all(s["type"] == "hero_clip" for s in sc["segments"])
 
 
+def test_pattern_lens(ws):
+    tid = _podcast(ws)
+    v = views.build(ws, None, tid, "pattern", {"speaker": ""})
+    assert v["pattern"] and len(v["pattern"]) >= 3 and v["items"]
+    assert all(i.get("label") for i in v["items"]) and {i["role"] for i in v["items"]} <= set(v["pattern"])
+    job = Job.create(ws, "recap", tid, autonomy="auto")
+    run_job(job, lambda j: recap.run(ws, j, tid, {"lens": {"kind": "pattern", "speaker": ""}, "style": "clips", "duration": 60, "render": False}))
+    sc = json.loads(job.artifact("script.json").read_text())
+    assert all(" — Long Table" in s["text"] and "·" in s["text"] for s in sc["segments"] if s["type"] == "hero_clip")     # step label — source
+
+
 def test_cross_source_library(ws, title):
     tid = _podcast(ws)
     job = Job.create(ws, "understand", title["id"], autonomy="auto")

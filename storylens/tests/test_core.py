@@ -1,7 +1,8 @@
+import re
 import json, threading, time
 from pathlib import Path
 from storylens import subs, understand, views, recap, store
-from storylens.jobs import Job, run_job, pending_steps
+from storylens.jobs import Job, run_job
 from storylens.select import select
 
 
@@ -59,25 +60,33 @@ def test_nested_selection():
         assert all(r in ids for s in sel for r in s["requires"])
 
 
-def test_folder_backend_with_agent(ws, title):
-    """The folder backend waits for response.json; a simulated agent answers each step (here: with the mock)."""
-    from storylens.llm.mock import MockBackend
-    from storylens.llm.runner import Call
-    ws.s.llm_backend = "folder"; ws.s.folder_poll_seconds = 0.05
-    stop = threading.Event()
-    def agent():
-        mock = MockBackend(ws.s)
+def test_claude_answers_through_the_folder(ws, title, monkeypatch):
+    """No answerer: tasks wait in tasks/ until 'Claude' (simulated here) writes answer.json. The first answer is
+    invalid on purpose: storylens must reject it with ANSWER_ERRORS.md and accept the corrected one."""
+    from storylens.testing import MockAnswerer
+    monkeypatch.setenv("STORYLENS_WRITE_HINTS", "1")
+    ws.s.answerer = "claude"; ws.s.poll_seconds = 0.05
+    stop, seen_error = threading.Event(), []
+    def claude():
+        mock, broke = MockAnswerer(), False
         while not stop.is_set():
-            for d in pending_steps(ws):
-                d = Path(d); task = d.name.split("-", 1)[1]
-                if (d / "response.json").exists(): continue
+            q = (Path(ws.root) / "tasks" / "QUEUE.md")
+            for name in re.findall(r"`([0-9]{4}-[^/`]+)/TASK.md`", q.read_text() if q.exists() else ""):
+                d = Path(ws.root) / "tasks" / name
+                if (d / "answer.json").exists(): continue
+                if (d / "ANSWER_ERRORS.md").exists(): seen_error.append(name)
+                elif not broke:
+                    (d / "answer.json").write_text('{"oops": 1}'); broke = True; continue
+                assert "## Answer format" in (d / "TASK.md").read_text()
                 hint = json.loads((d / "hint.json").read_text()) if (d / "hint.json").exists() else None
-                data, _ = mock.complete(Call(task, "", "", None, "", "", 0, hint=hint))
-                (d / "response.json").write_text(json.dumps(data))
+                (d / "answer.json").write_text(json.dumps(mock.answer(json.loads((d / "meta.json").read_text())["task"], hint)))
             time.sleep(0.05)
-    th = threading.Thread(target=agent, daemon=True); th.start()
+    th = threading.Thread(target=claude, daemon=True); th.start()
     try:
         _understand(ws, title)
     finally:
         stop.set()
-    assert not pending_steps(ws)
+    from storylens.tasks import list_tasks
+    assert not list_tasks(ws, "open") and seen_error
+    assert "Nothing to do right now" in (Path(ws.root) / "tasks" / "QUEUE.md").read_text()
+    assert list(Path(ws.root).glob("tasks/*/answer.rejected-1.json"))

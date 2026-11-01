@@ -20,7 +20,10 @@ You produce two layers at once:
    For states use field = learns | feels | wants | status | relationship:<other name>, and value.
    quote = a memorable line (value = the exact words); moment = something worth SHOWING with original audio.
    Use "" for fields that do not apply. Link each fact to the beat it belongs to (beat_id) or "".
-Return ONLY JSON matching the schema."""
+   topics/stance: optional for stories (use [] and "").
+3. For every beat, record who CAUSED it and who REVEALED the information behind it (caused_by / revealed_by), even
+   minor characters (e.g. the waiter who lets a secret slip that ends a relationship).
+Keep facts concise; aim for completeness over prose."""
 
 DISCOURSE_CARDS_SYSTEM = f"""You are a meticulous analyst building a machine-readable understanding of a podcast, talk show,
 interview, sermon or lecture from its transcript/subtitles. Each line looks like:
@@ -41,7 +44,7 @@ You produce two layers at once:
    lines = the exact span where the thought starts and ends (a self-contained clip: start at the beginning of
    the sentence/idea, end after it lands). intensity 0-3 = how quotable/forceful.
    cost/field: use 0 and "". Link facts to their point (beat_id) or "".
-Return ONLY JSON matching the schema."""
+   For each point, caused_by / revealed_by may stay [] (or name who raised the question / brought the story)."""
 
 CARDS_USER = """{context}
 TRANSCRIPT CHUNK {chunk_id} (lines L{first}-L{last}):
@@ -58,8 +61,7 @@ which beats it cannot be understood without, which earlier beats are setups that
 and where the emotional and comic peaks are. Judge importance against the WHOLE story, not locally.
 Tiers: P0 = the spine (a 60-second recap must contain these; ~5-10% of beats), P1 = needed for a faithful 5-10 minute
 recap, P2 = rich detail for a long recap, P3 = texture/side gags. Every input beat id must appear exactly once in beats.
-Turning points (tp): TP1_opportunity, TP2_change_of_plans, TP3_point_of_no_return, TP4_major_setback, TP5_climax.
-Return ONLY JSON matching the schema."""
+Turning points (tp): TP1_opportunity, TP2_change_of_plans, TP3_point_of_no_return, TP4_major_setback, TP5_climax."""
 
 INTEGRATE_USER = """WORK: {title} ({scope})
 CHARACTERS: {roster}
@@ -71,21 +73,14 @@ chunk by chunk from a conversation or talk, plus the speakers. Build the GLOBAL 
 (as the logline), the THEMES (threads) that recur, which points are essential to understand the talk (P0 key points),
 which are supporting (P1/P2) and which are tangents or banter (P3). Use turning_points for up to 5 KEY points in
 order, with tp labels KEY1..KEY5. characters = the speakers (role: host | guest | preacher | caller | other).
-Every input beat id must appear exactly once in beats. Return ONLY JSON matching the schema."""
+Every input beat id must appear exactly once in beats."""
 
 SERIES_SYSTEM = INTEGRATE_SYSTEM.replace("for an entire work", "for a whole SERIES (already ranked per episode; you see the episode-level P0/P1 beats)")
 
-CAUSAL_SYSTEM = """You link major story beats to the characters who CAUSED them, REVEALED the information that triggered
-them, or WITNESSED them — including minor characters (e.g. the waiter who lets slip a secret that ends a relationship).
-Use only the facts given. Return ONLY JSON matching the schema."""
-
-CAUSAL_USER = """For each beat below, read the facts from its scene and the neighbouring scenes.
-{blocks}"""
-
-VISION_SYSTEM = """You describe what is happening on screen in keyframes taken while nobody speaks, for a story-analysis
-system that otherwise only reads subtitles. Report visible events/actions, on-screen text (title cards like
+VISION_SYSTEM = """Open each image listed below (one keyframe per dialogue-free stretch, named by gap id) and describe what is
+happening on screen, for a story-analysis system that otherwise only reads subtitles. Answer one entry per gap id. Report visible events/actions, on-screen text (title cards like
 "40 YEARS LATER", signs, messages), the setting, apparent age/appearance changes of characters, and whether the frames
-are end/opening credits. Name characters only if the context names make it unambiguous. Return ONLY JSON."""
+are end/opening credits. Name characters only if the context names make it unambiguous."""
 
 VISION_USER = """Context — subtitles just before: {before}
 Subtitles just after: {after}
@@ -96,26 +91,27 @@ CHARACTER_SYSTEM = """You build a CHARACTER LENS: the story of one character tol
 minor characters whose story the main plot ignores. From the candidate facts and beats, choose and rank what matters
 for THIS character's arc: motives, backstory, inner life, moral choices, relationships, turning points, and hidden
 influence on the main plot. salience 0-100 is importance for this character's story (not the main plot).
-tier P0-P3 as for recaps. hidden_gems: surprising things the main plot does not credit to this character.
-Return ONLY JSON matching the schema."""
+tier P0-P3 as for recaps. hidden_gems: surprising things the main plot does not credit to this character."""
 
 CHARACTER_USER = """CHARACTER: {name} (aliases: {aliases})
 MAIN STORY (for context): {logline}
 CANDIDATES (ref | when | kind | text):
 {items}"""
 
-TRAIT_MAP_SYSTEM = """You translate a user's request for a theme/trait compilation into a filter over a fact ledger whose
-acts use these act_types: """ + ", ".join(ACT_TYPES) + """. Return ONLY JSON."""
+TRAIT_MAP_SYSTEM = """You translate a request for a theme/trait compilation ("all the times X was a good friend", "every time the
+preacher illustrates a point with a personal story") into a filter over a fact ledger. Story acts: """ + ", ".join(ACT_TYPES) + """.
+Talk/podcast/sermon acts: """ + ", ".join(DISCOURSE_ACTS) + """. Choose act_types from whichever list fits the request
+(both if unsure), plus 5-15 keywords."""
 
 TOPIC_MAP_SYSTEM = """You translate a request like "what did <speaker> say about <topic>" into search terms for a claim
 ledger and transcripts: topic labels, 6-15 keywords/synonyms (include related words the speaker would actually use),
-and the speaker names/aliases. Return ONLY JSON."""
+and the speaker names/aliases."""
 
 TOPIC_CHECK_SYSTEM = """You verify candidate passages for a topic compilation ("what <speaker> said about <topic>").
 For each candidate decide: relevant (does a speaker state a view on the topic?), WHO says it (use the transcript;
 auto-captions have no names, so infer from context; speaker_confident=false when unsure), the claim in one sentence,
 stance (for/against/nuanced), strength 0-3 (3 = a defining statement), and the tightest self-contained clip
-first_line..last_line (whole sentences, starting where the thought starts). Return ONLY JSON."""
+first_line..last_line (whole sentences, starting where the thought starts)."""
 
 TOPIC_CHECK_USER = """REQUEST: {query}
 SPEAKER WANTED: {speaker}
@@ -125,16 +121,12 @@ CANDIDATES (ref | source | time | lines):
 
 TRAIT_CHECK_SYSTEM = """You verify candidates for a trait/theme compilation. For each candidate decide whether it is a
 genuine instance of the trait as the user means it (behavior in context, not just matching words).
-strength 0-3 (3 = a defining example). Return ONLY JSON matching the schema."""
+strength 0-3 (3 = a defining example)."""
 
 TRAIT_CHECK_USER = """TRAIT REQUEST: {query}
 INTERPRETATION: {interpretation}
 CANDIDATES (ref | when | text | evidence lines):
 {items}"""
-
-ZOOM_SYSTEM = """You re-read the exact subtitle lines behind selected story items and harvest concrete, quotable details
-(short quotes, numbers, names, callbacks, running jokes) that make a recap vivid, and flag any item whose text is not
-supported by its lines (with a fix). Use only the lines given. Return ONLY JSON."""
 
 STYLE_CARDS = {
     "recap_channel": "Voice: a YouTube movie-recap narrator. Present tense, a hook in the first sentence, dense chronological "
@@ -162,8 +154,7 @@ STYLE_CARDS = {
 SCRIPT_SYSTEM = """You write recap scripts that are timed to picture. Segment types: narration (voice-over over footage of
 the cited lines), hero_clip (original audio + picture of the cited lines; text = ""), title_card (short on-screen text).
 Every segment must cite refs (item ids) and a line range [first,last] inside ONE media (give its media id).
-State nothing the items/details do not support; never use outside knowledge. Follow the style card and instructions.
-Return ONLY JSON matching the schema."""
+State nothing the items and their lines do not support; never use outside knowledge. Follow the style card and instructions."""
 
 SCRIPT_USER = """STYLE: {style}
 {style_card}
@@ -173,13 +164,17 @@ STORY: {logline}
 LENS: {lens}
 INSTRUCTIONS:
 {instructions}
-ITEMS (chronological; ref | media | lines | tier | text):
+ITEMS (chronological; ref | media | lines | tier | text), each followed by its exact subtitle lines. Use them for vivid,
+accurate details and short quotes:
 {items}
-DETAILS harvested from the subtitles (ref | line | detail):
-{details}
 CANDIDATE HERO MOMENTS (media | lines | what):
 {moments}"""
 
-VERIFY_SYSTEM = """You are an independent fact checker for a recap script. For each segment decide whether the cited
+PATTERN_SYSTEM = """You study HOW a speaker builds their ideas (rhetoric / homiletics). You get the most frequent sequences of
+moves (asks, reads, illustrates, argues, advises, cites ...) found in their points, with example points. Name the
+pattern in plain words, describe it in 1-2 sentences, give each step a short on-screen label (e.g. "1 · Opens with a
+question"), and list the ids of the 2-3 example points that show the pattern best."""
+
+REVIEW_SYSTEM = """You are an independent fact checker for a recap script. For each segment decide whether the cited
 subtitle lines support it: supported | partly | unsupported, with a short issue and a corrected text when needed.
-Also list any phrases that use knowledge NOT present in the lines (real actor names, facts from outside). Return ONLY JSON."""
+Also list any phrases that use knowledge NOT present in the lines (real actor names, facts from outside)."""

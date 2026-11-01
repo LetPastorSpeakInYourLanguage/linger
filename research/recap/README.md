@@ -12,6 +12,16 @@ Underneath sits a **persisted story-understanding layer** that linger can query.
 > 📄 Literature review: [`01_literature.md`](01_literature.md) · 🧪 Experiments: [`experiments/`](experiments) ·
 > 🧰 Library: [`recaplib/`](recaplib) · 🎬 Sample renders: [`samples/`](samples)
 
+> **Built as [`storylens`](../../storylens/).** Final deployment decision: there is **no API**. Every LLM step is
+> a task file that **Claude, in the Claude desktop app**, answers through the shared workspace folder
+> (`TASK.md` → `answer.json`). This is the folder protocol of exp14, made the only path. The passes were therefore
+> made fewer and larger:
+> - causes are recorded in P1, so there is no separate P2c pass;
+> - the zoom-in pass is folded into the script task;
+> - verification is deterministic checks plus an optional review task.
+>
+> See [storylens/docs/AGENTIC.md](../../storylens/docs/AGENTIC.md).
+
 ---
 
 ## TL;DR — answers to the questions we started with

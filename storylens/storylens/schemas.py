@@ -11,7 +11,7 @@ def arr(items):
     return {"type": "array", "items": items}
 
 
-SPAN = arr(I)  # [first_line, last_line]
+SPAN = {**arr(I), "description": "[first_line, last_line]"}
 
 ACT_TYPES = ["helps", "comforts", "defends", "protects", "rescues", "sacrifices", "gifts", "advises", "encourages", "thanks",
              "apologizes", "forgives", "confesses", "reveals", "discovers", "decides", "plans", "refuses", "quits", "leaves",
@@ -28,7 +28,8 @@ CARDS = obj(
         id=S, lines=SPAN, setting=S, characters=arr(S),
         speakers=arr(obj(line=I, name=S)),
         summary=S,
-        beats=arr(obj(id=S, text=S, lines=SPAN, kind=S, local_importance=I, emotion=S, intensity=I, who=arr(S))),
+        beats=arr(obj(id=S, text=S, lines=SPAN, kind=S, local_importance=I, emotion=S, intensity=I, who=arr(S),
+                      caused_by=arr(S), revealed_by=arr(S))),
         facts=arr(obj(id=S, kind=S, actor=S, act_type=S, target=S, cost=I, field=S, value=S, text=S, lines=SPAN,
                       intensity=I, beat_id=S, topics=arr(S), stance=S)),
     )),
@@ -44,9 +45,7 @@ INTEGRATE = obj(
     themes=arr(S),
 )
 
-CAUSAL = obj(links=arr(obj(beat_id=S, caused_by=arr(S), revealed_by=arr(S), witnessed_by=arr(S), evidence_facts=arr(S))))
-
-VISION = obj(events=arr(obj(text=S, kind=S, who=arr(S))), onscreen_text=S, setting=S, is_credits=B)
+VISION_SHEET = obj(gaps=arr(obj(id=S, events=arr(obj(text=S, kind=S, who=arr(S))), onscreen_text=S, setting=S, is_credits=B)))
 
 CHARACTER_VIEW = obj(
     summary=S, arc=S, hidden_gems=arr(S),
@@ -61,11 +60,11 @@ TOPIC_MAP = obj(description=S, topics=arr(S), keywords=arr(S), speakers=arr(S))
 
 TOPIC_CHECK = obj(checks=arr(obj(ref=S, relevant=B, speaker=S, speaker_confident=B, claim=S, stance=S, strength=I, first_line=I, last_line=I)))
 
-ZOOM = obj(details=arr(obj(ref=S, detail=S, line=I)), corrections=arr(obj(ref=S, issue=S, fix=S)))
-
 SCRIPT = obj(
     title=S,
     segments=arr(obj(type=S, text=S, refs=arr(S), media=S, lines=SPAN, mood=S)),
 )
 
-VERIFY = obj(checks=arr(obj(index=I, verdict=S, issue=S, fix=S)), leakage=arr(S))
+PATTERN = obj(name=S, description=S, steps=arr(obj(move=S, label=S)), best_examples=arr(S))
+
+REVIEW = obj(checks=arr(obj(index=I, verdict=S, issue=S, fix=S)), leakage=arr(S))

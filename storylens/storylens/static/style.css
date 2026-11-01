@@ -32,3 +32,4 @@ video{width:100%;max-height:60vh;background:#000;border-radius:8px}
 .seg{border-left:3px solid var(--line);padding:6px 10px;margin:6px 0}.seg.supported{border-color:var(--ok)}.seg.partly{border-color:var(--warn)}.seg.unsupported{border-color:var(--bad)}
 .seg textarea{min-height:50px}.kv{display:grid;grid-template-columns:160px 1fr;gap:4px 12px}
 .events{font-family:ui-monospace,monospace;font-size:12px;max-height:300px;overflow:auto;background:var(--panel2);padding:8px;border-radius:7px}
+.card a:not(.btn):not(.pill),p a,details a{color:var(--accent)}

@@ -4,13 +4,21 @@ storylens turns English subtitles (plus optional video) into a **persistent, que
 then derives any number of recaps from it. Every design choice below traces back to a measured experiment in
 [`research/recap/`](../../research/recap/README.md), cited as (expNN).
 
+**Who does what.** storylens does the mechanical work: reading files, aligning, indexing, selecting, checking,
+timing and rendering. **Claude does all the thinking**, through the shared workspace folder. Each pass below is a
+*task* (`tasks/<id>/TASK.md` → `answer.json`; see [AGENTIC.md](AGENTIC.md)). There is no API anywhere. So the
+method is shaped to need **few, large, self-contained tasks**:
+- understanding a feature film is ~6–10 tasks;
+- a 22-minute episode is ~2–3;
+- a recap is 1–4.
+
 ```
 T0 EVIDENCE    cues + SDH tags · speakers · speech activity · shots · keyframes      immutable per media
 T1 FACTS       every act / state / reveal / quote / joke / moment of EVERY character  one pass, append-only
 T2 STRUCTURE   beats · tiers P0–P3 · threads · turning points · requires/pays_off ·  derived from T1 (beats only)
-               caused_by / revealed_by / witnessed_by · characters
-T3 LENSES      main · character:<name> · trait:<actor>/<query> · thread:<id>           on demand, cached
-RECAP          nested selection → zoom-in → script (style) → independent verify → G2 → voice → render → fit → G3
+               caused_by / revealed_by · characters
+T3 LENSES      main · character · trait · thread · topic · pattern · overview          on demand, cached
+RECAP          nested selection → script from the exact lines → checks (+ optional review) → G2 → voice → render → fit → G3
 ```
 
 ## Why this structure (and not one big layer, or main + side layers)
@@ -46,14 +54,20 @@ RECAP          nested selection → zoom-in → script (style) → independent v
 
 ## T1 — Facts: scene cards + ledger (P1, `understand.cards_pass`)
 
-The subtitles are split into ~160-line chunks at the largest silences. Each chunk is one LLM call that sees the
-chunk, the roster so far, a running *story so far*, and your instructions. This is incremental updating with
-structured outputs, chosen over pure hierarchical merging (BooookScore). The call returns:
+The subtitles are split into **parts** of ~220 lines (`chunk_lines`) at the largest silences. Each part is one
+Claude task that sees:
+- the part's lines;
+- the cast you gave and your instructions;
+- a CONTINUITY note pointing at the previous part.
+
+All parts of a media are **queued at once**, so Claude can work through an episode in one sitting, in order,
+carrying the story and names forward itself. This is incremental updating, chosen over pure hierarchical merging
+(BooookScore), without making storylens wait between parts. Each task returns:
 
 | output | purpose |
 |---|---|
 | `scenes` with `speakers` per line | who said what (LLM 62% vs heuristics 17% on Friends; exp03). Characters rarely say each other's names (3% recall by name), so speaker attribution is the prerequisite for character stories (exp13) |
-| `beats` (+ `local_importance`, emotion, intensity, who) | the central flow: events that move a plot or relationship |
+| `beats` (+ `local_importance`, emotion, intensity, who, **`caused_by`, `revealed_by`**) | the central flow: events that move a plot or relationship, and **who made each happen or brought the information to light**, for any character, however minor. This used to be a separate pass (P2c); asking for it while the lines are in view is cheaper and just as good, and it is what makes hidden influence discoverable (co-occurrence can't see causality, exp13 §3) |
 | `facts` for **every** character present | `kind`: act / state / reveal / quote / joke / moment. Acts use a fixed taxonomy (helps, comforts, defends, protects, rescues, sacrifices, gifts, advises, encourages, thanks, apologizes, forgives, confesses, reveals, discovers, decides, plans, refuses, quits, leaves, returns, jokes, teases, mocks, flirts, kisses, rejects, breaks_up, argues, accuses, lies, deceives, betrays, steals, threatens, attacks, kills, other) with `actor → target`, `cost` 0–3 (what it costs the actor), evidence lines and the beat it belongs to. States use `learns / feels / wants / status / relationship:<other>` |
 
 **Why the ledger is required:**
@@ -61,14 +75,15 @@ structured outputs, chosen over pure hierarchical merging (BooookScore). The cal
   base rate, recovering ~13% of instances (exp15), because "being a good friend" is a judgment about behavior.
 - **Side stories:** the main flow under-represents secondary characters (12–57% recall, exp13).
 
-**P1v — vision patch** (optional; `vision: auto` with the Anthropic backend). For every dialogue gap ≥ 8 s, three
-keyframes go to a multimodal call that returns visible events, on-screen text, setting and credits detection. The
-results are inserted into the chunk as `V@mm:ss` lines and kept as `visual` facts.
+**P1v — vision patch** (optional; setting `vision: gaps`, or `--vision on`). For every dialogue gap ≥ 8 s (up to
+24 per media), one keyframe image is placed in a **single task per media**. Claude opens the images and returns,
+per gap: visible events, on-screen text, setting, and whether it is credits. The results are inserted into the
+parts as `V@mm:ss` lines before P1, and kept as `visual` facts.
 - **Why:** 34% of a thriller's salient scenes, and 3 of its 5 turning points, contain *no dialogue* (exp05). A
   keyframe pass caught a "40 YEARS LATER" title card, a character's age and the giant robots, all invisible to the
   subtitles (exp05c).
 
-## T2 — Structure (P2 integrate, P2c causal; `understand.integrate_pass`, `causal_pass`)
+## T2 — Structure (P2 integrate; `understand.integrate_pass`)
 
 **P2 sees beats and the roster only, never raw facts.** It returns:
 - logline, characters (role, arc, importance),
@@ -83,9 +98,9 @@ Tiers: **P0** spine (a 60 s recap needs it), **P1** faithful 5–10 min, **P2** 
 each episode's P0/P1 beats. Other beats keep their episode rank, shifted down one tier (exp07: Friends S1–S3,
 73 episodes).
 
-**P2c causal links.** For each P0/P1 beat, the facts of its scene ±1 decide `caused_by`, `revealed_by` and
-`witnessed_by`, for any character. Co-occurrence can't see causality (exp13 §3), so this is what makes hidden
-influence discoverable.
+**Ids are storylens's job.** Whatever ids an answer uses, storylens makes every scene, beat and fact id
+globally unique (`<media>-c<part>-<local id>`) and remaps references inside the part. Claude never has to keep a
+global counter.
 
 **G1 review.** You see the logline, characters, turning points, the spine, coverage and the unknown-speaker rate.
 Corrections (tier changes, deletions, field fixes) go to `corrections.jsonl` and are applied on every load, so they
@@ -97,8 +112,10 @@ survive re-runs and feed every lens.
 |---|---|---|
 | `main` | all beats | P2 global importance + tiers; `requires` edges kept for coherent short cuts |
 | `thread:<id>` | the thread's beats | P2 |
-| `character:<name>` | facts where the character (incl. aliases) is actor or target, beats they are in, beats they caused/revealed/witnessed | an LLM **lens pass** ranks items for *their* arc (salience 0–100, tier, role, why) and lists **hidden gems** (what the main plot doesn't credit them for) |
-| `trait:<actor>/<query>` | the query is interpreted into act types + keywords → ledger filter + FTS. `deep` also sweeps every scene the actor is in, judged from its lines | an LLM verifies **every** candidate (match + strength 0–3); salience = 25×strength + 8×intensity |
+| `character:<name>` | facts where the character (incl. aliases) is actor or target, beats they are in, beats they caused or revealed | a Claude **lens task** ranks items for *their* arc (salience 0–100, tier, role, why) and lists **hidden gems** (what the main plot doesn't credit them for) |
+| `trait:<actor>/<query>` | the query is interpreted into act types + keywords → ledger filter + FTS. `deep` also sweeps every scene the actor is in, judged from its lines | Claude checks **every** candidate (match + strength 0–3, in batches); salience = 25×strength + 8×intensity |
+| `topic:<speaker>/<query>` | claims by topic/text + full-text passages (discourse; below) | Claude checks relevance, speaker, stance, the tightest clip |
+| `pattern:<speaker>` | the speaker's claims in order, as moves (question, reading, story, argument, application…) per point | recurring move sequences are mined (n-grams over points); Claude names the pattern and its steps; one example per step becomes a clip |
 
 Lenses are cached in `views/<id>/view.json`, keyed by understanding version + corrections + parameters.
 
@@ -109,18 +126,22 @@ Lenses are cached in `views/<id>/view.json`, keyed by understanding version + co
    overhead per cut so tight budgets don't become choppy lists. Dependencies are closed. Budgets are solved in
    ascending order with forced inclusion, so **the 1-minute recap is always a subset of the 5-minute one**.
    - At 60 s on a feature film: 13 beats, 91% of P0 and all turning points, against greedy's 46% of P0.
-2. **Zoom-in.** The exact subtitle lines behind the selected items are re-read, harvesting quotes, numbers and
-   callbacks, and flagging unsupported items. In exp12 this gave +60% specifics and 3× quotes, and caught a
-   contradiction the understanding layer had made. It is what makes narration sound like a recap channel.
-3. **Script.** A style card and your layered instructions (global → title → job → mid-run messages) produce
-   segments `{narration | hero_clip | title_card}`, each citing item refs and a line range in one media.
-   Rule: never tease a setup whose payoff isn't included (exp12 flow flaw).
-4. **Independent verification.** A separate call sees each segment plus its cited lines and returns supported /
-   partly / unsupported, fixes, and outside-knowledge leakage. A writer never grades itself here (in exp12 one
-   model did both, which is the caveat this step removes).
-5. **G2 review.** Segments with verdicts. Edit inline, approve, or revise with notes (up to 2 rewrites).
+2. **Script, from the exact lines.** One task holds the style card, your layered instructions (global → title →
+   job → mid-run messages) and every selected item **followed by its exact subtitle lines**. Reading the lines is
+   what gives specifics and quotes: the old separate zoom-in pass gave +60% specifics and 3× quotes in exp12, and
+   it is now folded into the script task. The answer is segments `{narration | hero_clip | title_card}`, each
+   citing item refs and a line range in one media. Rule: never tease a setup whose payoff isn't included (exp12
+   flow flaw).
+3. **Checks (always, no Claude needed):**
+   - the cited lines exist;
+   - the segment cites a selected item;
+   - every quoted phrase in the narration actually appears (fuzzily) in its cited lines.
+
+   **Optional Claude review** (`review: true`, or a tick on the recap form): a separate task sees each segment with
+   its lines and returns supported / partly / unsupported, fixes, and outside-knowledge leakage.
+4. **G2 review.** Segments with verdicts. Edit inline, approve, or revise with notes (up to 2 rewrites).
    Autopilot requires 0 unsupported, 0 leakage, and estimated duration within 25%.
-6. **Voice + render** (exp08/09):
+5. **Voice + render** (exp08/09):
    - Narration footage comes from the cited lines, snapped to shot boundaries.
    - Hero clips play the original audio, cut on silences.
    - Original audio is ducked under narration (−18 dB), which keeps the language-agnostic ambience.
@@ -128,7 +149,7 @@ Lenses are cached in `views/<id>/view.json`, keyed by understanding version + co
    - **Closed-loop duration fit:** after real TTS durations are known, hero clips are capped, the voice is
      re-timed 0.9–1.2×, then footage is padded. The open loop missed targets by up to 81%, the closed loop by ≤ 1.3%
      (exp09).
-7. **G3 review** of the final cut.
+6. **G3 review** of the final cut.
 
 ## Discourse media: podcasts, talk shows, sermons, lectures (profile `discourse`)
 
@@ -157,10 +178,19 @@ Titles of kind `podcast`, `talkshow`, `sermon` or `lecture` use the same four ti
 2. Candidates come from the claim ledger (topics/text) **plus** full-text passage search. Discourse topics are said
    out loud, so search is precise here: hybrid P@10 was 0.8–1.0 on sermons and podcast auto-captions (exp16),
    against ~0.1 for behavioral traits in films (exp15).
-3. An LLM verifies each candidate: relevant? who says it (confidence)? the claim in one sentence, its stance and
+3. Claude checks each candidate: relevant? who says it (confidence)? the claim in one sentence, its stance and
    strength, and the **tightest self-contained clip** (first..last line).
 4. **De-duplication** removes the same statement said twice or recorded twice. In exp16 two "different" sermons were
    one sermon recorded twice, which made 7 of 18 hits duplicates.
+
+**Pattern lens** — `pattern:<speaker>`: *how* a preacher or guest builds an idea.
+1. Each claim is mapped to a move: question, reading, citation, story, argument, claim, application, prayer,
+   confession, humor, response.
+2. Moves are read in order within each point, and recurring sequences of 3–5 moves are counted across the corpus,
+   e.g. `question → reading → story → application`.
+3. One Claude task names the pattern and labels its steps.
+4. The lens returns, for the best examples, one clip per step, labelled with its step name (the lower third). A
+   `clips` recap therefore *shows* the method in the speaker's own words.
 
 **`clips` style (no narrator)** — the most important format for discourse:
 - Only the speakers' own words, as complete thoughts (8–45 s).
@@ -182,16 +212,17 @@ Every approved understanding, whether films, series, podcasts or sermons, feeds 
   - `topic`: what anyone or one speaker said about something, across every episode and show;
   - `trait` and `character`: across titles (for example a character's arc over several films);
   - `overview`: the P0/P1 spine of every title, to "recap a whole set of sources".
-- **Collection recaps:** the same pipeline (selection → script → verify → render). Segments cite composite media
+- **Collection recaps:** the same pipeline (selection → script → checks → render). Segments cite composite media
   ids (`title::media`), so one supercut can cut between a film's video and a podcast's audio.
 
 Scale note: understanding is per title and cached. A 200-episode sermon archive is 200 P1 runs, parallel and done
-once. After that every cross-source question is index lookups plus a small verification pass.
+once: ~2–4 tasks per one-hour episode. After that, every cross-source question is index lookups plus a few check
+tasks.
 
 ## Evaluation you can run
 
-- Every job records metrics: verifier verdicts, leakage, duration error, coverage, unknown-speaker rate,
-  tokens per step.
+- Every job records metrics: check verdicts, leakage, duration error, coverage, unknown-speaker rate, and the number
+  of Claude tasks (new vs reused from the answer cache).
 - The research harness ([exp12](../../research/recap/experiments/exp12_recap_channel/RESULTS.md)) measures
   faithfulness, coverage of an independent synopsis, leakage, and flow statistics. Use it to compare models,
   effort levels or prompt changes.
@@ -201,5 +232,5 @@ once. After that every cross-source question is index lookups plus a small verif
 - **Dialogue-free action** needs the vision pass. Without it, ~16% of synopsis events are unreachable (exp12).
 - **Speaker attribution** is the weakest automatic layer (62% text-only). Adding voice clusters (diarization)
   named 25 of 27 unknown lines in exp03. This is the next engine to add.
-- **Famous titles are known to LLMs.** The verifier's leakage check and the instruction "never use outside
-  knowledge" mitigate this, but don't eliminate it.
+- **Famous titles are known to Claude.** The instruction "use only the lines given" (in every task and in
+  `CLAUDE.md`), the quote check and the optional review's leakage check mitigate this, but don't eliminate it.

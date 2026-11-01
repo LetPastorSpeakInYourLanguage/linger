@@ -55,11 +55,13 @@ def create_demo_podcast(ws):
     return ws.title(t["id"])
 
 
-def run_demo(ws, real=False):
+def run_demo(ws, claude=False):
     from . import understand, recap
-    if not real: ws.s.llm_backend = "mock"
+    if not claude: ws.s.answerer = "mock"
+    else: print("Tasks will wait for Claude: open this workspace in the Claude desktop app and ask it to do tasks/QUEUE.md.")
     t = create_demo_title(ws)
-    print(f"demo title '{t['id']}' (LLM backend: {ws.s.llm_backend}; video: {'yes' if t['media'][0]['video'] else 'no — install ffmpeg to render'})")
+    print(f"demo title '{t['id']}' (answers: {'Claude' if claude else 'offline heuristic — low quality, checks your setup'}; "
+          f"video: {'yes' if t['media'][0]['video'] else 'no — install ffmpeg to render'})")
     j = Job.create(ws, "understand", t["id"], autonomy="auto"); run_job(j, lambda job: understand.run(ws, job, t["id"]))
     print("understanding:", j.state["status"], j.state.get("message", ""))
     for lens, style in (({"kind": "main"}, "recap_channel"), ({"kind": "character", "name": "Victor"}, "character"),
@@ -75,8 +77,12 @@ def run_demo(ws, real=False):
     j = Job.create(ws, "recap", p["id"], autonomy="auto")
     run_job(j, lambda job: recap.run(ws, job, p["id"], {"lens": lens, "style": "clips", "duration": 60, "render": True}))
     print(f"podcast clips recap: {j.state['status']} — {j.dir / 'artifacts'}")
+    j = Job.create(ws, "recap", p["id"], autonomy="auto")
+    run_job(j, lambda job: recap.run(ws, job, p["id"], {"lens": {"kind": "pattern", "speaker": ""}, "style": "clips", "duration": 60, "render": True}))
+    print(f"podcast pattern recap (how the speaker builds ideas): {j.state['status']} — {j.dir / 'artifacts'}")
     lens = {"kind": "topic", "query": "what makes a good friend", "speaker": ""}
     j = Job.create(ws, "recap", "all", autonomy="auto")
     run_job(j, lambda job: recap.run(ws, job, None, {"lens": lens, "style": "clips", "duration": 60, "render": True}, collection="all"))
     print(f"cross-source clips recap (film + podcast): {j.state['status']} — {j.dir / 'artifacts'}")
     print("\nOpen the app:  storylens serve   →  http://127.0.0.1:8765")
+    print(f"Then let Claude do the thinking: in the Claude desktop app, open {ws.root} and say \"do the storylens queue\".")

@@ -9,17 +9,18 @@ lens and absent from the main lens — importance lives on the (view, item) pair
                        ranked for THEIR arc by an LLM lens pass (motives, inner life, hidden influence)
   topic:<speaker>/<q>  "what did Pastor X say about women" (discourse): ledger topics + passage search -> LLM verifies
                        relevance, WHO said it and the tightest self-contained clip -> near-duplicates removed
+  pattern:<speaker>      HOW a speaker builds ideas: recurring sequences of moves (asks -> reads -> illustrates -> argues ->
+                       advises) mined from the ledger; one task names the pattern; items = one example clip per step
   trait:<actor>/<text> "all the times X was a good friend": interpret -> ledger filter (act types, keywords)
                        -> LLM verification of every candidate; deep=True also sweeps the scenes the actor is in
 Views are cached in library/<title>/views/<id>/view.json keyed by (understanding version, corrections, params).
 """
 from __future__ import annotations
 import re
-from concurrent.futures import ThreadPoolExecutor
 from . import prompts as P, schemas as SC, store
 from .understand import load
 from .util import read_json, write_json, slug, sha, ts, now
-from .llm import LLMRunner
+from .tasks import TaskQueue
 
 
 def _alias_set(U, name):
@@ -70,8 +71,8 @@ def build(ws, job, tid, kind, params=None, force=False):
     if job is None:   # called outside a job (CLI/library/tests): steps still go to a job folder for auditability
         from .jobs import Job
         job = Job.create(ws, "lens", tid, {"kind": kind, **params}, autonomy="auto")
-    llm = LLMRunner(ws, job.dir, cancelled=job.cancelled, log=job.log)
-    fn = {"main": _main, "thread": _thread, "character": _character, "trait": _trait, "topic": _topic}[kind]
+    llm = TaskQueue(ws, job)
+    fn = {"main": _main, "thread": _thread, "character": _character, "trait": _trait, "topic": _topic, "pattern": _pattern}[kind]
     v = fn(ws, job, llm, tid, U, params)
     v.update({"id": vid, "kind": kind, "params": params, "version": U["version"], "key": key, "created": now()})
     v["items"].sort(key=lambda x: (x["media"], x["t0"]))
@@ -113,7 +114,7 @@ def _character(ws, job, llm, tid, U, params):
     char = next((c for c in U["characters"] if c["name"].lower() in al), {"aliases": []})
     out = llm.json(f"lens-character-{slug(name)}", P.CHARACTER_SYSTEM,
                    P.CHARACTER_USER.format(name=name, aliases=", ".join(char.get("aliases", [])) or "-", logline=U["bible"].get("logline", ""), items=txt),
-                   SC.CHARACTER_VIEW, role="main", effort_key="view", hint={"items": cl, "name": name})
+                   SC.CHARACTER_VIEW, hint={"items": cl, "name": name}, summary=f"Tell {name}'s story: rank {len(cl)} facts and beats (character lens)")
     items = []
     for r in out["items"]:
         c = cands.get(r["ref"])
@@ -126,7 +127,7 @@ def _trait(ws, job, llm, tid, U, params):
     query, actor, deep = params["query"], params.get("actor", ""), params.get("deep", False)
     interp = llm.json(f"lens-trait-map-{slug(query)}", P.TRAIT_MAP_SYSTEM,
                       f"REQUEST: {query}\nCHARACTER (may be empty): {actor}\nReturn description, act_types (from the list), keywords (5-15), actor_required.",
-                      SC.TRAIT_MAP, role="main", effort_key="view", hint={"query": query, "actor": actor})
+                      SC.TRAIT_MAP, hint={"query": query, "actor": actor}, summary=f"Interpret the request \"{query}\" (trait lens)")
     al = _alias_set(U, actor) if actor else set()
     acts = set(interp["act_types"])
     def actor_ok(f): return not al or f["actor"].lower() in al or any(a in f["actor"].lower() for a in al if len(a) > 3)
@@ -151,28 +152,39 @@ def _trait(ws, job, llm, tid, U, params):
         ls = store.lines(ws, tid, c["media"], c["lines"][0], c["lines"][1])
         return " / ".join(f"{(l['speaker'] + ': ') if l['speaker'] and l['speaker'] != '?' else ''}{l['text']}" for l in ls)[:700]
     batches = [cl[i:i + 25] for i in range(0, len(cl), 25)]
-    def check(kb):
-        k, b = kb
+    def spec(k, b):
         txt = "\n".join(f"{c['ref']} | {c['media']} {ts(c['t0'])} | {c['text']} | {evidence(c)}" for c in b)
-        return llm.json(f"lens-trait-check-{slug(query)}-{k:03d}", P.TRAIT_CHECK_SYSTEM,
-                        P.TRAIT_CHECK_USER.format(query=query + (f" (character: {actor})" if actor else ""), interpretation=interp["description"], items=txt),
-                        SC.TRAIT_CHECK, role="bulk", effort_key="view", hint={"items": b})
+        return dict(task=f"lens-trait-check-{slug(query)}-{k:03d}", system=P.TRAIT_CHECK_SYSTEM,
+                    prompt=P.TRAIT_CHECK_USER.format(query=query + (f" (character: {actor})" if actor else ""), interpretation=interp["description"], items=txt),
+                    schema=SC.TRAIT_CHECK, hint={"items": b}, summary=f"Check candidates {k + 1}/{len(batches)} for \"{query}\" ({actor or 'anyone'})")
     checks = {}
-    with ThreadPoolExecutor(ws.s.max_parallel) as ex:
-        for r in ex.map(check, enumerate(batches)):
-            for c in r["checks"]: checks[c["ref"]] = c
+    for r in llm.many([spec(k, b) for k, b in enumerate(batches)]):     # all batches queued at once for Claude
+        for c in r["checks"]: checks[c["ref"]] = c
     items = []
     for c in cl:
         k = checks.get(c["ref"])
         if k and k["match"]:
             s = int(k["strength"])
             items.append({**c, "salience": 25 * s + 8 * (c["intensity"] or 0), "tier": {3: "P0", 2: "P1"}.get(s, "P2"), "role": "instance", "why": k["why"]})
+    items = merge_overlaps(items)
     title = f"{actor + ': ' if actor else ''}{query}"
     return {"title": title, "summary": interp["description"], "interpretation": interp, "candidates": len(cl), "items": items}
 
 
 # ---------------------------------------------------------------- topic lens (discourse) + de-duplication
 def _norm(t): return " ".join(re.findall(r"[a-z0-9']+", (t or "").lower()))
+
+
+def merge_overlaps(items):
+    """One instance per moment: a beat and the facts inside its lines are the same moment for a compilation.
+    Keeps the most salient item and widens it to cover the others."""
+    kept = []
+    for it in sorted(items, key=lambda x: (-x["salience"], x["type"] != "beat")):
+        a, z = it["lines"]
+        hit = next((k for k in kept if k["media"] == it["media"] and a <= k["lines"][1] and z >= k["lines"][0]), None)
+        if hit: hit.setdefault("merged", []).append(it["ref"])
+        else: kept.append(dict(it))
+    return sorted(kept, key=lambda x: (x["media"], x["t0"]))
 
 
 def dedupe(items, text_key="claim", threshold=0.8):
@@ -214,7 +226,7 @@ def _topic(ws, job, llm, tid, U, params):
     query, speaker = params["query"], params.get("speaker", "")
     interp = llm.json(f"lens-topic-map-{slug(speaker + '-' + query)}", P.TOPIC_MAP_SYSTEM,
                       f"REQUEST: {query}\nSPEAKER (may be empty): {speaker}\nKNOWN SPEAKERS: {', '.join(c['name'] for c in U['characters'][:40])}",
-                      SC.TOPIC_MAP, role="main", effort_key="view", hint={"query": query, "speaker": speaker})
+                      SC.TOPIC_MAP, hint={"query": query, "speaker": speaker}, summary=f"Interpret the request: what {speaker or 'anyone'} said about \"{query}\" (topic lens)")
     al = _alias_set(U, speaker) | {x.lower() for x in interp.get("speakers", []) if x} if speaker else set()
     cl = topic_candidates(ws, tid, U, interp, al)
     items = verify_topic(ws, llm, query, speaker, interp, cl, al, lambda c: (tid, c["media"]))
@@ -229,16 +241,15 @@ def verify_topic(ws, llm, query, speaker, interp, cl, al, where):
         ls = store.lines(ws, t, media, c["lines"][0], c["lines"][1], pad=2)
         return " ".join(f"[L{l['idx']}{(' ' + l['speaker']) if l['speaker'] and l['speaker'] != '?' else ''}] {l['text']}" for l in ls)[:1400]
     batches = [cl[i:i + 20] for i in range(0, len(cl), 20)]
-    def check(kb):
-        k, b = kb
+    def spec(k, b):
         txt = "\n".join(f"{c['ref']} | {c.get('title', '')}{c['media']} | {ts(c['t0'])} | {evidence(c)}" for c in b)
-        return llm.json(f"lens-topic-check-{slug(speaker + '-' + query)}-{k:03d}", P.TOPIC_CHECK_SYSTEM,
-                        P.TOPIC_CHECK_USER.format(query=query, speaker=speaker or "(anyone)", interpretation=interp["description"], items=txt),
-                        SC.TOPIC_CHECK, role="bulk", effort_key="view", hint={"items": b, "query": query, "speaker": speaker})
+        return dict(task=f"lens-topic-check-{slug(speaker + '-' + query)}-{k:03d}", system=P.TOPIC_CHECK_SYSTEM,
+                    prompt=P.TOPIC_CHECK_USER.format(query=query, speaker=speaker or "(anyone)", interpretation=interp["description"], items=txt),
+                    schema=SC.TOPIC_CHECK, hint={"items": b, "query": query, "speaker": speaker},
+                    summary=f"Check passages {k + 1}/{len(batches)}: what {speaker or 'anyone'} said about \"{query}\"")
     checks = {}
-    with ThreadPoolExecutor(ws.s.max_parallel) as ex:
-        for r in ex.map(check, enumerate(batches)):
-            for c in r["checks"]: checks[c["ref"]] = c
+    for r in llm.many([spec(k, b) for k, b in enumerate(batches)]):     # all batches queued at once for Claude
+        for c in r["checks"]: checks[c["ref"]] = c
     items = []
     for c in cl:
         k = checks.get(c["ref"])
@@ -254,3 +265,49 @@ def verify_topic(ws, llm, query, speaker, interp, cl, al, where):
                       "salience": 25 * s_ + (10 if k["speaker_confident"] else 0) + 5 * (c.get("intensity") or 0),
                       "tier": {3: "P0", 2: "P1"}.get(s_, "P2"), "role": "statement", "why": k["stance"]})
     return items
+
+
+# ---------------------------------------------------------------- pattern lens (rhetoric / homiletics)
+MOVE = {"asks": "question", "answers": "answer", "reads": "reading", "cites": "citation", "quotes": "citation", "illustrates": "story",
+        "argues": "argument", "asserts": "claim", "advises": "application", "prays": "prayer", "confesses": "confession", "jokes": "humor",
+        "agrees": "response", "disagrees": "response", "predicts": "claim"}
+
+
+def _pattern(ws, job, llm, tid, U, params, top=6):
+    """Mine recurring move sequences in a speaker's points, let Claude name the pattern, return one clip per step."""
+    speaker = params.get("speaker", ""); al = _alias_set(U, speaker) if speaker else set()
+    def mine(f): return not al or f["actor"].lower() in al or any(a in f["actor"].lower() for a in al if len(a) > 3)
+    by_beat = {}
+    for f in sorted(U["facts"], key=lambda f: (f["media"], f["t0"])):
+        mv = MOVE.get(f["act_type"]) or ("story" if f["kind"] == "story" else None)
+        if mv and f.get("beat_id") and mine(f): by_beat.setdefault(f["beat_id"], []).append((mv, f))
+    seqs = {}
+    for bid, moves in by_beat.items():
+        seq = [m for i, (m, _) in enumerate(moves) if i == 0 or m != moves[i - 1][0]]
+        for n in (5, 4, 3):
+            for i in range(len(seq) - n + 1):
+                seqs.setdefault(tuple(seq[i:i + n]), set()).add(bid)
+    ranked = sorted(((k, v) for k, v in seqs.items() if len(v) >= 2), key=lambda kv: (-len(kv[1]) * len(kv[0]), -len(kv[0])))[:top]
+    if not ranked: raise ValueError("not enough structured moves found — the pattern lens needs a discourse title (podcast/sermon/lecture) with claims")
+    beats = {b["id"]: b for b in U["beats"]}
+    rows = []
+    for k, ids in ranked:
+        ex = sorted(ids, key=lambda i: -beats.get(i, {}).get("score", 0))[:3]
+        rows.append(f"PATTERN {' -> '.join(k)} (in {len(ids)} points); examples: " + "; ".join(f"{i}: {beats[i]['text'][:120]}" for i in ex if i in beats))
+    out = llm.json(f"lens-pattern-{slug(speaker or 'all')}", P.PATTERN_SYSTEM, f"SPEAKER: {speaker or '(main speaker)'}\n" + "\n".join(rows),
+                   SC.PATTERN, hint={"ranked": [list(k) for k, _ in ranked], "examples": [sorted(v)[:3] for _, v in ranked]},
+                   summary=f"Name {speaker or 'the speaker'}'s way of building ideas (pattern lens)")
+    best = [b for b in out["best_examples"] if b in by_beat] or sorted(ranked[0][1], key=lambda i: -beats.get(i, {}).get("score", 0))[:2]
+    pattern = list(ranked[0][0]); labels = {s_["move"]: s_["label"] for s_ in out["steps"]}
+    items = []
+    for bid in best[:3]:
+        moves = by_beat[bid]; step = 0
+        for mv in pattern:
+            hit = next(((m, f) for m, f in moves[step:] if m == mv), None)
+            if not hit: continue
+            step = moves.index(hit) + 1; f = hit[1]
+            it = _item_from_fact(f, salience=70, tier="P1", role=mv, why=labels.get(mv, mv))
+            it["label"] = labels.get(mv, mv); it["speaker"] = f["actor"]; it["example"] = bid
+            items.append(it)
+    return {"title": f"How {speaker or 'the speaker'} builds ideas: {out['name']}", "summary": out["description"], "pattern": pattern,
+            "steps": out["steps"], "patterns_found": [{"moves": list(k), "points": len(v)} for k, v in ranked], "items": items}
