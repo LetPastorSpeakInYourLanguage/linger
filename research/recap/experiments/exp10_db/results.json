@@ -1,0 +1,305 @@
+{
+ "sul": {
+  "tables": {
+   "title": 2,
+   "media": 2,
+   "cue": 690,
+   "character": 11,
+   "scene": 35,
+   "beat": 65,
+   "beat_edge": 53,
+   "moment": 27,
+   "turning_point": 10,
+   "embedding": 100
+  },
+  "db_kb": 496,
+  "queries": {
+   "spine_beats_with_time": [
+    [
+     "panic_room",
+     "219.8-295.1",
+     "P0",
+     "the house has a steel panic room"
+    ],
+    [
+     "panic_room",
+     "408.9-448.1",
+     "P0",
+     "three burglars break in; house is occupied"
+    ],
+    [
+     "panic_room",
+     "581.0-621.9",
+     "P0",
+     "$14 million is hidden upstairs"
+    ],
+    [
+     "panic_room",
+     "632.9-658.7",
+     "P0",
+     "Bram and Hollis flee into the panic room"
+    ],
+    [
+     "panic_room",
+     "709.0-719.1",
+     "P0",
+     "what they want is inside the room"
+    ],
+    [
+     "panic_room",
+     "1295.8-1306.7",
+     "P0",
+     "Hollis's blood sugar crashes"
+    ],
+    [
+     "panic_room",
+     "1318.1-1421.0",
+     "P0",
+     "her Glucagon is outside the room"
+    ],
+    [
+     "panic_room",
+     "1431.3-1489.3",
+     "P0",
+     "Milo shoots Rufus and takes control"
+    ]
+   ],
+   "setup_payoff_edges": [
+    [
+     "they re-stage the breakup to overwrite her memory",
+     "->",
+     "that memory gets locked into a robot"
+    ],
+    [
+     "Thom goes off-script: Celia is destroying the world",
+     "->",
+     "her robot hand freaks him out"
+    ],
+    [
+     "Celia: you broke my heart and forgot me",
+     "->",
+     "Thom dumps Celia to chase space"
+    ],
+    [
+     "Celia: you broke my heart and forgot me",
+     "->",
+     "Celia: 'We're done'"
+    ],
+    [
+     "'Not my fault! This time.'",
+     "->",
+     "someone insists it's not their fault"
+    ],
+    [
+     "'maybe we can change too' \u2014 overwrite complete",
+     "->",
+     "that memory gets locked into a robot"
+    ],
+    [
+     "'maybe we can change too' \u2014 overwrite complete",
+     "->",
+     "Thom dumps Celia to chase space"
+    ]
+   ],
+   "strongest_moments": [
+    [
+     "panic_room",
+     "637.0-658.7",
+     "terror",
+     "the race into the panic room"
+    ],
+    [
+     "panic_room",
+     "911.4-935.7",
+     "fear",
+     "Hollis screams her mother out of a panic attack"
+    ],
+    [
+     "panic_room",
+     "946.4-962.0",
+     "terror",
+     "gas fills the room, they cough"
+    ],
+    [
+     "panic_room",
+     "1152.7-1165.2",
+     "suspense",
+     "'If I can't get back, close the door' \u2014 the dash"
+    ],
+    [
+     "panic_room",
+     "1295.8-1306.7",
+     "fear",
+     "Hollis's confession"
+    ],
+    [
+     "panic_room",
+     "1447.0-1489.3",
+     "shock",
+     "Milo turns on Rufus"
+    ],
+    [
+     "panic_room",
+     "1543.4-1563.3",
+     "horror",
+     "father beaten; Hollis screams 'DADDY!'"
+    ],
+    [
+     "panic_room",
+     "1642.1-1651.5",
+     "tense",
+     "'Coma. Die.' / 'I'll give her the shot.'"
+    ]
+   ],
+   "turning_points": [
+    [
+     "tos",
+     "TP1_opportunity",
+     "Thom is coached to win her back"
+    ],
+    [
+     "tos",
+     "TP2_change_of_plans",
+     "they re-stage the breakup to overwrite her memory"
+    ],
+    [
+     "tos",
+     "TP3_point_of_no_return",
+     "Thom goes off-script: Celia is destroying the world"
+    ],
+    [
+     "tos",
+     "TP4_major_setback",
+     "the take collapses into chaos"
+    ],
+    [
+     "tos",
+     "TP5_climax",
+     "'maybe we can change too' \u2014 overwrite complete"
+    ],
+    [
+     "panic_room",
+     "TP1_opportunity",
+     "three burglars break in; house is occupied"
+    ],
+    [
+     "panic_room",
+     "TP2_change_of_plans",
+     "what they want is inside the room"
+    ],
+    [
+     "panic_room",
+     "TP3_point_of_no_return",
+     "Milo shoots Rufus and takes control"
+    ]
+   ],
+   "fts_search_heart": [
+    [
+     "scene",
+     "tos:c01-s4",
+     "..tender, be honest, remind her what [love] is."
+    ],
+    [
+     "beat",
+     "tos:c01-b8",
+     "..her' tenderly and remind her what [love] is"
+    ],
+    [
+     "scene",
+     "tos:c01-s6",
+     "..he broke her [heart] and forgot her on.."
+    ],
+    [
+     "beat",
+     "tos:c01-b13",
+     "..Thom broke her [heart] and forgot her on.."
+    ]
+   ]
+  },
+  "semantic_query_example": [
+   "tos:c01-b13",
+   "tos:c01-b5",
+   "panic_room:c04-b4"
+  ]
+ },
+ "friendsqa": {
+  "questions": 2990,
+  "scenes": 326,
+  "scenes_with_summary": 159,
+  "seconds": 738,
+  "all_questions": {
+   "dense_raw_subs": {
+    "R@1": 0.115,
+    "R@5": 0.243,
+    "R@10": 0.327
+   },
+   "bm25_raw_subs": {
+    "R@1": 0.31,
+    "R@5": 0.477,
+    "R@10": 0.547
+   },
+   "dense_subs+speakers": {
+    "R@1": 0.202,
+    "R@5": 0.393,
+    "R@10": 0.465
+   },
+   "bm25_subs+speakers": {
+    "R@1": 0.368,
+    "R@5": 0.559,
+    "R@10": 0.614
+   },
+   "dense_scene_summary": {
+    "R@1": 0.114,
+    "R@5": 0.208,
+    "R@10": 0.251
+   },
+   "hybrid_raw (bm25+dense)": {
+    "R@1": 0.2,
+    "R@5": 0.359,
+    "R@10": 0.442
+   },
+   "hybrid_SUL (bm25+dense spk + summary)": {
+    "R@1": 0.2,
+    "R@5": 0.474,
+    "R@10": 0.59
+   }
+  },
+  "questions_whose_scene_has_summary": {
+   "dense_raw_subs": {
+    "R@1": 0.111,
+    "R@5": 0.219,
+    "R@10": 0.296
+   },
+   "bm25_raw_subs": {
+    "R@1": 0.34,
+    "R@5": 0.484,
+    "R@10": 0.551
+   },
+   "dense_subs+speakers": {
+    "R@1": 0.177,
+    "R@5": 0.342,
+    "R@10": 0.414
+   },
+   "bm25_subs+speakers": {
+    "R@1": 0.377,
+    "R@5": 0.557,
+    "R@10": 0.602
+   },
+   "dense_scene_summary": {
+    "R@1": 0.222,
+    "R@5": 0.403,
+    "R@10": 0.487
+   },
+   "hybrid_raw (bm25+dense)": {
+    "R@1": 0.196,
+    "R@5": 0.335,
+    "R@10": 0.414
+   },
+   "hybrid_SUL (bm25+dense spk + summary)": {
+    "R@1": 0.366,
+    "R@5": 0.609,
+    "R@10": 0.68
+   }
+  }
+ }
+}
