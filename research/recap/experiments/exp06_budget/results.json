@@ -1,0 +1,2086 @@
+{
+ "tears_of_steel": {
+  "beats": 18,
+  "full_narration_seconds_all_beats": 163,
+  "algos": {
+   "greedy_prefix": {
+    "nested": false,
+    "rows": [
+     {
+      "weighted_coverage": 0.227,
+      "tier_recall": {
+       "P0": 0.5,
+       "P1": 0.0,
+       "P2": 0.25,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 3,
+      "seconds": 29.1,
+      "budget": 30,
+      "tp_recall": 0.4,
+      "use": 0.97,
+      "forms": {
+       "full": 3,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 0.432,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 0.143,
+       "P2": 0.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 5,
+      "seconds": 58.0,
+      "budget": 60,
+      "tp_recall": 0.6,
+      "use": 0.97,
+      "forms": {
+       "full": 5,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 0.811,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 0.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 11,
+      "seconds": 115.8,
+      "budget": 120,
+      "tp_recall": 0.8,
+      "use": 0.97,
+      "forms": {
+       "full": 11,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 163.1,
+      "budget": 180,
+      "tp_recall": 1.0,
+      "use": 0.91,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 163.1,
+      "budget": 300,
+      "tp_recall": 1.0,
+      "use": 0.54,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 163.1,
+      "budget": 600,
+      "tp_recall": 1.0,
+      "use": 0.27,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 163.1,
+      "budget": 900,
+      "tp_recall": 1.0,
+      "use": 0.18,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 163.1,
+      "budget": 1800,
+      "tp_recall": 1.0,
+      "use": 0.09,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     }
+    ]
+   },
+   "strict_prefix": {
+    "nested": true,
+    "rows": [
+     {
+      "weighted_coverage": 0.0,
+      "tier_recall": {
+       "P0": 0.0,
+       "P1": 0.0,
+       "P2": 0.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 0,
+      "seconds": 0.0,
+      "budget": 30,
+      "tp_recall": 0.0,
+      "use": 0.0,
+      "forms": {
+       "full": 0,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 0.432,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 0.143,
+       "P2": 0.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 5,
+      "seconds": 58.0,
+      "budget": 60,
+      "tp_recall": 0.6,
+      "use": 0.97,
+      "forms": {
+       "full": 5,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 0.811,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 0.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 11,
+      "seconds": 115.8,
+      "budget": 120,
+      "tp_recall": 0.8,
+      "use": 0.97,
+      "forms": {
+       "full": 11,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 163.1,
+      "budget": 180,
+      "tp_recall": 1.0,
+      "use": 0.91,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 163.1,
+      "budget": 300,
+      "tp_recall": 1.0,
+      "use": 0.54,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 163.1,
+      "budget": 600,
+      "tp_recall": 1.0,
+      "use": 0.27,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 163.1,
+      "budget": 900,
+      "tp_recall": 1.0,
+      "use": 0.18,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 163.1,
+      "budget": 1800,
+      "tp_recall": 1.0,
+      "use": 0.09,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     }
+    ]
+   },
+   "greedy_ratio": {
+    "nested": true,
+    "rows": [
+     {
+      "weighted_coverage": 0.222,
+      "tier_recall": {
+       "P0": 0.5,
+       "P1": 0.0,
+       "P2": 0.25,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 3,
+      "seconds": 27.2,
+      "budget": 30,
+      "tp_recall": 0.2,
+      "use": 0.91,
+      "forms": {
+       "full": 3,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 0.472,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 0.143,
+       "P2": 0.25,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 6,
+      "seconds": 55.1,
+      "budget": 60,
+      "tp_recall": 0.4,
+      "use": 0.92,
+      "forms": {
+       "full": 6,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 0.842,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 0.857,
+       "P2": 0.5,
+       "P3": 0.333
+      },
+      "deps_satisfied": true,
+      "n": 13,
+      "seconds": 119.0,
+      "budget": 120,
+      "tp_recall": 0.8,
+      "use": 0.99,
+      "forms": {
+       "full": 13,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 163.1,
+      "budget": 180,
+      "tp_recall": 1.0,
+      "use": 0.91,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 163.1,
+      "budget": 300,
+      "tp_recall": 1.0,
+      "use": 0.54,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 163.1,
+      "budget": 600,
+      "tp_recall": 1.0,
+      "use": 0.27,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 163.1,
+      "budget": 900,
+      "tp_recall": 1.0,
+      "use": 0.18,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 163.1,
+      "budget": 1800,
+      "tp_recall": 1.0,
+      "use": 0.09,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     }
+    ]
+   },
+   "mckp": {
+    "nested": true,
+    "rows": [
+     {
+      "weighted_coverage": 0.336,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 0.714,
+       "P2": 0.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 9,
+      "seconds": 27.3,
+      "budget": 30,
+      "tp_recall": 0.6,
+      "use": 0.91,
+      "forms": {
+       "full": 0,
+       "short": 4,
+       "micro": 5
+      }
+     },
+     {
+      "weighted_coverage": 0.564,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 0.25,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 12,
+      "seconds": 57.3,
+      "budget": 60,
+      "tp_recall": 0.8,
+      "use": 0.95,
+      "forms": {
+       "full": 3,
+       "short": 5,
+       "micro": 4
+      }
+     },
+     {
+      "weighted_coverage": 0.875,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 15,
+      "seconds": 116.2,
+      "budget": 120,
+      "tp_recall": 1.0,
+      "use": 0.97,
+      "forms": {
+       "full": 11,
+       "short": 2,
+       "micro": 2
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 163.1,
+      "budget": 180,
+      "tp_recall": 1.0,
+      "use": 0.91,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 163.1,
+      "budget": 300,
+      "tp_recall": 1.0,
+      "use": 0.54,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 163.1,
+      "budget": 600,
+      "tp_recall": 1.0,
+      "use": 0.27,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 163.1,
+      "budget": 900,
+      "tp_recall": 1.0,
+      "use": 0.18,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 163.1,
+      "budget": 1800,
+      "tp_recall": 1.0,
+      "use": 0.09,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     }
+    ]
+   },
+   "mckp_ovh1.5": {
+    "nested": true,
+    "rows": [
+     {
+      "weighted_coverage": 0.253,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 0.143,
+       "P2": 0.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 5,
+      "seconds": 27.7,
+      "budget": 30,
+      "tp_recall": 0.4,
+      "use": 0.92,
+      "forms": {
+       "full": 0,
+       "short": 4,
+       "micro": 1
+      }
+     },
+     {
+      "weighted_coverage": 0.419,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 0.286,
+       "P2": 0.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 6,
+      "seconds": 54.9,
+      "budget": 60,
+      "tp_recall": 0.4,
+      "use": 0.91,
+      "forms": {
+       "full": 4,
+       "short": 1,
+       "micro": 1
+      }
+     },
+     {
+      "weighted_coverage": 0.789,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 0.5,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 13,
+      "seconds": 116.5,
+      "budget": 120,
+      "tp_recall": 1.0,
+      "use": 0.97,
+      "forms": {
+       "full": 8,
+       "short": 5,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 0.985,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 178.1,
+      "budget": 180,
+      "tp_recall": 1.0,
+      "use": 0.99,
+      "forms": {
+       "full": 15,
+       "short": 2,
+       "micro": 1
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 190.1,
+      "budget": 300,
+      "tp_recall": 1.0,
+      "use": 0.63,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 190.1,
+      "budget": 600,
+      "tp_recall": 1.0,
+      "use": 0.32,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 190.1,
+      "budget": 900,
+      "tp_recall": 1.0,
+      "use": 0.21,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 190.1,
+      "budget": 1800,
+      "tp_recall": 1.0,
+      "use": 0.11,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     }
+    ]
+   },
+   "mckp_nested_ovh1.5": {
+    "nested": true,
+    "rows": [
+     {
+      "weighted_coverage": 0.253,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 0.143,
+       "P2": 0.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 5,
+      "seconds": 27.7,
+      "budget": 30,
+      "tp_recall": 0.4,
+      "use": 0.92,
+      "forms": {
+       "full": 0,
+       "short": 4,
+       "micro": 1
+      }
+     },
+     {
+      "weighted_coverage": 0.419,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 0.286,
+       "P2": 0.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 6,
+      "seconds": 54.9,
+      "budget": 60,
+      "tp_recall": 0.4,
+      "use": 0.91,
+      "forms": {
+       "full": 4,
+       "short": 1,
+       "micro": 1
+      }
+     },
+     {
+      "weighted_coverage": 0.789,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 0.5,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 13,
+      "seconds": 116.5,
+      "budget": 120,
+      "tp_recall": 1.0,
+      "use": 0.97,
+      "forms": {
+       "full": 8,
+       "short": 5,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 0.985,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 178.1,
+      "budget": 180,
+      "tp_recall": 1.0,
+      "use": 0.99,
+      "forms": {
+       "full": 15,
+       "short": 2,
+       "micro": 1
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 190.1,
+      "budget": 300,
+      "tp_recall": 1.0,
+      "use": 0.63,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 190.1,
+      "budget": 600,
+      "tp_recall": 1.0,
+      "use": 0.32,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 190.1,
+      "budget": 900,
+      "tp_recall": 1.0,
+      "use": 0.21,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 18,
+      "seconds": 190.1,
+      "budget": 1800,
+      "tp_recall": 1.0,
+      "use": 0.11,
+      "forms": {
+       "full": 18,
+       "short": 0,
+       "micro": 0
+      }
+     }
+    ]
+   }
+  },
+  "unlimited": {
+   "weighted_coverage": 1.0,
+   "tier_recall": {
+    "P0": 1.0,
+    "P1": 1.0,
+    "P2": 1.0,
+    "P3": 1.0
+   },
+   "deps_satisfied": true,
+   "n": 18,
+   "seconds": 163.1
+  },
+  "mckp_60s_cutlist": [
+   "23s full  P0 Thom dumps Celia to chase space",
+   "197s micro P1 a team launches a ten-minute mission",
+   "292s full  P0 they re-stage the breakup to overwrite her memory",
+   "383s short P0 Celia: you broke my heart and forgot me",
+   "396s full  P1 Thom apologizes for real",
+   "518s full  P0 'maybe we can change too' \u2014 overwrite complete"
+  ],
+  "mckp_180s_cutlist": [
+   "23s full  P0 Thom dumps Celia to chase space",
+   "31s full  P1 her robot hand freaks him out",
+   "43s full  P2 Celia: 'We're done'",
+   "50s full  P1 that memory gets locked into a robot",
+   "131s micro P3 someone insists it's not their fault",
+   "191s short P3 nervous Thom is called a rockstar",
+   "197s full  P1 a team launches a ten-minute mission",
+   "226s full  P1 Thom is coached to win her back",
+   "292s full  P0 they re-stage the breakup to overwrite her memory",
+   "339s full  P2 two minutes left",
+   "347s full  P1 Thom goes off-script: Celia is destroying the world",
+   "365s full  P2 the take collapses into chaos",
+   "383s full  P0 Celia: you broke my heart and forgot me",
+   "396s full  P1 Thom apologizes for real",
+   "419s short P3 'Not my fault! This time.'",
+   "428s full  P1 overwrite at 90% as the battle peaks",
+   "518s full  P0 'maybe we can change too' \u2014 overwrite complete",
+   "559s full  P2 'could'a gone worse'"
+  ]
+ },
+ "panic_room": {
+  "beats": 47,
+  "full_narration_seconds_all_beats": 402,
+  "algos": {
+   "greedy_prefix": {
+    "nested": false,
+    "rows": [
+     {
+      "weighted_coverage": 0.098,
+      "tier_recall": {
+       "P0": 0.273,
+       "P1": 0.0,
+       "P2": 0.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 3,
+      "seconds": 29.1,
+      "budget": 30,
+      "tp_recall": 0.2,
+      "use": 0.97,
+      "forms": {
+       "full": 3,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 0.205,
+      "tier_recall": {
+       "P0": 0.455,
+       "P1": 0.105,
+       "P2": 0.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 7,
+      "seconds": 58.8,
+      "budget": 60,
+      "tp_recall": 0.6,
+      "use": 0.98,
+      "forms": {
+       "full": 7,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 0.396,
+      "tier_recall": {
+       "P0": 0.909,
+       "P1": 0.158,
+       "P2": 0.083,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 14,
+      "seconds": 119.2,
+      "budget": 120,
+      "tp_recall": 1.0,
+      "use": 0.99,
+      "forms": {
+       "full": 14,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 0.564,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 0.474,
+       "P2": 0.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 20,
+      "seconds": 179.3,
+      "budget": 180,
+      "tp_recall": 1.0,
+      "use": 1.0,
+      "forms": {
+       "full": 20,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 0.838,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 0.25,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 33,
+      "seconds": 297.1,
+      "budget": 300,
+      "tp_recall": 1.0,
+      "use": 0.99,
+      "forms": {
+       "full": 33,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 47,
+      "seconds": 402.0,
+      "budget": 600,
+      "tp_recall": 1.0,
+      "use": 0.67,
+      "forms": {
+       "full": 47,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 47,
+      "seconds": 402.0,
+      "budget": 900,
+      "tp_recall": 1.0,
+      "use": 0.45,
+      "forms": {
+       "full": 47,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 47,
+      "seconds": 402.0,
+      "budget": 1800,
+      "tp_recall": 1.0,
+      "use": 0.22,
+      "forms": {
+       "full": 47,
+       "short": 0,
+       "micro": 0
+      }
+     }
+    ]
+   },
+   "strict_prefix": {
+    "nested": true,
+    "rows": [
+     {
+      "weighted_coverage": 0.0,
+      "tier_recall": {
+       "P0": 0.0,
+       "P1": 0.0,
+       "P2": 0.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 0,
+      "seconds": 0.0,
+      "budget": 30,
+      "tp_recall": 0.0,
+      "use": 0.0,
+      "forms": {
+       "full": 0,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 0.172,
+      "tier_recall": {
+       "P0": 0.364,
+       "P1": 0.105,
+       "P2": 0.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 6,
+      "seconds": 49.0,
+      "budget": 60,
+      "tp_recall": 0.6,
+      "use": 0.82,
+      "forms": {
+       "full": 6,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 0.378,
+      "tier_recall": {
+       "P0": 0.909,
+       "P1": 0.158,
+       "P2": 0.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 13,
+      "seconds": 115.5,
+      "budget": 120,
+      "tp_recall": 1.0,
+      "use": 0.96,
+      "forms": {
+       "full": 13,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 0.564,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 0.474,
+       "P2": 0.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 20,
+      "seconds": 179.3,
+      "budget": 180,
+      "tp_recall": 1.0,
+      "use": 1.0,
+      "forms": {
+       "full": 20,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 0.838,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 0.25,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 33,
+      "seconds": 297.1,
+      "budget": 300,
+      "tp_recall": 1.0,
+      "use": 0.99,
+      "forms": {
+       "full": 33,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 47,
+      "seconds": 402.0,
+      "budget": 600,
+      "tp_recall": 1.0,
+      "use": 0.67,
+      "forms": {
+       "full": 47,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 47,
+      "seconds": 402.0,
+      "budget": 900,
+      "tp_recall": 1.0,
+      "use": 0.45,
+      "forms": {
+       "full": 47,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 47,
+      "seconds": 402.0,
+      "budget": 1800,
+      "tp_recall": 1.0,
+      "use": 0.22,
+      "forms": {
+       "full": 47,
+       "short": 0,
+       "micro": 0
+      }
+     }
+    ]
+   },
+   "greedy_ratio": {
+    "nested": false,
+    "rows": [
+     {
+      "weighted_coverage": 0.098,
+      "tier_recall": {
+       "P0": 0.273,
+       "P1": 0.0,
+       "P2": 0.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 3,
+      "seconds": 29.1,
+      "budget": 30,
+      "tp_recall": 0.2,
+      "use": 0.97,
+      "forms": {
+       "full": 3,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 0.198,
+      "tier_recall": {
+       "P0": 0.364,
+       "P1": 0.105,
+       "P2": 0.167,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 8,
+      "seconds": 59.0,
+      "budget": 60,
+      "tp_recall": 0.2,
+      "use": 0.98,
+      "forms": {
+       "full": 8,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 0.404,
+      "tier_recall": {
+       "P0": 0.727,
+       "P1": 0.316,
+       "P2": 0.083,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 15,
+      "seconds": 117.1,
+      "budget": 120,
+      "tp_recall": 0.8,
+      "use": 0.98,
+      "forms": {
+       "full": 15,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 0.588,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 0.474,
+       "P2": 0.167,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 22,
+      "seconds": 177.4,
+      "budget": 180,
+      "tp_recall": 1.0,
+      "use": 0.99,
+      "forms": {
+       "full": 22,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 0.856,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 0.895,
+       "P2": 0.583,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 35,
+      "seconds": 296.0,
+      "budget": 300,
+      "tp_recall": 1.0,
+      "use": 0.99,
+      "forms": {
+       "full": 35,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 47,
+      "seconds": 402.0,
+      "budget": 600,
+      "tp_recall": 1.0,
+      "use": 0.67,
+      "forms": {
+       "full": 47,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 47,
+      "seconds": 402.0,
+      "budget": 900,
+      "tp_recall": 1.0,
+      "use": 0.45,
+      "forms": {
+       "full": 47,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 47,
+      "seconds": 402.0,
+      "budget": 1800,
+      "tp_recall": 1.0,
+      "use": 0.22,
+      "forms": {
+       "full": 47,
+       "short": 0,
+       "micro": 0
+      }
+     }
+    ]
+   },
+   "mckp": {
+    "nested": true,
+    "rows": [
+     {
+      "weighted_coverage": 0.172,
+      "tier_recall": {
+       "P0": 0.909,
+       "P1": 0.211,
+       "P2": 0.083,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 15,
+      "seconds": 29.6,
+      "budget": 30,
+      "tp_recall": 1.0,
+      "use": 0.99,
+      "forms": {
+       "full": 0,
+       "short": 3,
+       "micro": 12
+      }
+     },
+     {
+      "weighted_coverage": 0.307,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 0.579,
+       "P2": 0.083,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 23,
+      "seconds": 59.5,
+      "budget": 60,
+      "tp_recall": 1.0,
+      "use": 0.99,
+      "forms": {
+       "full": 0,
+       "short": 10,
+       "micro": 13
+      }
+     },
+     {
+      "weighted_coverage": 0.495,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 0.895,
+       "P2": 0.417,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 33,
+      "seconds": 113.1,
+      "budget": 120,
+      "tp_recall": 1.0,
+      "use": 0.94,
+      "forms": {
+       "full": 5,
+       "short": 14,
+       "micro": 14
+      }
+     },
+     {
+      "weighted_coverage": 0.637,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 0.5,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 36,
+      "seconds": 171.4,
+      "budget": 180,
+      "tp_recall": 1.0,
+      "use": 0.95,
+      "forms": {
+       "full": 13,
+       "short": 12,
+       "micro": 11
+      }
+     },
+     {
+      "weighted_coverage": 0.868,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 42,
+      "seconds": 290.4,
+      "budget": 300,
+      "tp_recall": 1.0,
+      "use": 0.97,
+      "forms": {
+       "full": 29,
+       "short": 8,
+       "micro": 5
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 47,
+      "seconds": 402.0,
+      "budget": 600,
+      "tp_recall": 1.0,
+      "use": 0.67,
+      "forms": {
+       "full": 47,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 47,
+      "seconds": 402.0,
+      "budget": 900,
+      "tp_recall": 1.0,
+      "use": 0.45,
+      "forms": {
+       "full": 47,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 47,
+      "seconds": 402.0,
+      "budget": 1800,
+      "tp_recall": 1.0,
+      "use": 0.22,
+      "forms": {
+       "full": 47,
+       "short": 0,
+       "micro": 0
+      }
+     }
+    ]
+   },
+   "mckp_ovh1.5": {
+    "nested": true,
+    "rows": [
+     {
+      "weighted_coverage": 0.102,
+      "tier_recall": {
+       "P0": 0.545,
+       "P1": 0.105,
+       "P2": 0.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 8,
+      "seconds": 28.9,
+      "budget": 30,
+      "tp_recall": 0.8,
+      "use": 0.96,
+      "forms": {
+       "full": 0,
+       "short": 2,
+       "micro": 6
+      }
+     },
+     {
+      "weighted_coverage": 0.197,
+      "tier_recall": {
+       "P0": 0.818,
+       "P1": 0.158,
+       "P2": 0.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 12,
+      "seconds": 58.1,
+      "budget": 60,
+      "tp_recall": 1.0,
+      "use": 0.97,
+      "forms": {
+       "full": 0,
+       "short": 8,
+       "micro": 4
+      }
+     },
+     {
+      "weighted_coverage": 0.386,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 0.368,
+       "P2": 0.083,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 19,
+      "seconds": 119.1,
+      "budget": 120,
+      "tp_recall": 1.0,
+      "use": 0.99,
+      "forms": {
+       "full": 6,
+       "short": 10,
+       "micro": 3
+      }
+     },
+     {
+      "weighted_coverage": 0.531,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 0.579,
+       "P2": 0.083,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 23,
+      "seconds": 177.4,
+      "budget": 180,
+      "tp_recall": 1.0,
+      "use": 0.99,
+      "forms": {
+       "full": 13,
+       "short": 9,
+       "micro": 1
+      }
+     },
+     {
+      "weighted_coverage": 0.771,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 0.333,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 34,
+      "seconds": 291.8,
+      "budget": 300,
+      "tp_recall": 1.0,
+      "use": 0.97,
+      "forms": {
+       "full": 23,
+       "short": 11,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 47,
+      "seconds": 472.5,
+      "budget": 600,
+      "tp_recall": 1.0,
+      "use": 0.79,
+      "forms": {
+       "full": 47,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 47,
+      "seconds": 472.5,
+      "budget": 900,
+      "tp_recall": 1.0,
+      "use": 0.53,
+      "forms": {
+       "full": 47,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 47,
+      "seconds": 472.5,
+      "budget": 1800,
+      "tp_recall": 1.0,
+      "use": 0.26,
+      "forms": {
+       "full": 47,
+       "short": 0,
+       "micro": 0
+      }
+     }
+    ]
+   },
+   "mckp_nested_ovh1.5": {
+    "nested": true,
+    "rows": [
+     {
+      "weighted_coverage": 0.102,
+      "tier_recall": {
+       "P0": 0.545,
+       "P1": 0.105,
+       "P2": 0.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 8,
+      "seconds": 28.9,
+      "budget": 30,
+      "tp_recall": 0.8,
+      "use": 0.96,
+      "forms": {
+       "full": 0,
+       "short": 2,
+       "micro": 6
+      }
+     },
+     {
+      "weighted_coverage": 0.198,
+      "tier_recall": {
+       "P0": 0.909,
+       "P1": 0.158,
+       "P2": 0.0,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 13,
+      "seconds": 58.3,
+      "budget": 60,
+      "tp_recall": 1.0,
+      "use": 0.97,
+      "forms": {
+       "full": 0,
+       "short": 7,
+       "micro": 6
+      }
+     },
+     {
+      "weighted_coverage": 0.381,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 0.368,
+       "P2": 0.083,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 19,
+      "seconds": 117.7,
+      "budget": 120,
+      "tp_recall": 1.0,
+      "use": 0.98,
+      "forms": {
+       "full": 5,
+       "short": 12,
+       "micro": 2
+      }
+     },
+     {
+      "weighted_coverage": 0.529,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 0.579,
+       "P2": 0.083,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 23,
+      "seconds": 177.2,
+      "budget": 180,
+      "tp_recall": 1.0,
+      "use": 0.98,
+      "forms": {
+       "full": 13,
+       "short": 9,
+       "micro": 1
+      }
+     },
+     {
+      "weighted_coverage": 0.771,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 0.333,
+       "P3": 0.0
+      },
+      "deps_satisfied": true,
+      "n": 34,
+      "seconds": 291.8,
+      "budget": 300,
+      "tp_recall": 1.0,
+      "use": 0.97,
+      "forms": {
+       "full": 23,
+       "short": 11,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 47,
+      "seconds": 472.5,
+      "budget": 600,
+      "tp_recall": 1.0,
+      "use": 0.79,
+      "forms": {
+       "full": 47,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 47,
+      "seconds": 472.5,
+      "budget": 900,
+      "tp_recall": 1.0,
+      "use": 0.53,
+      "forms": {
+       "full": 47,
+       "short": 0,
+       "micro": 0
+      }
+     },
+     {
+      "weighted_coverage": 1.0,
+      "tier_recall": {
+       "P0": 1.0,
+       "P1": 1.0,
+       "P2": 1.0,
+       "P3": 1.0
+      },
+      "deps_satisfied": true,
+      "n": 47,
+      "seconds": 472.5,
+      "budget": 1800,
+      "tp_recall": 1.0,
+      "use": 0.26,
+      "forms": {
+       "full": 47,
+       "short": 0,
+       "micro": 0
+      }
+     }
+    ]
+   }
+  },
+  "unlimited": {
+   "weighted_coverage": 1.0,
+   "tier_recall": {
+    "P0": 1.0,
+    "P1": 1.0,
+    "P2": 1.0,
+    "P3": 1.0
+   },
+   "deps_satisfied": true,
+   "n": 47,
+   "seconds": 402.0
+  },
+  "mckp_60s_cutlist": [
+   "220s short P0 the house has a steel panic room",
+   "409s micro P0 three burglars break in; house is occupied",
+   "461s micro P1 Rufus brought armed Milo",
+   "633s short P0 Bram and Hollis flee into the panic room",
+   "685s micro P1 hint: Hollis has a medical condition",
+   "709s short P0 what they want is inside the room",
+   "1296s short P0 Hollis's blood sugar crashes",
+   "1318s micro P0 her Glucagon is outside the room",
+   "1431s short P0 Milo shoots Rufus and takes control",
+   "1581s micro P0 positions flip: thieves in the room with Hollis",
+   "1672s short P0 Lena saves Hollis; bad-cards confession",
+   "1936s micro P1 Milo plans to kill all witnesses",
+   "1984s short P0 Bram turns the gun on Milo"
+  ],
+  "mckp_180s_cutlist": [
+   "220s full  P0 the house has a steel panic room",
+   "409s full  P0 three burglars break in; house is occupied",
+   "461s short P1 Rufus brought armed Milo",
+   "581s full  P0 $14 million is hidden upstairs",
+   "633s full  P0 Bram and Hollis flee into the panic room",
+   "685s short P1 hint: Hollis has a medical condition",
+   "709s full  P0 what they want is inside the room",
+   "936s short P1 Rufus gasses the room",
+   "1251s micro P1 garbled call reaches the father",
+   "1296s full  P0 Hollis's blood sugar crashes",
+   "1318s full  P0 her Glucagon is outside the room",
+   "1431s full  P0 Milo shoots Rufus and takes control",
+   "1528s short P1 father captured and beaten on camera",
+   "1561s short P1 Hollis goes into a diabetic attack",
+   "1581s short P0 positions flip: thieves in the room with Hollis",
+   "1672s full  P0 Lena saves Hollis; bad-cards confession",
+   "1762s short P1 Bram sends the police away",
+   "1936s full  P1 Milo plans to kill all witnesses",
+   "1974s full  P2 the safe is opened",
+   "1984s full  P0 Bram turns the gun on Milo",
+   "2018s full  P1 Lena flees with the money",
+   "2028s short P1 police stop Lena",
+   "2032s short P1 mother and daughter house-hunt again"
+  ]
+ }
+}
