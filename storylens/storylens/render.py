@@ -55,7 +55,8 @@ def plan(ws, tid, script, tts, log=print):
             need = d + 0.7
             st, en = _snap_shot(ca.start - 0.3, c["shots"], -1), _snap_shot(cz.end + 0.3, c["shots"], +1)
             if en - st < need: en = min(c["dur"], st + need); st = max(0, en - need)
-            edl.append({"k": k, "type": "narr", "media": mid, "video": src, "src": [st, st + need], "tts": str(wav), "tts_dur": d, "text": s["text"]})
+            edl.append({"k": k, "type": "narr", "media": mid, "video": src, "src": [st, st + need], "tts": str(wav), "tts_dur": d, "text": s["text"],
+                        "caption": getattr(tts, "name", "") == "none"})
     return edl
 
 
@@ -112,12 +113,19 @@ def render(ws, tid, edl, out_path, work, hardsub_band=None, log=print):
                  "-af", "aresample=48000,volume=0.25", *enc, out.name], cwd=work)
         else:
             pad = max(0.0, (dur - p["tts_dur"]) / 2); ms = int(pad * 1000)
+            vfn = vf
+            if p.get("caption"):   # no voice engine: show the narration as captions
+                ass = work / f"cap{i:03d}.ass"
+                write_text(ass, "[Script Info]\nScriptType: v4.00+\nPlayResX: 1280\nPlayResY: 720\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, OutlineColour, BackColour, Bold, Alignment, BorderStyle, Outline, Shadow, MarginV\n"
+                           "Style: Default,Arial,40,&H00FFFFFF,&H00000000,&HA0000000,0,2,3,2,0,40\n\n[Events]\nFormat: Layer, Start, End, Style, Text\n"
+                           f"Dialogue: 0,0:00:00.00,0:00:{dur:05.2f},Default,{p['text'].replace(chr(10), ' ')}\n")
+                vfn = vf + f",subtitles={ass.name}"
             a_in = "[0:a]" if p.get("video") else "[1:a]"; t_idx = 1 if p.get("video") else 2
             _ff(["ffmpeg", "-y", "-v", "error", *src, "-i", p["tts"], "-filter_complex",
-                 f"[0:v]{vf}[v];{a_in}aresample=48000,volume=0.12,aformat=channel_layouts=stereo[bg];"
+                 f"[0:v]{vfn}[v];{a_in}aresample=48000,volume=0.12,aformat=channel_layouts=stereo[bg];"
                  f"[{t_idx}:a]aresample=48000,adelay={ms}|{ms},volume=1.6,aformat=channel_layouts=stereo[vo];"
                  f"[bg][vo]amix=inputs=2:duration=first:normalize=0,{fade}[a]",
-                 "-map", "[v]", "-map", "[a]", *enc, str(out)])
+                 "-map", "[v]", "-map", "[a]", *enc, str(out)], cwd=work)
         parts.append(out); log(f"rendered piece {i + 1}/{len(edl)}")
     lst = work / "list.txt"; write_text(lst, "".join(f"file '{p.name}'\n" for p in parts))
     _ff(["ffmpeg", "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", "list.txt", "-c:v", "copy", "-af", "loudnorm=I=-16:TP=-1.5",
