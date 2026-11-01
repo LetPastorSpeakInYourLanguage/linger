@@ -25,7 +25,7 @@ plots) mostly describe the main plot and omit Joey's small supportive acts.
    A trait compilation then becomes a structured query (`char=Joey AND type IN prosocial AND target IN friends`),
    followed by an LLM verify pass over the candidates and ranking by "how much it cost him" × emotional intensity.
 2. **On-demand trait sweep** for traits the ledger didn't anticipate ("all the times Joey misunderstood a word").
-   Classify every scene the character is in (S1–S3 Joey ≈ 182k words of scene text ≈ 320k input tokens).
+   Classify every scene the character is in (S1–S3 Joey ≈ 107k words of scene text ≈ 190k input tokens).
    It is exhaustive and cheap with a small model, and parallel per episode.
 3. **Then** reuse the normal pipeline: nested duration selection, a compilation script (title cards or a narrator
    linking moments), hero clips with original audio, and verification.

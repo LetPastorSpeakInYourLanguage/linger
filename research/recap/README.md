@@ -178,7 +178,7 @@ per title version, and every recap, character story or Q&A is a cheap job on top
   It found ~13% of an estimated 46 moments, because a trait is a judgment about *behavior*, not a topic.
 - **Fix:** record *acts* (helps / defends / sacrifices / lies… with target, cost and line evidence) in the per-scene
   character ledger, then query, LLM-verify, and assemble with the normal duration/selection/render pipeline.
-  An on-demand trait sweep (~320k input tokens for Joey S1–S3) covers traits nobody anticipated.
+  An on-demand trait sweep (~190k input tokens for Joey S1–S3) covers traits nobody anticipated.
 
 ## Honest limitations
 
