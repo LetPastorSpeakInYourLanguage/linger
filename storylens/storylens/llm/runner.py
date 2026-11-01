@@ -57,6 +57,9 @@ class LLMRunner:
         write_text(d / "prompt.md", f"<!-- task: {task} | model: {model} | effort: {effort} | cache_key: {key} -->\n\n"
                                     f"# SYSTEM\n\n{system}\n\n# USER\n\n{prompt}\n")
         if schema is not None: write_json(d / "schema.json", schema)
+        if hint is not None and self.backend.name == "folder":
+            try: write_json(d / "hint.json", hint)
+            except TypeError: pass
         for img in images or []:
             (d / Path(img).name).write_bytes(Path(img).read_bytes())
         cached = read_json(self.cache / f"{key}.json")
