@@ -20,6 +20,8 @@ the same files.
     review/<gate>.md <gate>.metrics.json <gate>.decision.json                     human/autopilot gates
     inbox/*.md                                        instructions sent while the job runs
     artifacts/                                        view, selection, details, script, verify, edl, recap.mp4, report
+  collections/<id>/collection.json  views/*.json        cross-source collections and their lenses
+  library.sqlite                                      derived index over every title (rebuildable)
   .cache/llm/<hash>.json                              content-addressed answers (never pay twice)
   .models/                                            downloaded voice/VAD models
 ```

@@ -62,3 +62,10 @@ def ts(sec: float) -> str:
 
 def new_id(prefix: str) -> str:
     return f"{prefix}-{time.strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:4]}"
+
+
+def split_media(tid, media):
+    """Items in cross-title (collection) lenses use composite media ids 'title::media'."""
+    if media and "::" in media:
+        t, m = media.split("::", 1); return t, m
+    return tid, media

@@ -68,6 +68,20 @@ storylens serve           # → http://127.0.0.1:8765   (use --port to change; -
    - It pauses at **G3** with the rendered video.
    - Results are kept in the job's `artifacts/`.
 
+## Podcasts, talk shows, sermons
+
+1. **Add title** with kind `podcast` / `talkshow` / `sermon` / `lecture`, and put the speaker names in *cast*
+   (host, guests, preacher). Point *scan folder* at the episodes. Audio files (`.mp3/.m4a/...`) pair with transcripts
+   (`.srt/.vtt`, or `.txt/.md` lines like `[12:34] text`, or Whisper/AssemblyAI `.json`) by file name.
+2. **Understand**: segments, points and a **claim ledger** (who said what, topics, stance) for every episode.
+3. **Lenses → "What someone said about a topic"** (speaker + topic), then **Make a recap → "Clips only — no
+   narrator"**: a supercut of the speakers' own words with lower thirds.
+4. **Explore** (top menu): search *everything you have understood* (films, series, podcasts, sermons) at the level of
+   title / episode / point / claim / line. Create **collections** and build cross-source lenses and recaps.
+
+No transcript? Make subtitles first. linger's main app can transcribe with WhisperX, or use any Whisper tool and
+export `.srt` or `.json`.
+
 ## CLI cheatsheet
 
 ```bash
@@ -79,6 +93,14 @@ storylens recap my-show --lens main --style recap_channel --duration 600
 storylens recap my-show --lens "character:Marta" --style character --duration 180 --autopilot
 storylens jobs | storylens pending | storylens approve <job> G2_script | storylens send <job> "less snark"
 storylens search my-show "wedding"
+storylens add "Grace Church" --kind sermon --folder "D:\Sermons" --cast "Pastor Ruth Adeyemi"
+storylens lens grace-church "topic:Pastor Ruth Adeyemi/women and marriage"
+storylens recap grace-church --lens "topic:Pastor Ruth Adeyemi/women and marriage" --style clips --duration 300
+storylens find "meaning of life" --level title                  # which sources discuss it (all titles)
+storylens find "meaning of life" --level claim --speaker Peterson
+storylens collection create "Philosophy" --titles within-reason,long-table
+storylens lens x "topic:Alex O'Connor/the meaning of life" --collection philosophy
+storylens recap x --collection philosophy --lens "topic:/free will" --style clips --duration 600
 ```
 
 Review modes:

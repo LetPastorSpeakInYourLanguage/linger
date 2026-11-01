@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, UploadFile, File, Body
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from . import __version__, media as M, store, views, understand, recap
+from . import __version__, media as M, store, views, understand, recap, library
 from .jobs import Job, run_job, list_jobs, pending_steps
 from .util import read_json, read_jsonl, write_json, write_text
 
@@ -136,7 +136,43 @@ def create_app(ws):
     @app.post("/api/titles/{tid}/corrections")
     def correct(tid: str, d: dict = Body(...)):
         ws.add_correction(tid, d["target"], d["field"], d["value"], d.get("reason", ""))
-        store.build_index(ws, tid); return {"ok": True}
+        store.build_index(ws, tid)
+        try: library.build_index(ws)
+        except Exception: pass
+        return {"ok": True}
+
+    # ---------------- cross-source layer
+    @app.get("/api/collections")
+    def get_collections(): return library.collections(ws)
+
+    @app.post("/api/collections")
+    def new_collection(d: dict = Body(...)): return library.create_collection(ws, d["name"], d.get("titles") or ["*"], d.get("description", ""))
+
+    @app.get("/api/library/search")
+    def lib_search(q: str, level: str = "claim", speaker: str = "", collection: str = "all"):
+        return library.search(ws, q, level, speaker, collection)
+
+    @app.post("/api/library/reindex")
+    def lib_reindex(): library.build_index(ws); return {"ok": True}
+
+    @app.get("/api/collections/{cid}/lenses")
+    def lib_lenses(cid: str): return library.list_lenses(ws, cid)
+
+    @app.get("/api/collections/{cid}/lenses/{vid}")
+    def lib_lens(cid: str, vid: str):
+        v = library.get_lens(ws, cid, vid)
+        if not v: raise HTTPException(404, "no such lens")
+        return v
+
+    @app.post("/api/collections/{cid}/lens")
+    def lib_build(cid: str, d: dict = Body(...)):
+        lens = dict(d["lens"]); kind = lens.pop("kind")
+        return start("lens", cid, {"kind": kind, **lens}, lambda j: library.build_lens(ws, j, cid, kind, lens, force=d.get("force", False)), d)
+
+    @app.post("/api/collections/{cid}/recap")
+    def lib_recap(cid: str, d: dict = Body(...)):
+        params = {k: d[k] for k in ("lens", "style", "duration", "render", "zoom", "voice", "hardsub_blur") if k in d}
+        return start("recap", cid, params, lambda j: recap.run(ws, j, None, params, collection=cid), d)
 
     @app.get("/api/titles/{tid}/views")
     def list_views(tid: str): return views.list_views(ws, tid)

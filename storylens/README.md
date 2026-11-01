@@ -1,13 +1,18 @@
 # storylens
 
-**Subtitle-first story understanding and automatic recaps** for films, series and telenovelas, in any spoken
-language, as long as you have English subtitles (sidecar `.srt/.vtt/.ass` or embedded text subtitles).
+**Subtitle-first understanding and automatic recaps** for films, series and telenovelas, and for **podcasts, talk
+shows, sermons and lectures**, in any spoken language, as long as you have English subtitles or a timestamped
+transcript.
 
 It builds a durable **understanding** of a title once, then produces as many **recaps** as you like from it:
 - the main story at any length (60 s … unlimited; a shorter recap is always contained in a longer one),
 - **a character's story**: the villain's side of a hero movie, or a side character's hidden arc across seasons,
 - **trait / theme compilations**: "all the times Leo was a good friend",
-- several styles: recap-channel, dramatic/comedic, short & direct, fan cut (original audio only), detailed, character, compilation.
+- **what someone said about a topic** ("what Pastor X said about women", "what a guest said about the meaning of
+  life"), as a **no-narrator supercut** of their own words with lower thirds,
+- **across all your sources at once**: search everything at the level of title, episode, point, claim or line; build
+  collections; recap a whole set of sources,
+- styles: recap-channel, dramatic/comedic, short & direct, fan cut, detailed, character, compilation, clips-only.
 
 You review at gates (understanding → script → final cut), and an AI agent (or you) can do any LLM step through
 plain files.

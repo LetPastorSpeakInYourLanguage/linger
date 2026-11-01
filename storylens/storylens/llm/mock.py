@@ -18,6 +18,15 @@ TRAIT_MAP = {"friend": ["helps", "comforts", "defends", "gifts", "encourages", "
              "funny": ["jokes", "teases"], "love": ["confesses", "kisses", "flirts"], "angry": ["argues", "threatens", "attacks"]}
 
 
+TOPIC_WORDS = ["meaning", "life", "purpose", "responsibility", "suffering", "marriage", "wife", "husband", "women", "love", "money", "death",
+               "faith", "god", "grace", "truth", "debt", "friend", "family", "work", "fear", "hope", "freedom", "power"]
+
+
+def _topics(text):
+    low = text.lower()
+    return [w for w in TOPIC_WORDS if re.search(r"\b" + w, low)][:4]
+
+
 def _names(texts):
     c = Counter(w for t in texts for w in re.findall(r"\b([A-Z][a-z]{2,})\b", t) if w not in STOP)
     return [w for w, n in c.most_common(12) if n >= 2]
@@ -32,6 +41,7 @@ class MockBackend:
         t, h = call.task, call.hint or {}
         for prefix, fn in (("vision", self.vision), ("cards", self.cards), ("integrate", self.integrate), ("causal", self.causal),
                            ("lens-character", self.character), ("lens-trait-map", self.trait_map), ("lens-trait-check", self.trait_check),
+                           ("lens-topic-map", self.topic_map), ("lens-topic-check", self.topic_check),
                            ("zoom", self.zoom), ("script", self.script), ("verify", self.verify)):
             if t.startswith(prefix): return fn(h), {"input_tokens": len(call.prompt) // 4, "output_tokens": 0}
         raise ValueError(f"mock: unknown task {t}")
@@ -67,16 +77,24 @@ class MockBackend:
                         target = next((n for n in names if n in c["text"] and n != actor), "")
                         facts.append({"id": f"{cid}-f{fn}", "kind": "act", "actor": actor, "act_type": act, "target": target, "cost": 1,
                                       "field": "", "value": "", "text": f"{actor} {act} {target}: \"{c['text'][:80]}\"".replace("  ", " "),
-                                      "lines": [c["idx"], c["idx"]], "intensity": 1 + ("!" in c["text"]), "beat_id": bid})
+                                      "lines": [c["idx"], c["idx"]], "intensity": 1 + ("!" in c["text"]), "beat_id": bid,
+                                      "topics": _topics(c["text"]), "stance": ""})
                         break
                 if c.get("sdh", {}).get("humor"):
                     fn += 1
                     facts.append({"id": f"{cid}-f{fn}", "kind": "joke", "actor": actor, "act_type": "jokes", "target": "", "cost": 0, "field": "",
-                                  "value": c["text"], "text": f"laughter: \"{c['text'][:80]}\"", "lines": [c["idx"], c["idx"]], "intensity": 1, "beat_id": bid})
+                                  "value": c["text"], "text": f"laughter: \"{c['text'][:80]}\"", "lines": [c["idx"], c["idx"]], "intensity": 1, "beat_id": bid,
+                                  "topics": [], "stance": ""})
             fn += 1
             facts.append({"id": f"{cid}-f{fn}", "kind": "moment", "actor": who[0] if who else "", "act_type": "", "target": "", "cost": 0,
                           "field": "", "value": "", "text": longest["text"][:100], "lines": [longest["idx"], longest["idx"]],
-                          "intensity": min(3, 1 + longest["text"].count("!")), "beat_id": bid})
+                          "intensity": min(3, 1 + longest["text"].count("!")), "beat_id": bid, "topics": _topics(longest["text"]), "stance": ""})
+            for c in g:   # discourse-style claims: every substantial line becomes a claim with naive topics
+                if len(c["text"].split()) >= 9:
+                    fn += 1
+                    facts.append({"id": f"{cid}-f{fn}", "kind": "claim", "actor": c.get("speaker_label") or "?", "act_type": "asserts", "target": "",
+                                  "cost": 0, "field": "", "value": c["text"][:120], "text": c["text"][:140], "lines": [c["idx"], c["idx"]],
+                                  "intensity": 1, "beat_id": bid, "topics": _topics(c["text"]), "stance": ""})
             scenes.append({"id": f"{cid}-s{k + 1}", "lines": [g[0]["idx"], g[-1]["idx"]], "setting": "", "characters": chars, "speakers": spk,
                            "summary": " ".join(c["text"] for c in g)[:240], "beats": beats, "facts": facts})
         return {"roster_updates": [{"name": n, "aliases": [], "who": "character"} for n in names],
@@ -115,16 +133,29 @@ class MockBackend:
     def trait_check(self, h):
         return {"checks": [{"ref": i["ref"], "match": i.get("act_type", "") not in ("", "jokes") or i["type"] == "beat", "strength": 2, "why": "mock"} for i in h["items"]]}
 
+    def topic_map(self, h):
+        words = [w for w in re.findall(r"[a-z]{4,}", h["query"].lower()) if w not in ("what", "said", "says", "about", "does", "think")]
+        return {"description": f"statements about {h['query']}", "topics": words[:3], "keywords": words[:10], "speakers": [h["speaker"]] if h.get("speaker") else []}
+
+    def topic_check(self, h):
+        out = []
+        for i in h["items"]:
+            words = set(re.findall(r"[a-z]{4,}", h["query"].lower()))
+            rel = bool(words & set(re.findall(r"[a-z]{4,}", (i.get("text", "") + " " + " ".join(i.get("topics", []))).lower())))
+            out.append({"ref": i["ref"], "relevant": rel, "speaker": i.get("actor") or h.get("speaker") or "?", "speaker_confident": False,
+                        "claim": i.get("text", "")[:140], "stance": "", "strength": 2 if rel else 0, "first_line": i["lines"][0], "last_line": i["lines"][1]})
+        return {"checks": out}
+
     def zoom(self, h):
         return {"details": [{"ref": i["ref"], "detail": i["text"][:80], "line": i["lines"][0]} for i in h["items"]], "corrections": []}
 
     def script(self, h):
         segs, style = [], h["style"]
         for i, it in enumerate(h["items"]):
-            if style not in ("fan_silent",):
+            if style not in ("fan_silent", "clips"):
                 segs.append({"type": "narration", "text": f"{'Then' if i else 'It begins when'} {it['text'].rstrip('.')}.", "refs": [it["ref"]],
                              "media": it["media"], "lines": list(it["lines"]), "mood": "neutral"})
-            if style in ("fan_silent", "compilation") or (it["tier"] == "P0" and style not in ("short_direct",)):
+            if style in ("fan_silent", "compilation", "clips") or (it["tier"] == "P0" and style not in ("short_direct",)):
                 segs.append({"type": "hero_clip", "text": "", "refs": [it["ref"]], "media": it["media"],
                              "lines": [it["lines"][0], min(it["lines"][1], it["lines"][0] + 2)], "mood": "neutral"})
         return {"title": f"Recap ({style}, mock)", "segments": segs}

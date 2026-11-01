@@ -84,12 +84,15 @@ class FolderBackend:
     """Agentic / human-in-the-loop backend: waits for response.json written by an agent or a person."""
     name = "folder"
 
-    def __init__(self, settings, cancelled=lambda: False):
-        self.s = settings; self.cancelled = cancelled
+    def __init__(self, settings, cancelled=lambda: False, log=print):
+        self.s = settings; self.cancelled = cancelled; self.log = log
 
     def complete(self, call):
         d = Path(call.step_dir)
         (d / "WAITING").write_text("waiting for response.json (see AGENTS.md)", encoding="utf-8")
+        if not (d / "response.json").exists():
+            self.log(f"waiting for an agent/human to answer {d.name} -> write {d / 'response.json'} "
+                     "(no ANTHROPIC_API_KEY: backend 'folder'; see AGENTS.md, `storylens pending`, or the UI 'Agent steps')")
         t0 = time.time()
         while not (d / "response.json").exists():
             if self.cancelled(): raise LLMError("job cancelled")
@@ -105,12 +108,12 @@ class FolderBackend:
         return data, {"answered_by": "folder"}
 
 
-def make_backend(settings, cancelled=lambda: False):
+def make_backend(settings, cancelled=lambda: False, log=print):
     b = settings.llm_backend
     if b == "auto":
         b = "anthropic" if (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN") or os.environ.get("ANTHROPIC_PROFILE")) else "folder"
     if b == "anthropic": return AnthropicBackend(settings)
-    if b == "folder": return FolderBackend(settings, cancelled)
+    if b == "folder": return FolderBackend(settings, cancelled, log)
     if b == "mock":
         from .mock import MockBackend
         return MockBackend(settings)

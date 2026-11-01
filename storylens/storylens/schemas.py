@@ -18,6 +18,9 @@ ACT_TYPES = ["helps", "comforts", "defends", "protects", "rescues", "sacrifices"
              "returns", "jokes", "teases", "mocks", "flirts", "kisses", "rejects", "breaks_up", "argues", "accuses",
              "lies", "deceives", "betrays", "steals", "threatens", "attacks", "kills", "other"]
 FACT_KINDS = ["act", "state", "reveal", "quote", "joke", "moment"]
+DISCOURSE_ACTS = ["asserts", "argues", "illustrates", "cites", "asks", "answers", "advises", "agrees", "disagrees", "confesses",
+                  "jokes", "prays", "reads", "quotes", "predicts", "other"]
+DISCOURSE_KINDS = ["claim", "argument", "story", "question", "answer", "reference", "advice", "quote", "joke", "moment"]
 
 CARDS = obj(
     roster_updates=arr(obj(name=S, aliases=arr(S), who=S)),
@@ -27,7 +30,7 @@ CARDS = obj(
         summary=S,
         beats=arr(obj(id=S, text=S, lines=SPAN, kind=S, local_importance=I, emotion=S, intensity=I, who=arr(S))),
         facts=arr(obj(id=S, kind=S, actor=S, act_type=S, target=S, cost=I, field=S, value=S, text=S, lines=SPAN,
-                      intensity=I, beat_id=S)),
+                      intensity=I, beat_id=S, topics=arr(S), stance=S)),
     )),
     story_so_far=S,
 )
@@ -53,6 +56,10 @@ CHARACTER_VIEW = obj(
 TRAIT_MAP = obj(description=S, act_types=arr(S), keywords=arr(S), actor_required=B)
 
 TRAIT_CHECK = obj(checks=arr(obj(ref=S, match=B, strength=I, why=S)))
+
+TOPIC_MAP = obj(description=S, topics=arr(S), keywords=arr(S), speakers=arr(S))
+
+TOPIC_CHECK = obj(checks=arr(obj(ref=S, relevant=B, speaker=S, speaker_confident=B, claim=S, stance=S, strength=I, first_line=I, last_line=I)))
 
 ZOOM = obj(details=arr(obj(ref=S, detail=S, line=I)), corrections=arr(obj(ref=S, issue=S, fix=S)))
 

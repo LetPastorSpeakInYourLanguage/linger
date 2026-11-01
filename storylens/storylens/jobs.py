@@ -105,7 +105,12 @@ def list_jobs(ws, title=None):
 
 
 def pending_steps(ws):
-    return sorted(str(p.parent) for p in Path(ws.jobs).glob("*/steps/*/WAITING"))
+    """Steps waiting for an agent/human answer — only in jobs that are still alive."""
+    out = []
+    for p in Path(ws.jobs).glob("*/steps/*/WAITING"):
+        st = read_json(p.parent.parent.parent / "state.json", {}).get("status")
+        if st in ("running", "queued", "awaiting_review", "waiting_for_agent"): out.append(str(p.parent))
+    return sorted(out)
 
 
 def run_job(job, fn, background=False):

@@ -33,6 +33,28 @@ def create_demo_title(ws):
     return ws.title(t["id"])
 
 
+def make_demo_audio(out: Path, seconds: float, freq=180):
+    if not M.have_ffmpeg() or out.exists(): return out.exists()
+    out.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", f"sine=frequency={freq}:duration={seconds:.1f}", "-c:a", "libmp3lame",
+                    "-q:a", "6", str(out)], check=True)
+    return True
+
+
+def create_demo_podcast(ws):
+    t = next((t for t in ws.titles() if t["id"].startswith("the-long-table")), None)
+    if t: return t
+    t = ws.create_title("The Long Table (demo podcast)", "podcast", cast=["Sam", "Nadia Okafor", "Ruth Adeyemi"])
+    from . import subs
+    for i, fn in enumerate(("long_table_ep1.md", "long_table_ep2.md")):
+        src = Path(str(resources.files("storylens") / "samples" / fn)); dst = Path(ws.root) / "demo" / fn
+        dst.parent.mkdir(parents=True, exist_ok=True); shutil.copy(src, dst)
+        end = subs.load(dst)[-1].end + 4
+        audio = Path(ws.root) / "demo" / fn.replace(".md", ".mp3")
+        ws.add_media(t["id"], video=audio if make_demo_audio(audio, end, 160 + 40 * i) else None, subs=dst, season=1, episode=i + 1)
+    return ws.title(t["id"])
+
+
 def run_demo(ws, real=False):
     from . import understand, recap
     if not real: ws.s.llm_backend = "mock"
@@ -45,4 +67,16 @@ def run_demo(ws, real=False):
         j = Job.create(ws, "recap", t["id"], {"lens": lens, "style": style, "duration": 60}, autonomy="auto")
         run_job(j, lambda job: recap.run(ws, job, t["id"], {"lens": lens, "style": style, "duration": 60, "render": True}))
         print(f"recap {lens['kind']:9s}: {j.state['status']} — artifacts in {j.dir / 'artifacts'}")
+    # discourse: a podcast, a topic lens with a no-narrator clips recap, then a cross-source recap over everything
+    p = create_demo_podcast(ws)
+    j = Job.create(ws, "understand", p["id"], autonomy="auto"); run_job(j, lambda job: understand.run(ws, job, p["id"]))
+    print("podcast understanding:", j.state["status"], j.state.get("message", ""))
+    lens = {"kind": "topic", "query": "the meaning of life", "speaker": ""}
+    j = Job.create(ws, "recap", p["id"], autonomy="auto")
+    run_job(j, lambda job: recap.run(ws, job, p["id"], {"lens": lens, "style": "clips", "duration": 60, "render": True}))
+    print(f"podcast clips recap: {j.state['status']} — {j.dir / 'artifacts'}")
+    lens = {"kind": "topic", "query": "what makes a good friend", "speaker": ""}
+    j = Job.create(ws, "recap", "all", autonomy="auto")
+    run_job(j, lambda job: recap.run(ws, job, None, {"lens": lens, "style": "clips", "duration": 60, "render": True}, collection="all"))
+    print(f"cross-source clips recap (film + podcast): {j.state['status']} — {j.dir / 'artifacts'}")
     print("\nOpen the app:  storylens serve   →  http://127.0.0.1:8765")

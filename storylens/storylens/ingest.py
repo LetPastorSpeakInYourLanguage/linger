@@ -27,6 +27,11 @@ def ingest_media(ws, tid, m, log=print, analyze_video=True, resync=True):
                            "Add an .srt/.vtt/.ass (English) next to the video. (Burned-in subtitles need OCR — see docs/METHODOLOGY.md.)")
     cues = S.load(sub_path)
     if not cues: raise RuntimeError(f"{sub_path}: no cues parsed")
+    from .workspace import profile
+    avg_words = sum(len(c.text.split()) for c in cues) / len(cues)
+    if profile(ws.title(tid)) == "discourse" or avg_words < 5:
+        n0 = len(cues); cues = S.merge_fragments(cues)
+        if len(cues) < n0: log(f"[{m['id']}] merged {n0} caption fragments into {len(cues)} cues")
     info["cues"] = len(cues); info["sdh"] = S.sdh_profile(cues)
     # optional: speech activity + re-sync (subtitles from another release are often offset or fps-stretched)
     if m.get("video") and M.have_ffmpeg() and resync and M.silero_available():

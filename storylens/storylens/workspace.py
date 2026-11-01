@@ -14,8 +14,16 @@ from pathlib import Path
 from . import config as C
 from .util import read_json, write_json, write_text, read_jsonl, append_jsonl, slug, now
 
-VIDEO_EXT = {".mp4", ".mkv", ".avi", ".mov", ".m4v", ".webm", ".ts", ".wmv"}
-SUB_EXT = {".srt", ".vtt", ".ass", ".ssa", ".sub"}
+VIDEO_EXT = {".mp4", ".mkv", ".avi", ".mov", ".m4v", ".webm", ".ts", ".wmv",
+             ".mp3", ".m4a", ".wav", ".ogg", ".opus", ".flac", ".aac"}   # audio-only media (podcasts, sermons) too
+AUDIO_EXT = {".mp3", ".m4a", ".wav", ".ogg", ".opus", ".flac", ".aac"}
+SUB_EXT = {".srt", ".vtt", ".ass", ".ssa", ".sub", ".txt", ".md", ".json"}
+KINDS = {"film": "narrative", "series": "narrative", "podcast": "discourse", "talkshow": "discourse", "sermon": "discourse", "lecture": "discourse"}
+
+
+def profile(t) -> str:
+    """narrative (films, series, telenovelas) or discourse (podcasts, talk shows, sermons, lectures)."""
+    return KINDS.get(t.get("kind", "film"), "narrative")
 EP_RE = re.compile(r"[Ss](\d{1,2})[ ._-]?[Ee](\d{1,3})|(\d{1,2})x(\d{2})")
 
 AGENTS_MD = """# Instructions for agents working in this storylens workspace
@@ -99,6 +107,8 @@ class Workspace:
         folder = Path(folder); added = []
         vids = sorted(p for p in folder.rglob("*") if p.suffix.lower() in VIDEO_EXT)
         subs = sorted(p for p in folder.rglob("*") if p.suffix.lower() in SUB_EXT)
+        subs = [s for s in subs if s.suffix.lower() not in (".txt", ".md", ".json") or any(s.stem.lower().startswith(v.stem.lower()) for v in vids)] \
+            if vids else subs
         def pick(stem):
             c = [s for s in subs if s.name.lower().startswith(stem.lower())]
             en = [s for s in c if re.search(r"\.(en|eng|english)\.", s.name, re.I)]

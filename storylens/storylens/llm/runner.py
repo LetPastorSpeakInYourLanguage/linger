@@ -41,7 +41,7 @@ class LLMRunner:
     def __init__(self, ws, job_dir, cancelled=lambda: False, log=print):
         self.ws, self.s = ws, ws.s
         self.job_dir = Path(job_dir)
-        self.backend = make_backend(self.s, cancelled)
+        self.backend = make_backend(self.s, cancelled, log)
         self.cache = Path(ws.root) / ".cache" / "llm"
         self.lock = threading.Lock(); self.n = 0; self.log = log
         self.usage = {"calls": 0, "input_tokens": 0, "output_tokens": 0, "cache_read_input_tokens": 0, "cached_steps": 0}

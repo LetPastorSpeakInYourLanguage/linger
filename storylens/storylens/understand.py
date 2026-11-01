@@ -14,6 +14,7 @@ from pathlib import Path
 from . import ingest, media as M, prompts as P, schemas as SC, subs as S
 from .llm import LLMRunner
 from .util import write_json, write_jsonl, read_json, read_jsonl, ts, now
+from .workspace import profile
 
 TIER_FROM_LOCAL = {5: "P1", 4: "P2", 3: "P2", 2: "P3", 1: "P3", 0: "P3"}
 
@@ -88,7 +89,8 @@ def cards_pass(ws, job, llm, t, m, cues, visual, base_roster):
         ins = ws.instructions(t["id"], job.dir)
         if ins: ctx += f"NOTES FROM THE USER:\n{ins}\n"
         prompt = P.CARDS_USER.format(context=ctx, chunk_id=cid, first=cues[a].idx, last=cues[b].idx, lines=chunk_text(cues[a:b + 1], visual))
-        out = llm.json(f"cards-{cid}", P.CARDS_SYSTEM, prompt, SC.CARDS, role="bulk", effort_key="cards",
+        system = P.DISCOURSE_CARDS_SYSTEM if profile(t) == "discourse" else P.CARDS_SYSTEM
+        out = llm.json(f"cards-{cid}", system, prompt, SC.CARDS, role="bulk", effort_key="cards",
                        hint={"cues": [c.dict() for c in cues[a:b + 1]], "chunk_id": cid})
         for r in out.get("roster_updates", []):
             if not any(x["name"].lower() == r["name"].lower() for x in roster): roster.append(r)
@@ -132,17 +134,20 @@ def _beat_lines(beats, media_label):
 
 
 def integrate_pass(ws, job, llm, t, beats, roster, media_label):
+    disc = profile(t) == "discourse"
+    I_SYS = P.DISCOURSE_INTEGRATE_SYSTEM if disc else P.INTEGRATE_SYSTEM
+    S_SYS = P.DISCOURSE_INTEGRATE_SYSTEM.replace("from a conversation or talk", "from a whole SERIES of episodes (already ranked per episode)") if disc else P.SERIES_SYSTEM
     roster_txt = "; ".join(f"{r['name']}" + (f" ({', '.join(r.get('aliases', []))})" if r.get("aliases") else "") for r in roster[:120])
-    if t["kind"] != "series" or len({b["media"] for b in beats}) == 1:
-        return llm.json("integrate", P.INTEGRATE_SYSTEM,
-                        P.INTEGRATE_USER.format(title=t["name"], scope="film" if t["kind"] == "film" else "single episode", roster=roster_txt,
+    if len({b["media"] for b in beats}) == 1:
+        return llm.json("integrate", I_SYS,
+                        P.INTEGRATE_USER.format(title=t["name"], scope=t["kind"] if t["kind"] != "series" else "single episode", roster=roster_txt,
                                                 beats=_beat_lines(beats, media_label)),
                         SC.INTEGRATE, role="main", effort_key="integrate", hint={"beats": beats, "roster": roster})
     # series: per-episode first, then the series pass over each episode's P0/P1 beats
     mids = sorted({b["media"] for b in beats}, key=lambda x: x)
     def ep(mid):
         bs = [b for b in beats if b["media"] == mid]
-        return mid, llm.json(f"integrate-{mid}", P.INTEGRATE_SYSTEM,
+        return mid, llm.json(f"integrate-{mid}", I_SYS,
                              P.INTEGRATE_USER.format(title=f"{t['name']} — {media_label.get(mid, mid)}", scope="single episode", roster=roster_txt,
                                                      beats=_beat_lines(bs, media_label)),
                              SC.INTEGRATE, role="main", effort_key="integrate", hint={"beats": bs, "roster": roster})
@@ -151,7 +156,7 @@ def integrate_pass(ws, job, llm, t, beats, roster, media_label):
     job.log(f"integrated {len(eps)} episodes; running the series pass")
     ep_rank = {x["id"]: x for r in eps.values() for x in r["beats"]}
     top = [b for b in beats if ep_rank.get(b["id"], {}).get("tier") in ("P0", "P1")]
-    series = llm.json("integrate-series", P.SERIES_SYSTEM,
+    series = llm.json("integrate-series", S_SYS,
                       P.INTEGRATE_USER.format(title=t["name"], scope=f"series, {len(mids)} episodes", roster=roster_txt, beats=_beat_lines(top, media_label)),
                       SC.INTEGRATE, role="main", effort_key="integrate", hint={"beats": top, "roster": roster})
     # merge: series ranking wins for the beats it saw; other beats keep episode rank, shifted down one tier
@@ -222,7 +227,7 @@ def run(ws, job, tid, reingest=False, vision="auto"):
     def per_media(m):
         vis = [v for v in visual if v["media"] == m["id"]]
         return cards_pass(ws, job, llm, t, m, cue_lists[m["id"]], vis, base_roster)
-    with ThreadPoolExecutor(ws.s.max_parallel if t["kind"] == "series" else 1) as ex:
+    with ThreadPoolExecutor(ws.s.max_parallel if len(t["media"]) > 1 else 1) as ex:
         for cards, roster, _ in ex.map(per_media, t["media"]):
             all_cards += cards; rosters.append(roster)
     write_json(vd / "cards.json", all_cards)
@@ -234,7 +239,7 @@ def run(ws, job, tid, reingest=False, vision="auto"):
     scenes, beats, facts, speakers = flatten(all_cards, cues_by_media)
     for v in visual:
         for k, e in enumerate(v["events"]):
-            facts.append({"id": f"{v['media']}-v{int(v['t0'])}-{k}", "kind": "moment", "actor": ", ".join(e.get("who", [])), "act_type": "",
+            facts.append({"id": f"{v['media']}-v{int(v['t0'])}-{k}", "kind": "moment", "topics": [], "stance": "", "actor": ", ".join(e.get("who", [])), "act_type": "",
                           "target": "", "cost": 0, "field": "visual", "value": v.get("onscreen_text", ""), "text": e["text"],
                           "lines": [v["after_line"], v["after_line"]], "intensity": 1, "beat_id": "", "scene": "", "media": v["media"],
                           "t0": v["t0"], "t1": v["t1"], "source": "P1v"})
@@ -289,8 +294,10 @@ def run(ws, job, tid, reingest=False, vision="auto"):
           "Fix anything wrong in the UI (beats/characters → corrections) before approving."]
     job.gate("G1_understanding", "\n".join(md), manifest, rules=[lambda m: m["coverage"] >= 0.7])
     ws.set_current(tid, version)
-    from . import store
+    from . import store, library
     store.build_index(ws, tid)
+    try: library.build_index(ws)
+    except Exception as e: job.log(f"library index not rebuilt: {e}")
     job.log(f"understanding {version} ready: {len(beats)} beats, {len(facts)} facts")
     return version
 

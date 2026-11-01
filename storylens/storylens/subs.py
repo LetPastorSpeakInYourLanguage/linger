@@ -81,7 +81,61 @@ def parse_text(idx, start, end, raw) -> Cue:
     return c
 
 
+TS_LINE = re.compile(r"^\s*\[?\(?((?:\d+:)?\d{1,2}:\d{2}(?:[.,]\d+)?)\]?\)?\s*[-–:]?\s*(.+)$")
+
+
+def _sec(t):
+    parts = [float(x.replace(",", ".")) for x in t.split(":")]
+    return sum(v * 60 ** i for i, v in enumerate(reversed(parts)))
+
+
+def load_timestamped_text(path) -> list[Cue]:
+    """Plain transcripts: '[mm:ss] text', '(hh:mm:ss) text', 'mm:ss text' (YouTube/podcast transcript exports), or a
+    JSON list of {start, end?, text, speaker?} (e.g. Whisper/AssemblyAI exports)."""
+    p = str(path)
+    if p.lower().endswith(".json"):
+        import json
+        rows = json.load(open(p, encoding="utf-8"))
+        rows = rows.get("segments", rows) if isinstance(rows, dict) else rows
+        cues = []
+        for i, r in enumerate(rows):
+            txt = r.get("text", "").strip()
+            if r.get("speaker"): txt = f"{r['speaker']}: {txt}"
+            st = float(r.get("start", 0)); en = float(r.get("end") or (rows[i + 1]["start"] if i + 1 < len(rows) else st + 3))
+            cues.append(parse_text(i, st, en, txt))
+        return cues
+    rows = []
+    for line in open(p, encoding="utf-8", errors="replace"):
+        m = TS_LINE.match(line.strip())
+        if m: rows.append((_sec(m.group(1)), m.group(2).strip()))
+    cues = []
+    for i, (st, txt) in enumerate(rows):
+        en = rows[i + 1][0] if i + 1 < len(rows) else st + 3
+        cues.append(parse_text(i, st, max(en, st + 0.5), txt))
+    return cues
+
+
+def merge_fragments(cues, min_words=8, max_seconds=12.0, max_gap=0.8):
+    """Auto-captions come in 1-3 s fragments without punctuation; merge them into thought-sized cues so line ids
+    are meaningful and LLM prompts are 3-5x shorter. Re-indexes cues."""
+    out, cur = [], None
+    for c in cues:
+        if cur and (c.start - cur.end <= max_gap) and (len(cur.text.split()) < min_words or not cur.text.rstrip().endswith((".", "?", "!"))) \
+                and c.end - cur.start <= max_seconds and not c.speaker_label:
+            cur.end = c.end; cur.text = (cur.text + " " + c.text).strip(); cur.raw += "\n" + c.raw
+            cur.tags += c.tags
+            for k, v in c.sdh.items(): cur.sdh[k] = cur.sdh.get(k, 0) + v
+        else:
+            if cur: out.append(cur)
+            cur = Cue(len(out), c.start, c.end, c.raw, c.text, list(c.tags), dict(c.sdh), c.speaker_label, c.turns, c.italic, c.music)
+    if cur: out.append(cur)
+    for i, c in enumerate(out): c.idx = i
+    return out
+
+
 def load(path: str, encoding=None) -> list[Cue]:
+    if str(path).lower().endswith((".txt", ".md", ".json")):
+        return load_timestamped_text(path)
     import pysubs2
     try:
         subs = pysubs2.load(str(path), encoding=encoding or "utf-8-sig")

@@ -23,19 +23,28 @@ def _gate_md(script, checks, m, view):
     return "\n".join(rows)
 
 
-def run(ws, job, tid, params):
+def run(ws, job, tid, params, collection=None):
+    """tid = a title id, or None with collection=<id> for cross-source recaps."""
     p = {"lens": {"kind": "main"}, "style": "recap_channel", "duration": 180, "zoom": True, "render": True, "voice": None, "hardsub_blur": False, **params}
     llm = LLMRunner(ws, job.dir, cancelled=job.cancelled, log=job.log)
-    U = load(ws, tid)
     lens = dict(p["lens"]); kind = lens.pop("kind")
     job.stage(f"lens: {kind}", 0.05)
-    view = views.build(ws, job, tid, kind, lens)
+    if collection:
+        from . import library
+        view = library.build_lens(ws, job, collection, kind, lens)
+        U = {"bible": {"logline": view["title"]}, "facts": []}
+    else:
+        U = load(ws, tid)
+        view = views.build(ws, job, tid, kind, lens)
     if not view["items"]: raise RuntimeError("the lens found no items — try another character/trait or a deep sweep")
     write_json(job.artifact("view.json"), view)
-    style = p["style"] if kind != "trait" or p["style"] != "recap_channel" else "compilation"
+    style = p["style"]
+    if p.get("style_auto", True) and style == "recap_channel":
+        if kind == "trait": style = "compilation"
+        if kind == "topic": style = "clips"
     job.stage("selection", 0.2)
     target = int(p["duration"] or 0)
-    sel_budget = target * (0.75 if style in ("fan_silent", "compilation") else 0.85) if target else 0
+    sel_budget = target * (0.75 if style in ("fan_silent", "compilation", "clips") else 0.85) if target else 0
     sel = select([dict(i) for i in view["items"]], sel_budget, ws.s.wps)
     write_json(job.artifact("selection.json"), sel)
     job.log(f"selected {len(sel)}/{len(view['items'])} items for {target or 'unlimited'}s")
@@ -68,8 +77,8 @@ def run(ws, job, tid, params):
     report = [f"# {sc.get('title', 'Recap')}", f"lens: {view['title']} · style {style} · target {target or 'unlimited'}s", "",
               *[f"- [{s['type']}] {s['text'] or '(original audio ' + s['media'] + ' L' + str(s['lines'][0]) + ')'}" for s in sc["segments"]]]
     write_text(job.artifact("report.md"), "\n".join(report))
-    t = ws.title(tid)
-    if p["render"] and any(m.get("video") for m in t["media"]):
+    srcs = [ws.title(tid)] if tid else [ws.title(x) for x in view["titles"]]
+    if p["render"] and any(m.get("video") for t in srcs for m in t["media"]):
         job.stage("voice + render", 0.65)
         tts = T.make_tts(ws, p.get("voice"), log=job.log)
         edl = R.plan(ws, tid, sc, tts, log=job.log)

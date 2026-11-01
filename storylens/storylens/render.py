@@ -5,7 +5,7 @@ from __future__ import annotations
 import os, subprocess
 from pathlib import Path
 from . import ingest, media as M
-from .util import read_json, write_json, write_text
+from .util import read_json, write_json, write_text, split_media
 
 W, H, FPS = 1280, 720, 25
 
@@ -30,13 +30,22 @@ def _snap_silence(t, speech, direction, search=0.8):
 
 
 def plan(ws, tid, script, tts, log=print):
-    t = ws.title(tid); media = {m["id"]: m for m in t["media"]}
-    ctx = {}
+    """tid=None for collection recaps: segment media ids are composite 'title::media'."""
+    keys = sorted({s.get("media") for s in script["segments"] if s.get("media")}) if tid is None else [m["id"] for m in ws.title(tid)["media"]]
+    media, ctx = {}, {}
+    for key in keys:
+        t_, mid_ = split_media(tid, key)
+        media[key] = next((m for m in ws.title(t_)["media"] if m["id"] == mid_), {})
     for mid in media:
+        t_, mid_ = split_media(tid, mid)
         try:
-            cs = ingest.cues(ws, tid, mid)
-            ctx[mid] = {"by": {c.idx: c for c in cs}, "shots": read_json(ws.edir(tid, mid) / "shots.json", []),
-                        "speech": read_json(ws.edir(tid, mid) / "speech.json"), "dur": ingest.media_info(ws, tid, mid).get("duration") or (cs[-1].end + 5)}
+            cs = ingest.cues(ws, t_, mid_)
+            ctx[mid] = {"by": {c.idx: c for c in cs}, "shots": read_json(ws.edir(t_, mid_) / "shots.json", []),
+                        "speech": read_json(ws.edir(t_, mid_) / "speech.json"), "dur": ingest.media_info(ws, t_, mid_).get("duration") or (cs[-1].end + 5)}
+            v = media[mid].get("video")
+            if v and M.have_ffmpeg() and not M.has_video_stream(v):      # audio-only source -> waveform proxy
+                log(f"{mid}: audio-only source — building a waveform picture (one time)")
+                ctx[mid]["visual"] = str(M.audio_visual_proxy(v, ws.edir(t_, mid_) / "visual_proxy.mp4"))
         except Exception:
             pass
     edl = []
@@ -44,10 +53,10 @@ def plan(ws, tid, script, tts, log=print):
         mid = s.get("media") if s.get("media") in ctx else next(iter(ctx))
         c = ctx[mid]; a, z = (s.get("lines") or [0, 0])[:2] if s.get("lines") else (0, 0)
         ca = c["by"].get(a) or min(c["by"].values(), key=lambda x: abs(x.idx - a)); cz = c["by"].get(z) or ca
-        src = media[mid].get("video")
+        src = c.get("visual") or media[mid].get("video")
         if s["type"] == "hero_clip":
             st = _snap_silence(ca.start - 0.15, c["speech"], -1); en = _snap_silence(cz.end + 0.15, c["speech"], +1)
-            edl.append({"k": k, "type": "hero", "media": mid, "video": src, "src": [max(0, st), min(c["dur"], en)]})
+            edl.append({"k": k, "type": "hero", "media": mid, "video": src, "src": [max(0, st), min(c["dur"], en)], "label": s.get("text", "")})
         elif s["type"] == "title_card":
             edl.append({"k": k, "type": "card", "media": mid, "video": src, "src": [ca.start, ca.start + 2.8], "text": s["text"]})
         else:
@@ -91,6 +100,8 @@ def fit(edl, target, tts, script, tol=0.05, log=print):
 
 
 def render(ws, tid, edl, out_path, work, hardsub_band=None, log=print):
+    for p in edl:
+        if p.get("video"): p["video"] = str(Path(p["video"]).resolve())
     if not M.have_ffmpeg(): raise RuntimeError("ffmpeg not found on PATH — install it to render video (the script is still saved).")
     work = Path(work); work.mkdir(parents=True, exist_ok=True); parts = []
     vf = f"scale={W}:{H}:force_original_aspect_ratio=decrease,pad={W}:{H}:(ow-iw)/2:(oh-ih)/2,fps={FPS},format=yuv420p,setsar=1"
@@ -103,7 +114,14 @@ def render(ws, tid, edl, out_path, work, hardsub_band=None, log=print):
         fade = f"afade=t=in:d=0.12,afade=t=out:st={max(0, dur - 0.2):.2f}:d=0.2"
         src = ["-ss", f"{st:.3f}", "-t", f"{dur:.3f}", "-i", p["video"]] if p.get("video") else ["-f", "lavfi", "-t", f"{dur:.3f}", "-i", f"color=c=black:s={W}x{H}:r={FPS}", "-f", "lavfi", "-t", f"{dur:.3f}", "-i", "anullsrc=r=48000:cl=stereo"]
         if p["type"] == "hero":
-            _ff(["ffmpeg", "-y", "-v", "error", *src, "-vf", vf, "-af", f"aresample=48000,{fade}", *enc, str(out)])
+            vfh = vf
+            if p.get("label"):   # lower third (shown, not spoken)
+                ass = work / f"lt{i:03d}.ass"
+                write_text(ass, "[Script Info]\nScriptType: v4.00+\nPlayResX: 1280\nPlayResY: 720\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, OutlineColour, BackColour, Bold, Alignment, BorderStyle, Outline, Shadow, MarginL, MarginV\n"
+                           "Style: LT,Arial,34,&H00FFFFFF,&H00000000,&H90000000,-1,1,3,10,0,40,48\n\n[Events]\nFormat: Layer, Start, End, Style, Text\n"
+                           f"Dialogue: 0,0:00:00.20,0:00:{min(dur, 5.0):05.2f},LT,{p['label'].replace(chr(10), ' ')}\n")
+                vfh = vf + f",subtitles={ass.name}"
+            _ff(["ffmpeg", "-y", "-v", "error", *src, "-vf", vfh, "-af", f"aresample=48000,{fade}", *enc, str(out)], cwd=work)
         elif p["type"] == "card":
             ass = work / f"card{i:03d}.ass"
             write_text(ass, "[Script Info]\nScriptType: v4.00+\nPlayResX: 1280\nPlayResY: 720\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, OutlineColour, BackColour, Bold, Alignment, BorderStyle, Outline, Shadow, MarginV\n"

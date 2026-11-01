@@ -130,6 +130,64 @@ Lenses are cached in `views/<id>/view.json`, keyed by understanding version + co
      (exp09).
 7. **G3 review** of the final cut.
 
+## Discourse media: podcasts, talk shows, sermons, lectures (profile `discourse`)
+
+Titles of kind `podcast`, `talkshow`, `sermon` or `lecture` use the same four tiers with a discourse vocabulary
+(research exp16):
+
+| narrative | discourse |
+|---|---|
+| scenes | **segments** (topic segments of the conversation/talk) |
+| beats | **points** made |
+| threads | **themes** that recur across episodes |
+| turning points | **KEY1–KEY5** key points; the logline is the thesis / main question |
+| acts (helps, lies…) | **claims**: `asserts · argues · illustrates · cites · asks · answers · advises · agrees · disagrees · confesses · jokes · prays · reads · quotes · predicts` |
+| — | every fact also carries **`topics`** (1–4 labels) and **`stance`** (for / against / nuanced) |
+
+- **Inputs:** `.srt/.vtt`, or plain timestamped transcripts (`[mm:ss] text`, YouTube/podcast exports, Whisper/AssemblyAI
+  JSON). Auto-caption fragments (1–3 s, no punctuation) are merged into thought-sized cues: 4,953 → 784 cues for a
+  2.5-hour episode, which makes prompts ~6× shorter.
+- **Audio-only media** (MP3/M4A sermons and podcasts) render as a waveform picture.
+- **Who said it:** auto-captions have no speakers. In exp16, 2 of the 18 pooled hits for a guest's view were mostly
+  the host talking. The discourse pass attributes speakers, and topic lenses flag `speaker_uncertain`. Lower thirds
+  show "Speaker? · Source S01E02" so viewers see the uncertainty.
+
+**Topic lens** — `topic:<speaker>/<query>`, e.g. "Pastor Andrew VanderMaas / women and marriage":
+1. The request is interpreted into topic labels, synonyms and speaker aliases.
+2. Candidates come from the claim ledger (topics/text) **plus** full-text passage search. Discourse topics are said
+   out loud, so search is precise here: hybrid P@10 was 0.8–1.0 on sermons and podcast auto-captions (exp16),
+   against ~0.1 for behavioral traits in films (exp15).
+3. An LLM verifies each candidate: relevant? who says it (confidence)? the claim in one sentence, its stance and
+   strength, and the **tightest self-contained clip** (first..last line).
+4. **De-duplication** removes the same statement said twice or recorded twice. In exp16 two "different" sermons were
+   one sermon recorded twice, which made 7 of 18 hits duplicates.
+
+**`clips` style (no narrator)** — the most important format for discourse:
+- Only the speakers' own words, as complete thoughts (8–45 s).
+- An optional opening title card, and a lower third on each clip (speaker · source · episode) that is shown on
+  screen, never spoken.
+- Ordered **as an argument** (problem → claims → reasons → conclusion) rather than chronologically. For example, the
+  exp16 plan "what Jordan Peterson says about meaning" orders 5 clips from 4 episodes spanning 2018–2025 as one line
+  of reasoning.
+
+## The cross-source layer: everything you have understood, searchable together (`library.py`)
+
+Every approved understanding, whether films, series, podcasts or sermons, feeds one **library index**
+(`<workspace>/library.sqlite`, rebuilt automatically, never the source of truth).
+
+- **Search at five levels of detail:** `title` (which sources talk about it, how much) → `episode` → `point` →
+  `claim` (who said what) → `line` (exact words). Optionally restricted to a speaker and a collection.
+- **Collections:** any set of titles ("Pastor X — all 200 sermons", "Philosophy podcasts", "Everything"). Cross-title
+  lenses are built from each title's cached lens, then merged, de-duplicated and re-ranked:
+  - `topic`: what anyone or one speaker said about something, across every episode and show;
+  - `trait` and `character`: across titles (for example a character's arc over several films);
+  - `overview`: the P0/P1 spine of every title, to "recap a whole set of sources".
+- **Collection recaps:** the same pipeline (selection → script → verify → render). Segments cite composite media
+  ids (`title::media`), so one supercut can cut between a film's video and a podcast's audio.
+
+Scale note: understanding is per title and cached. A 200-episode sermon archive is 200 P1 runs, parallel and done
+once. After that every cross-source question is index lookups plus a small verification pass.
+
 ## Evaluation you can run
 
 - Every job records metrics: verifier verdicts, leakage, duration error, coverage, unknown-speaker rate,

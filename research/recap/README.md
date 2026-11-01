@@ -180,6 +180,15 @@ per title version, and every recap, character story or Q&A is a cheap job on top
   character ledger, then query, LLM-verify, and assemble with the normal duration/selection/render pipeline.
   An on-demand trait sweep (~190k input tokens for Joey S1–S3) covers traits nobody anticipated.
 
+**exp16 — discourse media** (sermons + Joe Rogan Experience auto-captions,
+[results](experiments/exp16_discourse/RESULTS.md)).
+- **Topic search is precise on discourse:** hybrid P@10 is 0.8–1.0, against ~0.1 for traits in films.
+- **Search can't tell speakers apart:** auto-captions have no speakers, so the ledger needs speaker attribution.
+- **Re-recordings create duplicates:** 7 of 18 sermon hits were the same sermon recorded twice.
+- **A no-narrator supercut works best ordered as an argument:** 5 clips from 4 episodes, 2018–2025.
+- **The schema holds with a discourse vocabulary** (claims, topics, stance). This is built into storylens as the
+  `discourse` profile, the `topic` lens, the `clips` style and the cross-source library layer.
+
 ## Honest limitations
 
 - **No Anthropic API key in this sandbox.** Every LLM call went through a file-based replay protocol

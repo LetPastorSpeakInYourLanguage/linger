@@ -112,3 +112,21 @@ def resync(cues, prob, step, scales=(1.0, 25 / 23.976, 23.976 / 25), max_offset=
         r = float((vz * (a - a.mean())).mean() / a.std())
         if r > best[0]: best = (r, s0, float(o))
     return best[1], best[2], best[0]
+
+
+def has_video_stream(path) -> bool:
+    try: return bool(probe(path)["video"])
+    except Exception: return False
+
+
+def audio_visual_proxy(audio, out, title=""):
+    """(title is drawn by the lower thirds of each clip; the proxy itself stays font-free for portability)"""
+    """Audio-only sources (podcasts, sermon audio): a cover + live waveform video so they can be cut like video."""
+    out = Path(out)
+    if out.exists(): return out
+    out.parent.mkdir(parents=True, exist_ok=True)
+    run(["ffmpeg", "-y", "-v", "error", "-i", str(audio), "-filter_complex",
+         "[0:a]showwaves=s=854x160:mode=cline:colors=0x7aa2ff:rate=15[w];color=c=0x111827:s=854x480:r=15[bg];"
+         "[bg][w]overlay=0:300:shortest=1,format=yuv420p[v]", "-map", "[v]", "-map", "0:a", "-c:v", "libx264", "-preset", "ultrafast",
+         "-crf", "32", "-c:a", "aac", "-b:a", "128k", str(out)])
+    return out

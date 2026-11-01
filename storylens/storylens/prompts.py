@@ -1,6 +1,6 @@
 """Prompts for every pass. The methodology: capture wide once (P1 cards + ledger for EVERY character),
 integrate narrow (P2 sees beats only), link causes (P2c), project views on demand, write & verify scripts."""
-from .schemas import ACT_TYPES
+from .schemas import ACT_TYPES, DISCOURSE_ACTS, DISCOURSE_KINDS
 
 CARDS_SYSTEM = f"""You are a meticulous story analyst building a machine-readable understanding of a film or TV episode
 from its ENGLISH SUBTITLES (the audio may be in any language). Each line looks like:
@@ -20,6 +20,27 @@ You produce two layers at once:
    For states use field = learns | feels | wants | status | relationship:<other name>, and value.
    quote = a memorable line (value = the exact words); moment = something worth SHOWING with original audio.
    Use "" for fields that do not apply. Link each fact to the beat it belongs to (beat_id) or "".
+Return ONLY JSON matching the schema."""
+
+DISCOURSE_CARDS_SYSTEM = f"""You are a meticulous analyst building a machine-readable understanding of a podcast, talk show,
+interview, sermon or lecture from its transcript/subtitles. Each line looks like:
+  L123 14:05 [laughs] NAME: text        (auto-captions may lack punctuation and speaker names)
+Infer who is speaking (host, guest, preacher, caller…) from context and the known speakers; use "?" when unsure.
+Never invent statements; never use outside knowledge about the speakers. Cite line numbers exactly.
+
+You produce two layers at once:
+1. SEGMENTS ("scenes") with POINTS ("beats") — the topic segments of the conversation and the main points made.
+2. A complete CLAIM LEDGER ("facts") — every substantive thing each speaker says, so that later we can answer
+   "what did <speaker> say about <topic>" across hundreds of episodes and cut clips of exactly those words.
+   fact.kind: {", ".join(DISCOURSE_KINDS)}.
+   act_type from: {", ".join(DISCOURSE_ACTS)}.
+   actor = the speaker; target = who/what it addresses ("" if general).
+   text = the claim in one clear sentence (paraphrase); value = the most quotable exact words from the lines.
+   topics = 1-4 short lowercase topic labels (e.g. "meaning of life", "marriage", "free will");
+   stance = for | against | nuanced | "" relative to the main topic label.
+   lines = the exact span where the thought starts and ends (a self-contained clip: start at the beginning of
+   the sentence/idea, end after it lands). intensity 0-3 = how quotable/forceful.
+   cost/field: use 0 and "". Link facts to their point (beat_id) or "".
 Return ONLY JSON matching the schema."""
 
 CARDS_USER = """{context}
@@ -44,6 +65,13 @@ INTEGRATE_USER = """WORK: {title} ({scope})
 CHARACTERS: {roster}
 BEATS (id | where | lines | kind/local | who | text):
 {beats}"""
+
+DISCOURSE_INTEGRATE_SYSTEM = """You are the editor of a podcast/talk/sermon archive. You receive the points (beats) extracted
+chunk by chunk from a conversation or talk, plus the speakers. Build the GLOBAL structure: the thesis / main question
+(as the logline), the THEMES (threads) that recur, which points are essential to understand the talk (P0 key points),
+which are supporting (P1/P2) and which are tangents or banter (P3). Use turning_points for up to 5 KEY points in
+order, with tp labels KEY1..KEY5. characters = the speakers (role: host | guest | preacher | caller | other).
+Every input beat id must appear exactly once in beats. Return ONLY JSON matching the schema."""
 
 SERIES_SYSTEM = INTEGRATE_SYSTEM.replace("for an entire work", "for a whole SERIES (already ranked per episode; you see the episode-level P0/P1 beats)")
 
@@ -79,6 +107,22 @@ CANDIDATES (ref | when | kind | text):
 TRAIT_MAP_SYSTEM = """You translate a user's request for a theme/trait compilation into a filter over a fact ledger whose
 acts use these act_types: """ + ", ".join(ACT_TYPES) + """. Return ONLY JSON."""
 
+TOPIC_MAP_SYSTEM = """You translate a request like "what did <speaker> say about <topic>" into search terms for a claim
+ledger and transcripts: topic labels, 6-15 keywords/synonyms (include related words the speaker would actually use),
+and the speaker names/aliases. Return ONLY JSON."""
+
+TOPIC_CHECK_SYSTEM = """You verify candidate passages for a topic compilation ("what <speaker> said about <topic>").
+For each candidate decide: relevant (does a speaker state a view on the topic?), WHO says it (use the transcript;
+auto-captions have no names, so infer from context; speaker_confident=false when unsure), the claim in one sentence,
+stance (for/against/nuanced), strength 0-3 (3 = a defining statement), and the tightest self-contained clip
+first_line..last_line (whole sentences, starting where the thought starts). Return ONLY JSON."""
+
+TOPIC_CHECK_USER = """REQUEST: {query}
+SPEAKER WANTED: {speaker}
+INTERPRETATION: {interpretation}
+CANDIDATES (ref | source | time | lines):
+{items}"""
+
 TRAIT_CHECK_SYSTEM = """You verify candidates for a trait/theme compilation. For each candidate decide whether it is a
 genuine instance of the trait as the user means it (behavior in context, not just matching words).
 strength 0-3 (3 = a defining example). Return ONLY JSON matching the schema."""
@@ -106,6 +150,11 @@ STYLE_CARDS = {
                      "subplots and running jokes, chronological with section title cards.",
     "character": "Voice: intimate, character-focused narrator telling ONE character's story from their side: what they want, what "
                  "they do, what it costs them. Quote them. Other characters appear only as they matter to this character.",
+    "clips": "NO NARRATOR. Only hero_clip segments of the speakers' own words, plus at most one opening title_card (<= 8 words, "
+             "e.g. the topic and speaker). Each clip must be a complete thought (start where the idea starts, end after it lands), "
+             "typically 8-45 seconds; put a short lower-third label in the clip's text (e.g. 'JRE #1070 · 2018') — it is shown on "
+             "screen, not spoken. Order clips as an argument (problem -> claims -> reasons -> conclusion) unless asked for "
+             "chronology. Never use two clips that say the same thing.",
     "compilation": "A supercut: each segment introduces one instance in a short line ('Season 2: when ...'), followed by a hero clip "
                    "of the moment. Chronological unless asked otherwise; end on the strongest instance.",
 }

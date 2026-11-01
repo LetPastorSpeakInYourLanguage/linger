@@ -2,15 +2,28 @@
 from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from . import prompts as P, schemas as SC, store
-from .util import slug
+from .util import slug, split_media
 
 HERO_SECONDS = {"recap_channel": 20, "dramatic_comedic": 25, "short_direct": 0, "fan_silent": 9999, "detailed_full": 30,
-                "character": 25, "compilation": 9999}
+                "character": 25, "compilation": 9999, "clips": 9999}
 
 
 def item_lines(ws, tid, it, pad=0):
-    ls = store.lines(ws, tid, it["media"], it["lines"][0], it["lines"][1], pad)
+    t, m = split_media(tid, it["media"])
+    ls = store.lines(ws, t, m, it["lines"][0], it["lines"][1], pad)
     return "\n".join(f"L{l['idx']} {(l['speaker'] + ': ') if l['speaker'] and l['speaker'] != '?' else ''}{l['text']}" for l in ls)
+
+
+def source_label(ws, tid, it):
+    t, m = split_media(tid, it["media"])
+    try:
+        title = ws.title(t); med = next((x for x in title["media"] if x["id"] == m), {})
+        ep = f" S{med['season']:02d}E{med['episode']:02d}" if med.get("season") else (f" · {med.get('label')}" if len(title["media"]) > 1 else "")
+        src = f"{title['name']}{ep}"
+    except Exception:
+        src = it.get("title", "")
+    who = it.get("speaker") if it.get("speaker") and it.get("speaker") != "?" else ""
+    return " · ".join(x for x in (who + ("?" if who and it.get("speaker_uncertain") else ""), src) if x)
 
 
 def zoom(ws, llm, tid, items, tag):
@@ -30,11 +43,15 @@ def write(ws, llm, tid, U, view, sel, style, target_s, details, instructions, ta
     hero = HERO_SECONDS.get(style, 20) if hero_seconds is None else hero_seconds
     if target_s: hero = min(hero, int(target_s * 0.45))
     max_words = int(((target_s or 0) - (hero if target_s else 0)) * ws.s.wps) if target_s else 4000
-    items = "\n".join(f"{it['ref']} | {it['media']} | L{it['lines'][0]}-L{it['lines'][1]} | {it['tier']} | "
-                      f"{it['text'] if it.get('form') != 'micro' else it.get('short', it['text'])}" + (f" (why: {it['why']})" if it.get("why") else "")
-                      for it in sel)
+    def item_row(it):
+        who = f"[{it['speaker']}{'?' if it.get('speaker_uncertain') else ''}] " if it.get("speaker") else ""
+        src = f"{it['title']} · " if it.get("title") else ""
+        body = it["text"] if it.get("form") != "micro" else it.get("short", it["text"])
+        return (f"{it['ref']} | {src}{it['media']} | L{it['lines'][0]}-L{it['lines'][1]} | {it['tier']} | {who}{body}"
+                + (f" (why: {it['why']})" if it.get("why") else ""))
+    items = "\n".join(item_row(it) for it in sel)
     det = "\n".join(f"{d['ref']} | L{d['line']} | {d['detail']}" for d in details) or "-"
-    moments = "\n".join(f"{f['media']} | L{f['lines'][0]}-L{f['lines'][1]} | {f['text']}" for f in U["facts"]
+    moments = "\n".join(f"{f['media']} | L{f['lines'][0]}-L{f['lines'][1]} | {f['text']}" for f in U.get("facts", [])
                         if f["kind"] == "moment" and f.get("intensity", 0) >= 2 and any(f["media"] == s["media"] and s["t0"] - 120 <= f["t0"] <= s["t1"] + 120 for s in sel))[:6000] or "-"
     lens = f"{view['title']} — {view.get('summary', '')}"
     prompt = P.SCRIPT_USER.format(style=style, style_card=P.STYLE_CARDS.get(style, style), target=f"{target_s} seconds total" if target_s else "no time limit — cover every item",
@@ -42,13 +59,18 @@ def write(ws, llm, tid, U, view, sel, style, target_s, details, instructions, ta
                                   instructions=instructions or "-", items=items, details=det, moments=moments)
     out = llm.json(f"script-{tag}", P.SCRIPT_SYSTEM, prompt, SC.SCRIPT, role="main", effort_key="script",
                    hint={"items": sel, "style": style})
-    valid_media = {m["id"] for m in ws.title(tid)["media"]}
+    valid_media = {m["id"] for m in ws.title(tid)["media"]} if tid else {it["media"] for it in sel}
     by = {it["ref"]: it for it in sel}
     for s in out["segments"]:
         ref = next((by[r] for r in s.get("refs", []) if r in by), sel[0] if sel else None)
         if s.get("media") not in valid_media and ref: s["media"] = ref["media"]
         if (not s.get("lines") or len(s["lines"]) < 2) and ref: s["lines"] = list(ref["lines"])
         if s["type"] not in ("narration", "hero_clip", "title_card"): s["type"] = "narration"
+    # every clip must say whose words these are: auto lower-third "Speaker · Source S01E02" when the writer left it empty
+    for sgm in out["segments"]:
+        if sgm["type"] == "hero_clip" and not sgm.get("text"):
+            ref = next((by[r] for r in sgm.get("refs", []) if r in by), None)
+            if ref: sgm["text"] = source_label(ws, tid, ref)
     out["meta"] = {"style": style, "target_s": target_s, "hero_seconds": hero, "max_words": max_words,
                    "narration_words": sum(len(s["text"].split()) for s in out["segments"] if s["type"] == "narration")}
     return out
@@ -58,7 +80,8 @@ def verify(ws, llm, tid, script, tag):
     blocks = []
     for i, s in enumerate(script["segments"]):
         if s["type"] == "hero_clip": continue
-        ls = store.lines(ws, tid, s["media"], s["lines"][0], s["lines"][1], pad=1)
+        t, m = split_media(tid, s["media"])
+        ls = store.lines(ws, t, m, s["lines"][0], s["lines"][1], pad=1)
         ev = " / ".join(f"L{l['idx']} {l['text']}" for l in ls)[:1500]
         blocks.append(f"SEGMENT {i} ({s['type']}): {s['text']}\nCITED LINES: {ev}")
     if not blocks: return {"checks": [], "leakage": []}

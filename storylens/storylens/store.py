@@ -15,7 +15,7 @@ CREATE TABLE scene (id TEXT PRIMARY KEY, media TEXT, l0 INT, l1 INT, t0 REAL, t1
 CREATE TABLE beat (id TEXT PRIMARY KEY, scene TEXT, media TEXT, l0 INT, l1 INT, t0 REAL, t1 REAL, text TEXT, short TEXT, kind TEXT,
                    tier TEXT, score REAL, thread TEXT, who TEXT, emotion TEXT, intensity INT);
 CREATE TABLE fact (id TEXT PRIMARY KEY, scene TEXT, media TEXT, l0 INT, l1 INT, t0 REAL, t1 REAL, kind TEXT, actor TEXT, act_type TEXT,
-                   target TEXT, cost INT, field TEXT, value TEXT, text TEXT, intensity INT, beat_id TEXT, source TEXT);
+                   target TEXT, cost INT, field TEXT, value TEXT, text TEXT, intensity INT, beat_id TEXT, source TEXT, topics TEXT, stance TEXT);
 CREATE TABLE edge (src TEXT, dst TEXT, kind TEXT);
 CREATE INDEX fact_actor ON fact(actor, act_type);
 CREATE VIRTUAL TABLE fts USING fts5(kind, ref, media, text);
@@ -45,13 +45,14 @@ def build_index(ws, tid):
     db.executemany("INSERT INTO beat VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                    [(b["id"], b["scene"], b["media"], b["lines"][0], b["lines"][1], b["t0"], b["t1"], b["text"], b.get("short", ""), b["kind"],
                      b.get("tier", "P3"), b.get("score", 0), b.get("thread", ""), json.dumps(b["who"]), b["emotion"], b["intensity"]) for b in U["beats"]])
-    db.executemany("INSERT INTO fact VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+    db.executemany("INSERT INTO fact VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                    [(f["id"], f["scene"], f["media"], f["lines"][0], f["lines"][1], f["t0"], f["t1"], f["kind"], f["actor"], f["act_type"],
-                     f["target"], f["cost"], f["field"], f["value"], f["text"], f["intensity"], f["beat_id"], f.get("source", "")) for f in U["facts"]])
+                     f["target"], f["cost"], f["field"], f["value"], f["text"], f["intensity"], f["beat_id"], f.get("source", ""),
+                     "; ".join(f.get("topics", [])), f.get("stance", "")) for f in U["facts"]])
     db.executemany("INSERT INTO edge VALUES (?,?,?)", [(e["src"], e["dst"], e["kind"]) for e in U["edges"]])
     db.executemany("INSERT INTO fts VALUES ('scene', ?, ?, ?)", [(s["id"], s["media"], s["summary"]) for s in U["scenes"]])
     db.executemany("INSERT INTO fts VALUES ('beat', ?, ?, ?)", [(b["id"], b["media"], b["text"]) for b in U["beats"]])
-    db.executemany("INSERT INTO fts VALUES ('fact', ?, ?, ?)", [(f["id"], f["media"], f"{f['actor']} {f['act_type']} {f['target']}: {f['text']}") for f in U["facts"]])
+    db.executemany("INSERT INTO fts VALUES ('fact', ?, ?, ?)", [(f["id"], f["media"], f"{f['actor']} {f['act_type']} {f['target']}: {f['text']} [{'; '.join(f.get('topics', []))}] {f.get('value', '') if f['kind'] != 'act' else ''}") for f in U["facts"]])
     db.commit(); db.close()
 
 

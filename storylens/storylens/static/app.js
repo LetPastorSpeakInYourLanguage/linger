@@ -29,6 +29,7 @@ async function route(){
     if (page==="title") return titlePage(a, b||"overview");
     if (page==="job") return jobPage(a);
     if (page==="jobs") return jobsPage();
+    if (page==="explore") return explorePage(a||"all");
     if (page==="pending") return pendingPage();
     if (page==="settings") return settingsPage();
     if (page==="help") return helpPage();
@@ -49,9 +50,9 @@ async function home(){
 function addTitle(){
   modal(`<h2>Add a title</h2>
   <label>Name</label><input id="t-name" style="width:100%" placeholder="e.g. My Telenovela">
-  <div class="row"><div><label>Kind</label><select id="t-kind"><option value="film">film</option><option value="series">series</option></select></div>
-  <div style="flex:1"><label>Cast / character names (optional, comma-separated)</label><input id="t-cast" style="width:100%"></div></div>
-  <label>Scan a folder on this computer (videos + .srt/.vtt/.ass paired by name) — optional</label><input id="t-folder" style="width:100%" placeholder="D:\\Shows\\Season 1">
+  <div class="row"><div><label>Kind</label><select id="t-kind">${["film","series","podcast","talkshow","sermon","lecture"].map(k=>`<option>${k}</option>`).join("")}</select></div>
+  <div style="flex:1"><label>Cast / character or speaker names (optional, comma-separated)</label><input id="t-cast" style="width:100%"></div></div>
+  <label>Scan a folder on this computer (video/audio + .srt/.vtt/.ass/.txt transcripts paired by name) — optional</label><input id="t-folder" style="width:100%" placeholder="D:\\Shows\\Season 1">
   <p class="small muted">You can also add individual files on the title page.</p>
   <button onclick="createTitle()">Create</button>`);
 }
@@ -171,17 +172,22 @@ async function factsTab(T, tid){
 function lensForm(d){
   const cs = d.understanding.characters.map(c=>c.name), th = (d.understanding.bible.threads||[]);
   return `<div class="row"><select id="l-kind" onchange="lensKind()"><option value="main">Main story</option><option value="character">Character story</option>
-    <option value="trait">Trait / theme compilation</option><option value="thread">Storyline</option></select>
+    <option value="topic">What someone said about a topic</option><option value="trait">Trait / theme compilation</option><option value="thread">Storyline</option>${d.collection?`<option value="overview">Overview of every title</option>`:""}</select>
     <span id="l-char"><select id="l-name">${cs.map(c=>`<option>${esc(c)}</option>`).join("")}</select></span>
     <span id="l-trait"><select id="l-actor"><option value="">(any character)</option>${cs.map(c=>`<option>${esc(c)}</option>`).join("")}</select>
       <input id="l-query" placeholder="e.g. being a good friend" size="28"><label style="display:inline"><input type="checkbox" id="l-deep"> deep sweep</label></span>
+    <span id="l-topic"><select id="l-speaker"><option value="">(anyone)</option>${cs.map(c=>`<option>${esc(c)}</option>`).join("")}</select>
+      <input id="l-tquery" placeholder="e.g. women and marriage / the meaning of life" size="34"></span>
     <span id="l-thread"><select id="l-th">${th.map(x=>`<option value="${esc(x.id)}">${esc(x.title)}</option>`).join("")}</select></span></div>`;
 }
-function lensKind(){ const k=$("#l-kind").value; $("#l-char").style.display=k==="character"?"":"none"; $("#l-trait").style.display=k==="trait"?"":"none"; $("#l-thread").style.display=k==="thread"?"":"none"; }
+function lensKind(){ const k=$("#l-kind").value; $("#l-char").style.display=k==="character"?"":"none"; $("#l-trait").style.display=k==="trait"?"":"none";
+  $("#l-thread").style.display=k==="thread"?"":"none"; $("#l-topic").style.display=k==="topic"?"":"none"; }
 function lensValue(){ const k=$("#l-kind").value;
   if(k==="character") return {kind:k, name:$("#l-name").value};
   if(k==="trait") return {kind:k, query:$("#l-query").value, actor:$("#l-actor").value, deep:$("#l-deep").checked};
   if(k==="thread") return {kind:k, thread:$("#l-th").value};
+  if(k==="topic") return {kind:k, query:$("#l-tquery").value, speaker:$("#l-speaker").value};
+  if(k==="overview") return {kind:k};
   return {kind:"main"}; }
 
 async function lensesTab(T, tid, d){
@@ -197,13 +203,13 @@ async function openView(tid, vid){
   modal(`<h2>${esc(v.title)}</h2><p>${esc(v.summary||"")}</p>${v.arc?`<p class="muted">${esc(v.arc)}</p>`:""}
    ${(v.hidden_gems||[]).length?`<h3>Hidden gems</h3>${v.hidden_gems.map(g=>`<div>💎 ${esc(g)}</div>`).join("")}`:""}
    <h3>${v.items.length} items${v.candidates?` (from ${v.candidates} candidates)`:""}</h3>
-   <table>${v.items.map(i=>`<tr><td>${tier(i.tier)}</td><td class="small">${i.media} ${ts(i.t0)}</td><td>${esc(i.text)}${i.why?`<div class="small muted">${esc(i.why)}</div>`:""}</td><td>${i.salience}</td></tr>`).join("")}</table>
+   <table>${v.items.map(i=>`<tr><td>${tier(i.tier)}</td><td class="small">${esc(i.title||"")} ${i.media.split("::").pop()} ${ts(i.t0)}</td><td>${i.speaker?`<b>${esc(i.speaker)}${i.speaker_uncertain?"?":""}</b>: `:""}${esc(i.text)}${i.why?`<div class="small muted">${esc(i.why)}</div>`:""}</td><td>${i.salience}</td></tr>`).join("")}</table>
    <button onclick="closeModal();location.hash='#/title/${tid}/recap';sessionStorage.lens='${esc(JSON.stringify({kind:v.kind,...v.params}))}'">Make a recap from this lens</button>`);
 }
 
 async function recapTab(T, tid, d){
   const styles = [["recap_channel","Recap channel (hooky, dense, quotes)"],["dramatic_comedic","Dramatic / comedic"],["short_direct","Short & direct"],
-    ["fan_silent","Fan cut (original audio moments, no narration)"],["detailed_full","Detailed / full"],["character","Character story"],["compilation","Compilation / supercut"]];
+    ["clips","Clips only — no narrator (talks, podcasts, sermons)"],["fan_silent","Fan cut (original audio moments, no narration)"],["detailed_full","Detailed / full"],["character","Character story"],["compilation","Compilation / supercut"]];
   T.innerHTML = `<div class="card"><h2>Make a recap</h2>${lensForm(d)}
    <div class="row"><div><label>Style</label><select id="r-style">${styles.map(([k,v])=>`<option value="${k}">${v}</option>`).join("")}</select></div>
    <div><label>Duration</label><select id="r-dur"><option value="60">1 min</option><option value="180" selected>3 min</option><option value="300">5 min</option>
@@ -326,3 +332,53 @@ function helpPage(){
   <p>Every LLM call is a folder (<code>prompt.md</code> → <code>response.json</code>) in the workspace, so Claude Code or a person can answer instead of the API (backend <b>folder</b>).
   Read <code>docs/METHODOLOGY.md</code> and <code>docs/AGENTIC.md</code> in the repository for the full details.</p></div>`;
 }
+
+// ------------------------------------------------------------ explore: cross-source search, lenses, recaps
+async function explorePage(cid){
+  const cols = await api("/api/collections"), titles = await api("/api/titles");
+  const col = cols.find(c=>c.id===cid) || cols[0];
+  const members = col.titles.includes("*") ? titles : titles.filter(t=>col.titles.includes(t.id));
+  const speakers = [...new Set((await Promise.all(members.filter(t=>t.understanding_version).map(t=>api(`/api/titles/${t.id}`).then(d=>d.understanding.characters.map(c=>c.name)).catch(()=>[])))).flat())];
+  const d = {collection: col.id, understanding: {characters: speakers.map(n=>({name:n})), bible: {threads: []}}};
+  const lenses = await api(`/api/collections/${col.id}/lenses`);
+  $("#app").innerHTML = `<div class="row"><h1>Explore</h1><span class="muted">search, lenses and recaps across many sources</span><span class="spacer"></span>
+    <select id="x-col" onchange="location.hash='#/explore/'+this.value">${cols.map(c=>`<option value="${c.id}" ${c.id===col.id?"selected":""}>${esc(c.name)}</option>`).join("")}</select>
+    <button class="secondary" onclick="newCollection()">+ Collection</button></div>
+   <p class="small muted">${members.length} titles: ${members.map(t=>esc(t.name)+(t.understanding_version?"":" (not understood)")).join(", ")}</p>
+   <div class="card"><h2>Search every source</h2><div class="row"><input id="x-q" style="flex:1" placeholder="e.g. meaning of life">
+     <select id="x-sp"><option value="">any speaker</option>${speakers.map(s=>`<option>${esc(s)}</option>`).join("")}</select>
+     <select id="x-level">${["title","episode","point","claim","line"].map(l=>`<option ${l==="claim"?"selected":""}>${l}</option>`).join("")}</select>
+     <button onclick="xSearch('${col.id}')">Search</button><button class="secondary" onclick="api('/api/library/reindex',{method:'POST'}).then(()=>alert('reindexed'))">Reindex</button></div><div id="x-res"></div></div>
+   <div class="card"><h2>Cross-source lens</h2>${lensForm(d)}<div style="margin-top:8px"><button onclick="xLens('${col.id}')">Build lens</button></div>
+     <table style="margin-top:10px">${lenses.map(v=>`<tr class="click" onclick="xOpen('${col.id}','${v.id}')"><td>${esc(v.title)}</td><td>${v.kind}</td><td>${v.items} items</td></tr>`).join("")}</table></div>
+   <div class="card"><h2>Recap across these sources</h2><p class="small muted">Uses the lens chosen above. "Clips only" makes a no-narrator supercut of the speakers' own words (lower thirds show source and speaker).</p>
+     <div class="row"><select id="x-style">${[["clips","Clips only (no narrator)"],["compilation","Compilation"],["short_direct","Short & direct"],["detailed_full","Detailed"],["recap_channel","Recap channel"]].map(([k,v])=>`<option value="${k}">${v}</option>`).join("")}</select>
+     <select id="x-dur">${[[60,"1 min"],[180,"3 min"],[300,"5 min"],[600,"10 min"],[1800,"30 min"],[0,"unlimited"]].map(([k,v])=>`<option value="${k}" ${k===180?"selected":""}>${v}</option>`).join("")}</select>
+     <select id="x-auto"><option value="">review gates</option><option value="autopilot">autopilot</option><option value="auto">approve everything</option></select>
+     <label style="display:inline"><input type="checkbox" id="x-render" checked> render</label><button onclick="xRecap('${col.id}')">Start</button></div></div>`;
+  lensKind();
+}
+async function xSearch(cid){
+  const lvl = $("#x-level").value;
+  const r = await api(`/api/library/search?collection=${cid}&level=${lvl}&speaker=${encodeURIComponent($("#x-sp").value)}&q=${encodeURIComponent($("#x-q").value)}`);
+  $("#x-res").innerHTML = (lvl==="title"||lvl==="episode") ? `<table>${r.map(g=>`<tr class="click" onclick="location.hash='#/title/${g.title}/facts'"><td><b>${esc(g.title_name)}</b> ${g.media||""}</td>
+      <td>${g.hits} hits · ${g.claims} claims</td><td class="small">${g.examples.map(esc).join("<br>")}</td></tr>`).join("")}</table>`
+    : `<table>${r.map(x=>`<tr><td class="small"><b>${esc(x.title_name)}</b><br>${esc(x.ref)}</td><td class="small">${esc(x.speaker||"")}</td><td>${esc(x.text)}</td>
+      <td>${x.level!=="point"?`<button class="secondary" onclick="xLines('${x.title}','${x.media}','${x.ref}')">lines</button>`:""}</td></tr>`).join("")}</table>` || "<p class='muted'>no results</p>";
+}
+async function xLines(tid, media, ref){ const m = ref.match(/L(\d+)/); const l = m ? +m[1] : 0;
+  if (m) return showLines(tid, media, l, l, 0);
+  const f = (await api(`/api/titles/${tid}/facts?limit=5000`)).find(x=>x.id===ref); if (f) showLines(tid, f.media, f.lines[0], f.lines[1], f.t0); }
+async function xLens(cid){ const r = await api(`/api/collections/${cid}/lens`, {method:"POST", body:{lens:lensValue(), force:true}}); location.hash = `#/job/${r.job}`; }
+async function xOpen(cid, vid){ const v = await api(`/api/collections/${cid}/lenses/${vid}`);
+  modal(`<h2>${esc(v.title)}</h2><p class="muted">${esc(v.summary)} · duplicates removed: ${v.duplicates_removed||0}</p>
+   <table>${v.items.map(i=>`<tr><td>${tier(i.tier)}</td><td class="small"><b>${esc(i.title)}</b><br>${i.media.split("::").pop()} ${ts(i.t0)}</td>
+     <td>${i.speaker?`<b>${esc(i.speaker)}${i.speaker_uncertain?"?":""}</b>: `:""}${esc(i.text)}</td><td>${i.salience}</td></tr>`).join("")}</table>`); }
+async function xRecap(cid){ const body = {lens:lensValue(), style:$("#x-style").value, duration:+$("#x-dur").value, render:$("#x-render").checked, autonomy:$("#x-auto").value};
+  const r = await api(`/api/collections/${cid}/recap`, {method:"POST", body}); location.hash = `#/job/${r.job}`; }
+async function newCollection(){ const titles = await api("/api/titles");
+  modal(`<h2>New collection</h2><label>Name</label><input id="c-name" style="width:100%"><label>Titles</label>
+   ${titles.map(t=>`<div><label style="display:inline"><input type="checkbox" class="c-t" value="${t.id}"> ${esc(t.name)} <span class="muted small">${t.kind}</span></label></div>`).join("")}
+   <button onclick="createCollection()">Create</button>`); }
+async function createCollection(){ const ids=[...document.querySelectorAll(".c-t:checked")].map(x=>x.value);
+  const c = await api("/api/collections",{method:"POST",body:{name:$("#c-name").value, titles:ids}}); closeModal(); location.hash = `#/explore/${c.id}`; }
