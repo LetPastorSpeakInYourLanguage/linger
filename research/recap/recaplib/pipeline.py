@@ -20,7 +20,7 @@ def make_chunks(cues, max_lines=160, min_lines=60):
         if n - i <= max_lines:
             chunks.append((i, n - 1)); break
         lo, hi = i + min_lines, min(n - 1, i + max_lines)
-        cut = max(range(lo, hi), key=lambda k: cues[k + 1].start - cues[k].end)
+        cut = max(range(lo, hi), key=lambda k: (round(cues[k + 1].start - cues[k].end, 1), k))  # biggest silence; ties -> longest chunk
         chunks.append((i, cut)); i = cut + 1
     return chunks
 
