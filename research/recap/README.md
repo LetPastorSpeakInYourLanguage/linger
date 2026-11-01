@@ -135,6 +135,43 @@ P0 beats with timestamps, setup→payoff edges, intensity-3 moments, turning poi
 | `compose.py`, `media_ops.py`, `overlay_ops.py` | the recap EDL renderer (`recaplib.render`) = an automatic recomposition |
 | `translation_ops.py`, dubbing | narration can be dubbed into any language with the same engine |
 
+
+---
+
+## Round 2 — recap-channel quality, hidden stories, agentic integration
+
+> 🤖 Integration design: [`02_agentic_folder_protocol.md`](02_agentic_folder_protocol.md) · reference runner
+> [`agentfs/`](agentfs) (example job workspace included) · results:
+> [`exp12`](experiments/exp12_recap_channel/RESULTS.md) · [`exp13`](experiments/exp13_hidden_story/RESULTS.md)
+
+**exp12 — can we reach YouTube recap-channel quality from subtitles?** A 6-minute recap-channel narration of a
+112-minute thriller from dialogue only (names scrambled), judged against the independent Wikipedia synopsis:
+- **Coverage:** 0.66 of the synopsis (C + ½P). Everything missing is dialogue-free action.
+- **Errors:** 0 contradictions and 0 unsupported segments with the **zoom-in second pass**, against 1 and 1 without it.
+- **Knowledge leakage:** zero.
+- **Recap-channel texture:** the zoom-in pass is what supplies it: +60% specifics, 3× character quotes, and
+  content-word grounding of 0.41 vs 0.24.
+
+The gap to a human recap channel is (1) visual action, which needs the vision pass, and (2) teased setups whose
+payoff is visual. A payoff guard fixes the second.
+
+**exp13 — hidden stories (villain / side character).**
+- **The main-flow layer under-represents secondary characters.** It holds 57% of the reluctant burglar's lines,
+  and only 12.5% of Gunther's scenes across Friends S1–S3.
+- **Name search finds 3% of a character's lines.** Speaker attribution plus a **character-lens second pass** gives
+  100% recall, at 1.1% of the corpus for a side character.
+- **The lens surfaces genuine hidden gems.** It found 11 new Gunther facts, including that **he is the one who tells
+  Rachel about the Xerox girl**, which ends Ross & Rachel. Nothing in the main summary attributes that to him.
+- **Discovery needs causal roles.** A co-occurrence ranking can't see it. The understanding layer needs a per-scene
+  **character ledger** (wants/does/learns/feels/relationship Δ/secret) and **caused_by / revealed_by** on every beat,
+  plus on-demand lens dossiers.
+
+**exp14 — agentic, folder-based integration.** Every request, plan, prompt, response, review and artifact is a file.
+Workers of any runtime claim steps by atomic rename. Writer and verifier run in separate contexts. Humans steer at
+gates G1 (understanding), G2 (script) and G3 (cut), or let autopilot pass a gate when its metrics hold. Instructions
+layer as global → title → job → mid-run inbox, and only downstream steps re-run. Understanding is computed once
+per title version, and every recap, character story or Q&A is a cheap job on top of it.
+
 ## Honest limitations
 
 - **No Anthropic API key in this sandbox.** Every LLM call went through a file-based replay protocol
@@ -142,7 +179,7 @@ P0 beats with timestamps, setup→payoff edges, intensity-3 moments, turning poi
   prompts. Everything is auditable and re-runnable against the API (`RECAP_LLM=anthropic`).
 - **Contamination:** famous titles (Friends, Panic Room) are known to LLMs. Name scrambling reduces but does not
   remove this. Public-domain or obscure titles are needed for a clean benchmark.
-- Small n (2 films and 1 series for the LLM passes). Network policy blocked archive.org and Hugging Face, so
+- Small n (2 films and 1 series for the LLM passes). In exp12/13 the same model wrote *and* judged; the folder protocol's isolated Verifier fixes this for real runs. Network policy blocked archive.org and Hugging Face, so
   MovieRecapsQA, Bazinga!, MovieSum and full-length PD films should be added when available.
 - Kokoro TTS is English-first. Multilingual narration would use linger's existing dubbing stack.
 
