@@ -1,0 +1,163 @@
+{
+ "cut_hygiene": {
+  "cuts": 152,
+  "inside_speech_raw": 0.658,
+  "inside_speech_snapped": 0.441,
+  "mean_shift_s": 0.072,
+  "speech_fraction_of_film": 0.673
+ },
+ "timeline": {
+  "frames": 734,
+  "frames_with_faces": 347,
+  "expr_hist": {
+   "angry": 1,
+   "disgust": 1,
+   "fearful": 0,
+   "happy": 13,
+   "neutral": 308,
+   "sad": 22,
+   "surprised": 2
+  },
+  "shots": 137
+ },
+ "moments": {
+  "n": 9,
+  "corr_intensity_loudness": 0.588,
+  "corr_intensity_expressive": 0.152,
+  "film_mean_expressive": 0.093,
+  "moments_mean_expressive": 0.164,
+  "items": [
+   {
+    "lines": [
+     0,
+     8
+    ],
+    "llm": "hurt/anger/2",
+    "t": [
+     23.0,
+     45.0
+    ],
+    "expr_mean": 0.047,
+    "loud_pct": 0.55,
+    "top_expr": "happy"
+   },
+   {
+    "lines": [
+     19,
+     21
+    ],
+    "llm": "action/2",
+    "t": [
+     203.5,
+     217.0
+    ],
+    "expr_mean": 0.129,
+    "loud_pct": 0.85,
+    "top_expr": "sad"
+   },
+   {
+    "lines": [
+     25,
+     31
+    ],
+    "llm": "anticipation/2",
+    "t": [
+     231.0,
+     248.0
+    ],
+    "expr_mean": 0.374,
+    "loud_pct": 0.23,
+    "top_expr": "sad"
+   },
+   {
+    "lines": [
+     43,
+     46
+    ],
+    "llm": "funny/remorse/2",
+    "t": [
+     347.0,
+     363.0
+    ],
+    "expr_mean": 0.01,
+    "loud_pct": 0.44,
+    "top_expr": "neutral"
+   },
+   {
+    "lines": [
+     49,
+     53
+    ],
+    "llm": "panic/3",
+    "t": [
+     371.5,
+     383.0
+    ],
+    "expr_mean": 0.389,
+    "loud_pct": 0.82,
+    "top_expr": "sad"
+   },
+   {
+    "lines": [
+     54,
+     60
+    ],
+    "llm": "sad/3",
+    "t": [
+     383.0,
+     408.0
+    ],
+    "expr_mean": 0.144,
+    "loud_pct": 0.6,
+    "top_expr": "sad"
+   },
+   {
+    "lines": [
+     67,
+     69
+    ],
+    "llm": "epic/3",
+    "t": [
+     502.0,
+     508.0
+    ],
+    "expr_mean": 0.153,
+    "loud_pct": 0.89,
+    "top_expr": "sad"
+   },
+   {
+    "lines": [
+     70,
+     72
+    ],
+    "llm": "hopeful/3",
+    "t": [
+     518.0,
+     539.0
+    ],
+    "expr_mean": 0.058,
+    "loud_pct": 0.7,
+    "top_expr": "neutral"
+   },
+   {
+    "lines": [
+     73,
+     75
+    ],
+    "llm": "funny/2",
+    "t": [
+     559.0,
+     567.0
+    ],
+    "expr_mean": 0.176,
+    "loud_pct": 0.47,
+    "top_expr": "neutral"
+   }
+  ]
+ },
+ "stills": {
+  "beats": 18,
+  "with_face": 17,
+  "mean_score": 0.435
+ }
+}

@@ -1,0 +1,128 @@
+{
+ "c01-b1": {
+  "t": 30.5,
+  "file": "00031.jpg",
+  "score": 0.348,
+  "faces": 2,
+  "expr": "happy"
+ },
+ "c01-b2": {
+  "t": 30.5,
+  "file": "00031.jpg",
+  "score": 0.348,
+  "faces": 2,
+  "expr": "happy"
+ },
+ "c01-b3": {
+  "t": 43.5,
+  "file": "00044.jpg",
+  "score": 0.155,
+  "faces": 0,
+  "expr": null
+ },
+ "c01-b4": {
+  "t": 52.5,
+  "file": "00053.jpg",
+  "score": 0.459,
+  "faces": 1,
+  "expr": "neutral"
+ },
+ "c01-b5": {
+  "t": 133.5,
+  "file": "00134.jpg",
+  "score": 0.325,
+  "faces": 1,
+  "expr": "sad"
+ },
+ "c01-b6": {
+  "t": 200.5,
+  "file": "00201.jpg",
+  "score": 0.499,
+  "faces": 1,
+  "expr": "neutral"
+ },
+ "c01-b7": {
+  "t": 193.5,
+  "file": "00194.jpg",
+  "score": 0.368,
+  "faces": 2,
+  "expr": "sad"
+ },
+ "c01-b8": {
+  "t": 247.5,
+  "file": "00248.jpg",
+  "score": 0.529,
+  "faces": 3,
+  "expr": "neutral"
+ },
+ "c01-b9": {
+  "t": 306.5,
+  "file": "00307.jpg",
+  "score": 0.482,
+  "faces": 1,
+  "expr": "happy"
+ },
+ "c01-b10": {
+  "t": 343.5,
+  "file": "00344.jpg",
+  "score": 0.503,
+  "faces": 1,
+  "expr": "sad"
+ },
+ "c01-b11": {
+  "t": 361.5,
+  "file": "00362.jpg",
+  "score": 0.391,
+  "faces": 1,
+  "expr": "neutral"
+ },
+ "c01-b12": {
+  "t": 381.5,
+  "file": "00382.jpg",
+  "score": 0.555,
+  "faces": 1,
+  "expr": "sad"
+ },
+ "c01-b13": {
+  "t": 384.5,
+  "file": "00385.jpg",
+  "score": 0.543,
+  "faces": 1,
+  "expr": "surprised"
+ },
+ "c01-b14": {
+  "t": 410.5,
+  "file": "00411.jpg",
+  "score": 0.391,
+  "faces": 2,
+  "expr": "neutral"
+ },
+ "c01-b15": {
+  "t": 421.5,
+  "file": "00422.jpg",
+  "score": 0.559,
+  "faces": 1,
+  "expr": "happy"
+ },
+ "c01-b16": {
+  "t": 428.5,
+  "file": "00429.jpg",
+  "score": 0.578,
+  "faces": 1,
+  "expr": "sad"
+ },
+ "c01-b17": {
+  "t": 534.5,
+  "file": "00535.jpg",
+  "score": 0.398,
+  "faces": 1,
+  "expr": "neutral"
+ },
+ "c01-b18": {
+  "t": 562.5,
+  "file": "00563.jpg",
+  "score": 0.401,
+  "faces": 1,
+  "expr": "neutral"
+ }
+}
