@@ -77,10 +77,16 @@ def plan(segments, cues, shots, vad_mask, vad_step, tts: TTS, film_dur, stills=N
     return edl
 
 
-def render(edl, source, out_path, work):
+def render(edl, source, out_path, work, hardsub_band=None):
+    """hardsub_band: e.g. (0.80, 0.97) blurs that vertical band (fraction of height) to hide burned-in
+    foreign subtitles detected at ingest (exp01 text mask / exp05c V7)."""
     os.makedirs(work, exist_ok=True)
     parts = []
     vf_base = f"scale={W}:{H}:force_original_aspect_ratio=decrease,pad={W}:{H}:(ow-iw)/2:(oh-ih)/2,fps={FPS},format=yuv420p"
+    if hardsub_band:
+        y0, y1 = hardsub_band
+        vf_base += (f",split[hs_m][hs_b];[hs_b]crop=iw:ih*{y1 - y0:.3f}:0:ih*{y0:.3f},boxblur=14:2[hs_bb];"
+                    f"[hs_m][hs_bb]overlay=0:H*{y0:.3f}")
     for p in edl:
         st, en = p["src"]; dur = max(0.5, en - st)
         out = os.path.join(work, f"p{p['k']:03d}.mp4")
