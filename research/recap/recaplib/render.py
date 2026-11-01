@@ -150,7 +150,7 @@ def fit_to_budget(edl, target, tts_factory, segments, tol=0.05, beat_rank=None):
             log.append(f"padded narration footage +{extra:.1f}s each")
     total = edl_duration(edl)
     if total > target * (1 + tol) and beat_rank:
-        order = sorted([p for p in edl if p["type"] != "card"], key=lambda p: beat_rank(segments[p["k"]]))
+        order = sorted([p for p in edl if p["type"] != "card"], key=lambda p: -beat_rank(segments[p["k"]]))  # least important first
         for p in order:
             if edl_duration(edl) <= target * (1 + tol): break
             if beat_rank(segments[p["k"]]) >= 0:   # rank<0 means protected (P0)
