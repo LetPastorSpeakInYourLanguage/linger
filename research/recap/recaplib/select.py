@@ -70,7 +70,7 @@ def greedy_ratio(beats, budget_s, form="full"):
             "value": sum(by_id[i]["score"] for i in chosen)}
 
 
-def mckp(beats, budget_s, step=0.5, tier_bonus=(1.6, 1.25, 1.0, 0.8)):
+def mckp(beats, budget_s, step=0.5, tier_bonus=(1.6, 1.25, 1.0, 0.8), overhead=0.0, forced=()):
     """Multiple-choice knapsack: pick at most one form per beat, maximise sum(score*form_value*tier_bonus).
     Dependency repair afterwards: if a chosen beat requires an unchosen one, the required beat is
     forced in at 'micro' form and the lowest-value item is dropped until it fits again."""
@@ -82,8 +82,8 @@ def mckp(beats, budget_s, step=0.5, tier_bonus=(1.6, 1.25, 1.0, 0.8)):
     choice = []
     for b in order:
         tb = tier_bonus[TIER_RANK.get(b.get("tier", "P3"), 3)]
-        opts = [(f, int(math.ceil(s / step)), b["score"] * FORM_VALUE[f] * tb) for f, s in b["forms"].items()]
-        new = dp[:]
+        opts = [(f, int(math.ceil((s + overhead) / step)), b["score"] * FORM_VALUE[f] * tb) for f, s in b["forms"].items()]
+        new = dp[:] if b["id"] not in forced else [NEG] * (W + 1)
         ch = [None] * (W + 1)
         for w in range(W + 1):
             for f, c, v in opts:
@@ -104,14 +104,14 @@ def mckp(beats, budget_s, step=0.5, tier_bonus=(1.6, 1.25, 1.0, 0.8)):
                 if r in by_id and r not in picked:
                     picked[r] = "micro"; changed = True
         def secs():
-            return sum(by_id[i]["forms"][f] for i, f in picked.items())
+            return sum(by_id[i]["forms"][f] + overhead for i, f in picked.items())
         while secs() > budget_s + 1e-6:
             needed = {r for i in picked for r in by_id[i].get("requires", [])}
-            cand = [i for i in picked if i not in needed]
+            cand = [i for i in picked if i not in needed and i not in forced]
             if not cand: break
             drop = min(cand, key=lambda i: by_id[i]["score"] * FORM_VALUE[picked[i]])
             del picked[drop]
-    sec = sum(by_id[i]["forms"][f] for i, f in picked.items())
+    sec = sum(by_id[i]["forms"][f] + overhead for i, f in picked.items())
     return {"ids": list(picked), "forms": picked, "seconds": sec,
             "value": sum(by_id[i]["score"] * FORM_VALUE[f] for i, f in picked.items())}
 
@@ -136,3 +136,16 @@ def coverage(sel, beats):
     dep_ok = all(r in sel["ids"] for i in sel["ids"] for r in by_id[i].get("requires", []) if r in by_id)
     return {"weighted_coverage": round(val / tot, 3), "tier_recall": tiers, "deps_satisfied": dep_ok,
             "n": len(sel["ids"]), "seconds": round(sel["seconds"], 1)}
+
+
+def mckp_nested(beats, budgets, overhead=1.0, **kw):
+    """Solve budgets in ascending order; every beat chosen for a shorter recap is FORCED into all longer
+    ones (form may be upgraded). Guarantees nestedness: the 1-min recap is a strict subset of the 15-min one,
+    so the user's 'duration slider' only ever adds context, never swaps it."""
+    out, forced = {}, set()
+    for B in sorted(budgets):
+        sel = mckp(beats, B, overhead=overhead, forced=frozenset(forced), **kw)
+        if not forced.issubset(sel["ids"]):   # infeasible -> keep previous selection, fill greedily
+            sel = mckp(beats, B, overhead=overhead, **kw)
+        out[B] = sel; forced |= set(sel["ids"])
+    return out
