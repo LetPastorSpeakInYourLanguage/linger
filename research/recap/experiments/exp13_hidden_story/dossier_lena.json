@@ -1,0 +1,20 @@
+{"character": "Lena (the reluctant burglar)", "source": "lens pass over 319 lines (character's spoken lines + mentions ±2)",
+ "facts": [
+  {"f": "met the planner Rufus 'at the tables' (gambling); doesn't know the gunman", "lines": [150, 153], "in_main_SUL": false, "kind": "backstory"},
+  {"f": "draws a moral line before the job starts: 'Not with me. Not with people.'", "lines": [138, 140], "in_main_SUL": true, "kind": "values"},
+  {"f": "is in debt ('out of the hole') — the $14M is his way out", "lines": [167, 169], "in_main_SUL": true, "kind": "motive"},
+  {"f": "has spent ten years building panic rooms; now must break into one", "lines": [242, 242], "in_main_SUL": true, "kind": "backstory/irony"},
+  {"f": "his strategy is non-violent: seal the house, make them come out, keep them quiet 45 minutes, keep the gunman away from them", "lines": [248, 252], "in_main_SUL": true, "kind": "values"},
+  {"f": "objects to the gassing: 'We're trying to scare them, not kill them!'", "lines": [291, 291], "in_main_SUL": false, "kind": "moral choice"},
+  {"f": "is the competent one: checks whether the main phone line was cut at the basement junction box", "lines": [356, 356], "in_main_SUL": false, "kind": "skill"},
+  {"f": "a guaranteed share was promised; the planner tries to quit with a payout and is threatened by the gunman", "lines": [405, 418], "in_main_SUL": true, "kind": "context"},
+  {"f": "forced at gunpoint, under a countdown, to find a way in", "lines": [448, 462], "in_main_SUL": true, "kind": "turning point"},
+  {"f": "protests the beating of the father: 'that's his kid in there, his kid is watching this!'", "lines": [471, 471], "in_main_SUL": false, "kind": "moral choice"},
+  {"f": "asks the girl what happens without the shot ('Coma. Die.') and decides to inject her", "lines": [503, 505], "in_main_SUL": true, "kind": "moral choice"},
+  {"f": "has never broken into a house before ('not even close')", "lines": [520, 520], "in_main_SUL": false, "kind": "backstory"},
+  {"f": "six straight years of 'bad cards': lost house, car, wife; still feels the gambling rush", "lines": [521, 524], "in_main_SUL": true, "kind": "backstory"},
+  {"f": "regrets: 'Woulda been a hell of a dad.'", "lines": [527, 527], "in_main_SUL": false, "kind": "inner life"},
+  {"f": "refuses the gunman's plan to kill the witnesses", "lines": [576, 588], "in_main_SUL": true, "kind": "moral choice"},
+  {"f": "grabs the money and runs", "lines": [605, 608], "in_main_SUL": true, "kind": "plot"},
+  {"f": "stopped by police", "lines": [609, 610], "in_main_SUL": true, "kind": "ending"}
+ ]}
