@@ -1,0 +1,2 @@
+[console_scripts]
+storylens = storylens.cli:main

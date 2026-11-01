@@ -1,0 +1,23 @@
+Metadata-Version: 2.4
+Name: storylens
+Version: 0.1.0
+Summary: Subtitle-first story understanding (evidence -> facts -> structure -> views) and automatic recaps for films and series in any language.
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: anthropic>=0.70
+Requires-Dist: fastapi>=0.110
+Requires-Dist: uvicorn>=0.29
+Requires-Dist: python-multipart>=0.0.9
+Requires-Dist: pysubs2>=1.6
+Requires-Dist: numpy>=1.24
+Provides-Extra: voice
+Requires-Dist: kokoro-onnx>=0.4; extra == "voice"
+Requires-Dist: onnxruntime>=1.17; extra == "voice"
+Requires-Dist: soundfile>=0.12; extra == "voice"
+Provides-Extra: system-voice
+Requires-Dist: pyttsx3>=2.90; extra == "system-voice"
+Provides-Extra: dev
+Requires-Dist: pytest>=7; extra == "dev"
+Requires-Dist: httpx>=0.27; extra == "dev"
+Provides-Extra: all
+Requires-Dist: storylens[dev,system-voice,voice]; extra == "all"
