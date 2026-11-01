@@ -14,13 +14,13 @@ _M = None
 
 def _gelu(x):
     from scipy.special import erf
-    return 0.5 * x * (1.0 + erf(x / np.sqrt(2.0)))
+    return (0.5 * x * (1.0 + erf(x * float(1 / np.sqrt(2.0))))).astype(np.float32)
 
 
 def _ln(x, g, b, eps=1e-12):
     mu = x.mean(-1, keepdims=True)
     var = ((x - mu) ** 2).mean(-1, keepdims=True)
-    return (x - mu) / np.sqrt(var + eps) * g + b
+    return ((x - mu) / np.sqrt(var + eps) * g + b).astype(np.float32)
 
 
 class MiniLM:
@@ -41,17 +41,18 @@ class MiniLM:
             + w["embeddings.token_type_embeddings.weight"][0][None, None]
         x = _ln(x, w["embeddings.LayerNorm.weight"], w["embeddings.LayerNorm.bias"])
         D = x.shape[-1]; hd = D // self.H
-        bias = (1.0 - mask[:, None, None, :]) * -1e9
+        bias = ((1.0 - mask[:, None, None, :]) * -1e9).astype(np.float32)
         for i in range(self.L):
             p = f"encoder.layer.{i}."
-            def lin(h, n):
-                return h @ w[p + n + ".weight"].T + w[p + n + ".bias"]
+            def lin(h, n):  # 2-D BLAS path (3-D matmul is ~70x slower in some numpy builds)
+                sh = h.shape
+                return (h.reshape(-1, sh[-1]) @ w[p + n + ".weight"].T + w[p + n + ".bias"]).reshape(*sh[:-1], -1)
             q = lin(x, "attention.self.query").reshape(B, T, self.H, hd).transpose(0, 2, 1, 3)
             k = lin(x, "attention.self.key").reshape(B, T, self.H, hd).transpose(0, 2, 1, 3)
             v = lin(x, "attention.self.value").reshape(B, T, self.H, hd).transpose(0, 2, 1, 3)
-            a = q @ k.transpose(0, 1, 3, 2) / np.sqrt(hd) + bias
+            a = np.einsum("bhtd,bhsd->bhts", q, k, optimize=True) * float(1.0 / np.sqrt(hd)) + bias
             a = np.exp(a - a.max(-1, keepdims=True)); a /= a.sum(-1, keepdims=True)
-            o = (a @ v).transpose(0, 2, 1, 3).reshape(B, T, D)
+            o = np.einsum("bhts,bhsd->bhtd", a, v, optimize=True).transpose(0, 2, 1, 3).reshape(B, T, D)
             x = _ln(x + lin(o, "attention.output.dense"), w[p + "attention.output.LayerNorm.weight"], w[p + "attention.output.LayerNorm.bias"])
             h = _gelu(lin(x, "intermediate.dense"))
             x = _ln(x + lin(h, "output.dense"), w[p + "output.LayerNorm.weight"], w[p + "output.LayerNorm.bias"])
@@ -60,12 +61,18 @@ class MiniLM:
         return e / np.linalg.norm(e, axis=1, keepdims=True)
 
     def encode(self, texts, batch=32):
-        out = []
-        for i in range(0, len(texts), batch):
-            enc = self.tok.encode_batch([t or "" for t in texts[i:i + batch]])
+        """Length-sorted batching (minimal padding), results returned in input order."""
+        texts = [t or "" for t in texts]
+        if not texts:
+            return np.zeros((0, 384), np.float32)
+        order = sorted(range(len(texts)), key=lambda i: len(texts[i]))
+        out = np.zeros((len(texts), 384), np.float32)
+        for i in range(0, len(order), batch):
+            idx = order[i:i + batch]
+            enc = self.tok.encode_batch([texts[j] for j in idx])
             ids = np.array([e.ids for e in enc]); mask = np.array([e.attention_mask for e in enc], dtype=np.float32)
-            out.append(self._forward(ids, mask))
-        return np.vstack(out) if out else np.zeros((0, 384), np.float32)
+            out[idx] = self._forward(ids, mask)
+        return out
 
 
 def model():
