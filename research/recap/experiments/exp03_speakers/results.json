@@ -1,0 +1,44 @@
+{
+ "friends": {
+  "majority": 0.166,
+  "alternation": 0.166,
+  "vocative": 0.186,
+  "vocative+alt": 0.198,
+  "share_main6": 0.81
+ },
+ "friends_llm_window": {
+  "episode": "s01_e03",
+  "lines": 120,
+  "llm_acc": 0.617,
+  "vocative+alt_acc_same_window": 0.167,
+  "llm_scene_breaks": [
+   17,
+   38,
+   81,
+   87,
+   102
+  ],
+  "gold_scene_breaks": [
+   17,
+   38,
+   81,
+   85
+  ]
+ },
+ "tos_fusion": {
+  "diar_clusters": 7,
+  "cues_with_cluster": 76,
+  "llm_named_cues": 49,
+  "cluster_name_purity": 0.796,
+  "cluster_names": {
+   "SPEAKER_00": "Celia (7/8)",
+   "SPEAKER_01": "Thom (10/11)",
+   "SPEAKER_02": "Barley (3/10)",
+   "SPEAKER_03": "Director (10/10)",
+   "SPEAKER_04": "Director (3/4)",
+   "SPEAKER_05": "Thom (6/6)"
+  },
+  "llm_unknown_cues": 27,
+  "unknown_cues_named_via_voice_cluster": 25
+ }
+}
