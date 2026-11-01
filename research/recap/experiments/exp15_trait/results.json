@@ -1,0 +1,18 @@
+{
+ "joey_scenes": 459,
+ "pool": 56,
+ "r1_P@20_strong": 0.1,
+ "r1_P@20_incl_weak": 0.25,
+ "r2_P@20_strong": 0.05,
+ "r2_P@20_incl_weak": 0.2,
+ "r3_P@20_strong": 0.15,
+ "r3_P@20_incl_weak": 0.25,
+ "pool_precision_strong": 0.107,
+ "base_rate_strong_random": 0.1,
+ "est_strong_instances_total": 46,
+ "retrieval_recall_strong_est": 0.13,
+ "words_in_joey_scenes": 106645,
+ "words_all_scenes": 183910,
+ "trait_sweep_tokens_in_est": 187161,
+ "note": "on-demand sweep = classify every scene the character is in; ledger = same info produced once inside P1 for all characters"
+}
