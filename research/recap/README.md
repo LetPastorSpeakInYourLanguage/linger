@@ -24,7 +24,7 @@ Underneath sits a **persisted story-understanding layer** that linger can query.
 | **Does it scale to 3 seasons in 15 min?** | Yes, hierarchically: scene cards → episode digests → series arcs → arc-weighted beats. Friends S1–S3 (73 episodes, 184k dialogue words): the 15-min plan covers **all P0/P1 beats, 55/73 episodes and every arc** in proportion to its importance. The P1 scene-card pass is >90% of tokens (~310k in), runs in parallel per episode and is cached once per title (exp07). |
 | **Styles?** | All four rendered end-to-end from one understanding: Kokoro neural TTS, ducked original audio under narration, and original-audio "hero clips" (exp09). Every script cites only real beat ids (0 invented). The closed-loop fit pass lands within 1.3% of target (60.2/60 s, 120.3/120 s, 91.2/90 s). |
 | **Language-agnostic?** | Meaning comes only from English subtitle **text**. Audio is used only through language-independent signals. **Silero VAD** (ONNX): its correlation with subtitle activity is 0.56 vs 0.13 for WebRTC, and its false speech is 1.9% vs 64%. It **recovers subtitle offsets and 25↔23.976 fps stretch exactly** (residual ≈ the constant 0.15 s subtitle lead). Snapping cuts to silence drops cuts inside speech from 16% to 5% (exp11). Hardsubs in another language are just pixels: we found real burned-in Chinese subs in our test video and are still using the English SRT. |
-| **Can the understanding live in a DB for linger?** | Yes. The SQLite schema [`recaplib/schema.sql`](recaplib/schema.sql) holds cues, speakers, scenes, beats, edges, moments, turning points, vectors and FTS. On FriendsQA (2,990 questions → 326 scenes), the understanding-layer index beats raw subtitle search; see exp10 below. |
+| **Can the understanding live in a DB for linger?** | Yes. The SQLite schema [`recaplib/schema.sql`](recaplib/schema.sql) holds cues, speakers, scenes, beats, edges, moments, turning points, vectors and FTS. On FriendsQA (2,990 questions → 326 scenes) the understanding-layer index reaches R@5 0.61 vs 0.48 for the best raw-subtitle search (exp10). |
 
 ---
 
@@ -70,10 +70,29 @@ timestamps. That one design choice makes clip-cutting, verification and DB retri
 | 07 | Series scale | Friends S1–S3 (73 ep) | 10 arcs; 1 min = 10 beats (Ross & Rachel spine); 15 min = 116 beats, all P0/P1, 59% P2, 55 episodes | Hierarchical works. Arc weighting gives balanced coverage |
 | 08 | Visual grounding | ToS 1 fps timeline | LLM moments are **1.8×** more facially expressive than the film average; LLM intensity ↔ loudness r = 0.59; 17/18 stills contain faces | Text-predicted moments align with AV signals; use AV to choose the exact clip |
 | 09 | Render 4 styles | ToS | Closed-loop fit: short **60.2/60 s**, dramatic **120.3/120 s**, fan **91.2/90 s**, detailed 219.8 s unlimited (open loop: 40.6 / 142.0 / 162.9 s); 0 invented beat ids; −15.9 LUFS | End-to-end pipeline works |
-| 10 | SUL database + retrieval | ToS + Panic Room DB; FriendsQA S1 | see table below | DB layer is the foundation for linger |
+| 10 | SUL database + retrieval | ToS + Panic Room DB; FriendsQA S1 | SUL hybrid R@5 **0.61** vs raw-subtitle best 0.48 (scenes with summaries); speaker names +19% R@1 | DB layer is the foundation for linger |
 | 11 | Language-agnostic sync | ToS | Silero ≫ WebRTC; offsets ±6 s and 4.27% fps stretch recovered; cuts inside speech 16% → 5% | Use Silero VAD for sync and cut hygiene |
 
-<!-- EXP10_TABLE -->
+### exp10 — does an understanding layer improve retrieval? (FriendsQA S1: 2,990 questions → 326 scenes)
+
+| Index | R@1 (all) | R@5 (all) | R@10 (all) | R@1 (scene has summary) | R@5 | R@10 |
+|---|---|---|---|---|---|---|
+| dense MiniLM, raw subtitles | 0.115 | 0.243 | 0.327 | 0.111 | 0.219 | 0.296 |
+| BM25, raw subtitles | 0.310 | 0.477 | 0.547 | 0.340 | 0.484 | 0.551 |
+| dense, subtitles **+ speaker names** | 0.202 | 0.393 | 0.465 | 0.177 | 0.342 | 0.414 |
+| BM25, subtitles **+ speaker names** | **0.368** | **0.559** | **0.614** | **0.377** | 0.557 | 0.602 |
+| dense, **scene summaries** only | 0.114 | 0.208 | 0.251 | 0.222 | 0.403 | 0.487 |
+| RRF hybrid, raw (BM25+dense) | 0.200 | 0.359 | 0.442 | 0.196 | 0.335 | 0.414 |
+| **RRF hybrid, SUL** (BM25+dense with speakers + summaries) | 0.200 | 0.474 | 0.590 | 0.366 | **0.609** | **0.680** |
+
+Reading. **Speaker attribution** is the single most valuable layer for lexical search (+19% R@1). **Scene
+summaries** add a lot wherever they exist: R@5 goes from 0.48 to 0.61 (+26%) and R@10 from 0.55 to 0.68. Small
+English MiniLM on raw subtitle lines is weak, and naive equal-weight fusion with a weak signal can hurt R@1. For
+linger: index speaker-attributed lines with BM25/FTS plus summary/beat vectors, and weight the fusion (or
+rerank with the LLM). Gold speakers and crowd summaries here are the *upper bound* of what P1 produces.
+The DB itself (`recaplib/schema.sql`, built for ToS + Panic Room in exp10) answers recap queries directly:
+P0 beats with timestamps, setup→payoff edges, intensity-3 moments, turning points, FTS and vector search.
+
 
 ## Ideas we evaluated and the recommendation for each
 
