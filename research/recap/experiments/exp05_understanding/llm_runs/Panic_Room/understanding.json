@@ -1,0 +1,4144 @@
+{
+ "cards": [
+  {
+   "roster_updates": [
+    {
+     "name": "Bram",
+     "aliases": [
+      "Mom"
+     ],
+     "who": "recently separated mother buying a house in Manhattan within 14 days",
+     "evidence": "L5,L26-L28"
+    },
+    {
+     "name": "Hollis",
+     "aliases": [
+      "kid"
+     ],
+     "who": "Bram's daughter, sharp-tongued",
+     "evidence": "L6-L7,L25"
+    },
+    {
+     "name": "Opal",
+     "aliases": [],
+     "who": "real-estate agent showing the house",
+     "evidence": "L9-L14"
+    },
+    {
+     "name": "Otto",
+     "aliases": [],
+     "who": "second agent who waited for them",
+     "evidence": "L10"
+    },
+    {
+     "name": "Rufus",
+     "aliases": [],
+     "who": "burglar who planned the job; insider knowledge of the house",
+     "evidence": "L118-L125"
+    },
+    {
+     "name": "Lena",
+     "aliases": [],
+     "who": "burglar, reluctant, refuses to involve people",
+     "evidence": "L138-L148"
+    },
+    {
+     "name": "Milo",
+     "aliases": [],
+     "who": "armed stranger Rufus brought along",
+     "evidence": "L128-L147"
+    }
+   ],
+   "scenes": [
+    {
+     "id": "c01-s1",
+     "lines": [
+      0,
+      30
+     ],
+     "setting_guess": "Manhattan street and brownstone entry",
+     "characters": [
+      "Bram",
+      "Hollis",
+      "Opal",
+      "Otto"
+     ],
+     "summary": "An agent rushed a mother and her daughter through a huge brownstone. The mother needed to move in within two weeks to prove to her soon-to-be ex-husband she could house their daughter.",
+     "beats": [
+      {
+       "id": "c01-b1",
+       "text": "Bram, newly separated, must buy a home within 14 days to prove she can provide for her daughter",
+       "lines": [
+        26,
+        29
+       ],
+       "kind": "setup",
+       "local_importance": 4,
+       "emotion": {
+        "label": "anxious",
+        "intensity": 1
+       },
+       "who": [
+        "Bram"
+       ]
+      },
+      {
+       "id": "c01-b2",
+       "text": "Agents show Bram and Hollis a huge four-floor brownstone with an elevator",
+       "lines": [
+        0,
+        18
+       ],
+       "kind": "world",
+       "local_importance": 2,
+       "emotion": {
+        "label": "neutral",
+        "intensity": 0
+       },
+       "who": [
+        "Opal",
+        "Otto"
+       ]
+      }
+     ],
+     "humor": [
+      {
+       "lines": [
+        24,
+        25
+       ],
+       "joke": "the kid teaches mom to haggle",
+       "type": "banter"
+      }
+     ],
+     "quotes": [],
+     "moments": [],
+     "open_threads": []
+    },
+    {
+     "id": "c01-s2",
+     "lines": [
+      31,
+      44
+     ],
+     "setting_guess": "upper floors",
+     "characters": [
+      "Bram",
+      "Hollis",
+      "Opal"
+     ],
+     "summary": "Touring the floors, they learned the late owner was a paranoid, reclusive rich man whose heirs are suing because half of his fortune is missing.",
+     "beats": [
+      {
+       "id": "c01-b3",
+       "text": "The late owner was a paranoid recluse whose missing millions have his heirs suing each other",
+       "lines": [
+        33,
+        38
+       ],
+       "kind": "setup",
+       "local_importance": 4,
+       "emotion": {
+        "label": "intrigue",
+        "intensity": 1
+       },
+       "who": [
+        "Hollis",
+        "Opal"
+       ]
+      }
+     ],
+     "humor": [],
+     "quotes": [
+      {
+       "line": 37,
+       "why": "plants the missing fortune"
+      }
+     ],
+     "moments": [],
+     "open_threads": [
+      "Where is the missing money?"
+     ]
+    },
+    {
+     "id": "c01-s3",
+     "lines": [
+      45,
+      87
+     ],
+     "setting_guess": "master bedroom",
+     "characters": [
+      "Bram",
+      "Hollis",
+      "Opal"
+     ],
+     "summary": "Bram noticed a strange corner; the agent revealed a hidden panic room with steel walls, a separate phone line, its own air and video monitors of the whole house. Bram found it unnerving; the door's safety sensor was demonstrated.",
+     "beats": [
+      {
+       "id": "c01-b4",
+       "text": "A hidden panic room is revealed: steel walls, separate phone line, own ventilation, monitors on every room",
+       "lines": [
+        50,
+        64
+       ],
+       "kind": "setup",
+       "local_importance": 5,
+       "emotion": {
+        "label": "awe",
+        "intensity": 1
+       },
+       "who": [
+        "Opal"
+       ]
+      },
+      {
+       "id": "c01-b5",
+       "text": "Bram is uneasy about the claustrophobic room",
+       "lines": [
+        65,
+        71
+       ],
+       "kind": "character",
+       "local_importance": 3,
+       "emotion": {
+        "label": "unease",
+        "intensity": 1
+       },
+       "who": [
+        "Bram"
+       ]
+      },
+      {
+       "id": "c01-b6",
+       "text": "The steel door has an infrared sensor that stops it closing on anything in its way",
+       "lines": [
+        81,
+        86
+       ],
+       "kind": "setup",
+       "local_importance": 4,
+       "emotion": {
+        "label": "neutral",
+        "intensity": 0
+       },
+       "who": [
+        "Opal"
+       ]
+      }
+     ],
+     "humor": [
+      {
+       "lines": [
+        67,
+        70
+       ],
+       "joke": "'Ever read any Poe?' / 'I love her album' / 'The furniture guy?'",
+       "type": "banter"
+      }
+     ],
+     "quotes": [
+      {
+       "line": 50,
+       "why": "title-defining reveal"
+      }
+     ],
+     "moments": [
+      {
+       "lines": [
+        50,
+        64
+       ],
+       "what": "the panic room reveal",
+       "emotion": "awe",
+       "intensity": 2
+      }
+     ],
+     "open_threads": [
+      "Will the panic room be needed?"
+     ]
+    },
+    {
+     "id": "c01-s4",
+     "lines": [
+      88,
+      108
+     ],
+     "setting_guess": "the new house, first night",
+     "characters": [
+      "Bram",
+      "Hollis"
+     ],
+     "summary": "On their first night, mother and daughter ordered pizza, vented about the ex-husband and his new partner, and the mother read to her daughter at bedtime.",
+     "beats": [
+      {
+       "id": "c01-b7",
+       "text": "First night in the house: Bram and Hollis bond and share bitterness about the ex-husband",
+       "lines": [
+        88,
+        102
+       ],
+       "kind": "relationship",
+       "local_importance": 3,
+       "emotion": {
+        "label": "bittersweet",
+        "intensity": 1
+       },
+       "who": [
+        "Bram",
+        "Hollis"
+       ]
+      }
+     ],
+     "humor": [
+      {
+       "lines": [
+        99,
+        102
+       ],
+       "joke": "'Fuck him.' 'Don't.' 'Fuck her too.' 'I agree. But don't.'",
+       "type": "banter"
+      }
+     ],
+     "quotes": [
+      {
+       "line": 102,
+       "why": "mother-daughter dynamic"
+      }
+     ],
+     "moments": [
+      {
+       "lines": [
+        99,
+        102
+       ],
+       "what": "mother-daughter venting",
+       "emotion": "warm",
+       "intensity": 1
+      }
+     ],
+     "open_threads": []
+    },
+    {
+     "id": "c01-s5",
+     "lines": [
+      109,
+      159
+     ],
+     "setting_guess": "outside/inside the house at night",
+     "characters": [
+      "Rufus",
+      "Lena",
+      "Milo"
+     ],
+     "summary": "Three burglars broke in at night and discovered the mother and daughter had already moved in because of an escrow mix-up. One wanted to quit since people were involved, while the planner insisted they could finish in 45 minutes; the third, an armed stranger, alarmed the others.",
+     "beats": [
+      {
+       "id": "c01-b8",
+       "text": "Three burglars break in and find the house unexpectedly occupied by a woman and a child",
+       "lines": [
+        109,
+        122
+       ],
+       "kind": "plot",
+       "local_importance": 5,
+       "emotion": {
+        "label": "alarm",
+        "intensity": 2
+       },
+       "who": [
+        "Rufus",
+        "Lena",
+        "Milo"
+       ]
+      },
+      {
+       "id": "c01-b9",
+       "text": "Lena wants out because people are home; Rufus insists the job takes only 45 minutes",
+       "lines": [
+        131,
+        140
+       ],
+       "kind": "plot",
+       "local_importance": 4,
+       "emotion": {
+        "label": "conflict",
+        "intensity": 2
+       },
+       "who": [
+        "Lena",
+        "Rufus"
+       ]
+      },
+      {
+       "id": "c01-b10",
+       "text": "Rufus brought Milo, an unknown armed man, which alarms Lena",
+       "lines": [
+        128,
+        149
+       ],
+       "kind": "character",
+       "local_importance": 4,
+       "emotion": {
+        "label": "menace",
+        "intensity": 2
+       },
+       "who": [
+        "Milo",
+        "Lena",
+        "Rufus"
+       ]
+      }
+     ],
+     "humor": [
+      {
+       "lines": [
+        121,
+        126
+       ],
+       "joke": "'Fourteen days, that's almost three weeks' \u2014 business-day escrow logic",
+       "type": "banter"
+      }
+     ],
+     "quotes": [
+      {
+       "line": 138,
+       "why": "Lena's moral line"
+      }
+     ],
+     "moments": [
+      {
+       "lines": [
+        114,
+        122
+       ],
+       "what": "burglars realize people are home",
+       "emotion": "panic",
+       "intensity": 2
+      }
+     ],
+     "open_threads": [
+      "What are they after? Will they harm the family?"
+     ]
+    }
+   ],
+   "story_so_far": "Newly separated Bram buys a Manhattan brownstone that once belonged to a paranoid millionaire whose missing fortune has his heirs suing; it contains a steel panic room with its own phone line, air and monitors. On the first night three burglars break in \u2014 planner Rufus, reluctant Lena who refuses to hurt people, and armed stranger Milo \u2014 and find Bram and her daughter Hollis already living there because of an escrow mistake."
+  },
+  {
+   "roster_updates": [
+    {
+     "name": "Milo",
+     "aliases": [
+      "Buddy"
+     ],
+     "who": "armed gambler Rufus met 'at the tables'; volatile",
+     "evidence": "L150-L154"
+    }
+   ],
+   "scenes": [
+    {
+     "id": "c02-s1",
+     "lines": [
+      160,
+      173
+     ],
+     "setting_guess": "inside the house",
+     "characters": [
+      "Rufus",
+      "Lena",
+      "Milo"
+     ],
+     "summary": "Rufus argued that keeping the family inside was not kidnapping and lured Lena back with fourteen million dollars hidden upstairs that would get him out of debt. They split up to grab the girl and the woman.",
+     "beats": [
+      {
+       "id": "c02-b1",
+       "text": "Rufus reveals the prize: fourteen million dollars hidden upstairs, enough to clear Lena's debts",
+       "lines": [
+        164,
+        170
+       ],
+       "kind": "plot",
+       "local_importance": 5,
+       "emotion": {
+        "label": "greed",
+        "intensity": 2
+       },
+       "who": [
+        "Rufus",
+        "Lena"
+       ]
+      },
+      {
+       "id": "c02-b2",
+       "text": "The burglars split up to seize the woman and the girl",
+       "lines": [
+        171,
+        173
+       ],
+       "kind": "plot",
+       "local_importance": 3,
+       "emotion": {
+        "label": "menace",
+        "intensity": 2
+       },
+       "who": [
+        "Rufus",
+        "Milo",
+        "Lena"
+       ]
+      }
+     ],
+     "humor": [
+      {
+       "lines": [
+        160,
+        164
+       ],
+       "joke": "'You can't kidnap somebody in their own house' / 'third-generation idiot'",
+       "type": "banter"
+      }
+     ],
+     "quotes": [
+      {
+       "line": 167,
+       "why": "states the stakes"
+      }
+     ],
+     "moments": [],
+     "open_threads": [
+      "Where exactly is the money?"
+     ]
+    },
+    {
+     "id": "c02-s2",
+     "lines": [
+      174,
+      196
+     ],
+     "setting_guess": "bedrooms, elevator, panic room",
+     "characters": [
+      "Bram",
+      "Hollis"
+     ],
+     "summary": "Bram saw the intruders on the monitors, woke Hollis and they raced for the panic room as the burglars closed in, sealing the door just in time. The room's phone was dead because Bram had never connected it.",
+     "beats": [
+      {
+       "id": "c02-b3",
+       "text": "Bram spots the intruders, grabs Hollis and they barely make it into the panic room",
+       "lines": [
+        174,
+        186
+       ],
+       "kind": "plot",
+       "local_importance": 5,
+       "emotion": {
+        "label": "terror",
+        "intensity": 3
+       },
+       "who": [
+        "Bram",
+        "Hollis"
+       ]
+      },
+      {
+       "id": "c02-b4",
+       "text": "The panic room's separate phone line was never connected \u2014 they cannot call for help",
+       "lines": [
+        187,
+        188
+       ],
+       "kind": "plot",
+       "local_importance": 5,
+       "emotion": {
+        "label": "dread",
+        "intensity": 2
+       },
+       "who": [
+        "Bram"
+       ]
+      }
+     ],
+     "humor": [],
+     "quotes": [
+      {
+       "line": 183,
+       "why": "'PANIC ROOM!'"
+      },
+      {
+       "line": 188,
+       "why": "the fatal oversight"
+      }
+     ],
+     "moments": [
+      {
+       "lines": [
+        176,
+        186
+       ],
+       "what": "the race into the panic room",
+       "emotion": "terror",
+       "intensity": 3
+      }
+     ],
+     "open_threads": []
+    },
+    {
+     "id": "c02-s3",
+     "lines": [
+      197,
+      207
+     ],
+     "setting_guess": "inside the panic room",
+     "characters": [
+      "Bram",
+      "Hollis"
+     ],
+     "summary": "Inside, Bram anxiously checked whether Hollis felt shaky or chilled, hinting at a medical condition.",
+     "beats": [
+      {
+       "id": "c02-b5",
+       "text": "Bram checks Hollis for shakiness and chills \u2014 a hidden medical condition is planted",
+       "lines": [
+        197,
+        204
+       ],
+       "kind": "setup",
+       "local_importance": 4,
+       "emotion": {
+        "label": "worry",
+        "intensity": 1
+       },
+       "who": [
+        "Bram",
+        "Hollis"
+       ]
+      }
+     ],
+     "humor": [],
+     "quotes": [],
+     "moments": [],
+     "open_threads": [
+      "What is Hollis's condition?"
+     ]
+    },
+    {
+     "id": "c02-s4",
+     "lines": [
+      208,
+      225
+     ],
+     "setting_guess": "intercom between room and house",
+     "characters": [
+      "Bram",
+      "Rufus",
+      "Hollis"
+     ],
+     "summary": "Over the intercom the burglars told them to leave; Bram bluffed that police were coming. A sign was held up: what they wanted was inside the room. Coached by Hollis, Bram shouted at them to get out of her house.",
+     "beats": [
+      {
+       "id": "c02-b6",
+       "text": "The burglars reveal that what they want is inside the panic room itself",
+       "lines": [
+        211,
+        214
+       ],
+       "kind": "plot",
+       "local_importance": 5,
+       "emotion": {
+        "label": "shock",
+        "intensity": 2
+       },
+       "who": [
+        "Rufus"
+       ]
+      },
+      {
+       "id": "c02-b7",
+       "text": "Bram bluffs about the police and, coached by Hollis, defiantly refuses to come out",
+       "lines": [
+        209,
+        221
+       ],
+       "kind": "character",
+       "local_importance": 3,
+       "emotion": {
+        "label": "defiance",
+        "intensity": 2
+       },
+       "who": [
+        "Bram",
+        "Hollis"
+       ]
+      }
+     ],
+     "humor": [
+      {
+       "lines": [
+        218,
+        221
+       ],
+       "joke": "daughter coaches mom to swear: 'Say fuck.'",
+       "type": "banter"
+      }
+     ],
+     "quotes": [
+      {
+       "line": 213,
+       "why": "the central conflict"
+      },
+      {
+       "line": 221,
+       "why": "defiance"
+      }
+     ],
+     "moments": [
+      {
+       "lines": [
+        217,
+        221
+       ],
+       "what": "'Get the fuck out of my house!'",
+       "emotion": "defiance",
+       "intensity": 2
+      }
+     ],
+     "open_threads": []
+    },
+    {
+     "id": "c02-s5",
+     "lines": [
+      226,
+      256
+     ],
+     "setting_guess": "house, burglars regroup",
+     "characters": [
+      "Rufus",
+      "Lena",
+      "Milo"
+     ],
+     "summary": "The burglars bickered; Lena, who spent ten years building such rooms for a living, said nobody can get in, so the woman must be forced out. They decided to seal the house so the family could not escape.",
+     "beats": [
+      {
+       "id": "c02-b8",
+       "text": "Lena turns out to be a builder of panic rooms who knows they cannot break in, so they must force the family out",
+       "lines": [
+        241,
+        248
+       ],
+       "kind": "character",
+       "local_importance": 5,
+       "emotion": {
+        "label": "irony",
+        "intensity": 1
+       },
+       "who": [
+        "Lena"
+       ]
+      },
+      {
+       "id": "c02-b9",
+       "text": "They seal the house and refuse to let Milo hover with his gun",
+       "lines": [
+        249,
+        254
+       ],
+       "kind": "plot",
+       "local_importance": 3,
+       "emotion": {
+        "label": "tension",
+        "intensity": 1
+       },
+       "who": [
+        "Lena",
+        "Milo"
+       ]
+      }
+     ],
+     "humor": [
+      {
+       "lines": [
+        238,
+        244
+       ],
+       "joke": "Milo laughs at God's sense of irony",
+       "type": "irony"
+      }
+     ],
+     "quotes": [
+      {
+       "line": 242,
+       "why": "defines Lena's expertise"
+      }
+     ],
+     "moments": [],
+     "open_threads": []
+    },
+    {
+     "id": "c02-s6",
+     "lines": [
+      257,
+      281
+     ],
+     "setting_guess": "panic room",
+     "characters": [
+      "Bram",
+      "Hollis"
+     ],
+     "summary": "Bram began panicking in the small space; Hollis distracted her with a joke. When the intruders sealed them in, Bram lost it and Hollis screamed at her to stay present until she recovered.",
+     "beats": [
+      {
+       "id": "c02-b10",
+       "text": "Claustrophobic Bram has a panic attack; Hollis pulls her back",
+       "lines": [
+        259,
+        281
+       ],
+       "kind": "relationship",
+       "local_importance": 4,
+       "emotion": {
+        "label": "fear/love",
+        "intensity": 3
+       },
+       "who": [
+        "Bram",
+        "Hollis"
+       ]
+      }
+     ],
+     "humor": [
+      {
+       "lines": [
+        263,
+        267
+       ],
+       "joke": "'Why did the chicken cross the road? To prove he wasn't chicken.'",
+       "type": "banter"
+      }
+     ],
+     "quotes": [
+      {
+       "line": 277,
+       "why": "role reversal"
+      }
+     ],
+     "moments": [
+      {
+       "lines": [
+        272,
+        281
+       ],
+       "what": "Hollis screams her mother out of a panic attack",
+       "emotion": "fear",
+       "intensity": 3
+      }
+     ],
+     "open_threads": []
+    },
+    {
+     "id": "c02-s7",
+     "lines": [
+      282,
+      304
+     ],
+     "setting_guess": "vents outside the room",
+     "characters": [
+      "Rufus",
+      "Lena",
+      "Milo",
+      "Bram",
+      "Hollis"
+     ],
+     "summary": "Rufus pumped gas into the room's vents to drive them out; Lena protested they would die and could not get in if the pair passed out. Rufus raged that he was coming in.",
+     "beats": [
+      {
+       "id": "c02-b11",
+       "text": "Rufus pumps gas into the room to force them out, over Lena's objections",
+       "lines": [
+        282,
+        303
+       ],
+       "kind": "plot",
+       "local_importance": 5,
+       "emotion": {
+        "label": "danger",
+        "intensity": 3
+       },
+       "who": [
+        "Rufus",
+        "Lena",
+        "Milo"
+       ]
+      }
+     ],
+     "humor": [
+      {
+       "lines": [
+        299,
+        303
+       ],
+       "joke": "'how are we supposed to get into the room if they pass out?' 'Oh.'",
+       "type": "banter"
+      }
+     ],
+     "quotes": [
+      {
+       "line": 304,
+       "why": "menace"
+      }
+     ],
+     "moments": [
+      {
+       "lines": [
+        287,
+        293
+       ],
+       "what": "gas fills the room, they cough",
+       "emotion": "terror",
+       "intensity": 3
+      }
+     ],
+     "open_threads": [
+      "How will they survive the gas?"
+     ]
+    },
+    {
+     "id": "c02-s8",
+     "lines": [
+      305,
+      319
+     ],
+     "setting_guess": "panic room window/vents; burglars",
+     "characters": [
+      "Bram",
+      "Hollis",
+      "Rufus",
+      "Lena"
+     ],
+     "summary": "Bram flashed SOS in Morse code at a neighbor, who ignored it. Meanwhile Rufus and Lena argued over splitting the fourteen million.",
+     "beats": [
+      {
+       "id": "c02-b12",
+       "text": "Bram flashes an SOS to a neighbor, but he ignores it",
+       "lines": [
+        305,
+        316
+       ],
+       "kind": "plot",
+       "local_importance": 3,
+       "emotion": {
+        "label": "hope/despair",
+        "intensity": 2
+       },
+       "who": [
+        "Bram",
+        "Hollis"
+       ]
+      },
+      {
+       "id": "c02-b13",
+       "text": "Rufus and Lena quarrel over shares of the money",
+       "lines": [
+        317,
+        319
+       ],
+       "kind": "relationship",
+       "local_importance": 3,
+       "emotion": {
+        "label": "greed",
+        "intensity": 1
+       },
+       "who": [
+        "Rufus",
+        "Lena"
+       ]
+      }
+     ],
+     "humor": [
+      {
+       "lines": [
+        310,
+        311
+       ],
+       "joke": "learned SOS from 'Titanic'",
+       "type": "banter"
+      }
+     ],
+     "quotes": [],
+     "moments": [],
+     "open_threads": [
+      "How do they split the money?"
+     ]
+    }
+   ],
+   "story_so_far": "Newly separated Bram and her daughter Hollis move into a brownstone with a steel panic room. On the first night, three burglars \u2014 planner Rufus, panic-room builder Lena, and armed gambler Milo \u2014 break in for fourteen million dollars hidden inside the panic room. Bram and Hollis make it into the room, but its phone was never connected. The burglars seal the house and pump gas into the vents; Hollis talks her claustrophobic mother through a panic attack, Bram's SOS to a neighbor is ignored, and the thieves start fighting over shares. Hollis seems to have a medical condition."
+  },
+  {
+   "roster_updates": [
+    {
+     "name": "Stephen",
+     "aliases": [
+      "Dad",
+      "Daddy"
+     ],
+     "who": "Bram's estranged husband, Hollis's father, lives across the park",
+     "evidence": "L368-L382,L463-L469"
+    }
+   ],
+   "scenes": [
+    {
+     "id": "c03-s1",
+     "lines": [
+      320,
+      330
+     ],
+     "setting_guess": "house",
+     "characters": [
+      "Rufus",
+      "Lena",
+      "Milo"
+     ],
+     "summary": "Arguing over shares, Rufus revealed it is his own family he is robbing \u2014 the safe was his grandfather's \u2014 and insisted they need Lena to open it as Milo threatened him.",
+     "beats": [
+      {
+       "id": "c03-b1",
+       "text": "Rufus is the late owner's grandson, stealing from his own family's estate",
+       "lines": [
+        323,
+        324
+       ],
+       "kind": "character",
+       "local_importance": 4,
+       "emotion": {
+        "label": "resentment",
+        "intensity": 2
+       },
+       "who": [
+        "Rufus"
+       ]
+      },
+      {
+       "id": "c03-b2",
+       "text": "Milo threatens Lena; Rufus says they cannot open the safe without Lena",
+       "lines": [
+        325,
+        329
+       ],
+       "kind": "relationship",
+       "local_importance": 3,
+       "emotion": {
+        "label": "tension",
+        "intensity": 2
+       },
+       "who": [
+        "Milo",
+        "Lena",
+        "Rufus"
+       ]
+      }
+     ],
+     "humor": [
+      {
+       "lines": [
+        327,
+        329
+       ],
+       "joke": "Rufus mocks Milo's gangster talk: 'You're a bus driver... you live in Flatbush'",
+       "type": "banter"
+      }
+     ],
+     "quotes": [],
+     "moments": [],
+     "open_threads": []
+    },
+    {
+     "id": "c03-s2",
+     "lines": [
+      331,
+      347
+     ],
+     "setting_guess": "bedroom and panic room door",
+     "characters": [
+      "Bram",
+      "Hollis"
+     ],
+     "summary": "While the burglars were distracted, Bram dashed out of the panic room to her bedroom and grabbed her cell phone, making it back just in time \u2014 but there was no signal inside the room.",
+     "beats": [
+      {
+       "id": "c03-b3",
+       "text": "Bram risks a dash out of the room to grab her cell phone and makes it back",
+       "lines": [
+        333,
+        343
+       ],
+       "kind": "plot",
+       "local_importance": 4,
+       "emotion": {
+        "label": "suspense",
+        "intensity": 3
+       },
+       "who": [
+        "Bram",
+        "Hollis"
+       ]
+      },
+      {
+       "id": "c03-b4",
+       "text": "The cell phone gets no signal inside the steel room",
+       "lines": [
+        345,
+        347
+       ],
+       "kind": "plot",
+       "local_importance": 3,
+       "emotion": {
+        "label": "despair",
+        "intensity": 2
+       },
+       "who": [
+        "Bram"
+       ]
+      }
+     ],
+     "humor": [],
+     "quotes": [],
+     "moments": [
+      {
+       "lines": [
+        336,
+        341
+       ],
+       "what": "'If I can't get back, close the door' \u2014 the dash",
+       "emotion": "suspense",
+       "intensity": 3
+      }
+     ],
+     "open_threads": []
+    },
+    {
+     "id": "c03-s3",
+     "lines": [
+      348,
+      367
+     ],
+     "setting_guess": "panic room wall; basement",
+     "characters": [
+      "Bram",
+      "Hollis",
+      "Lena",
+      "Rufus"
+     ],
+     "summary": "Bram remembered the house's main phone line ran by the room and spliced into its wires; meanwhile the burglars realized Rufus never cut the main line. She reached 911 but was put on hold and lost the line.",
+     "beats": [
+      {
+       "id": "c03-b5",
+       "text": "Bram splices into the main phone line and reaches 911, but is put on hold and cut off",
+       "lines": [
+        348,
+        367
+       ],
+       "kind": "plot",
+       "local_importance": 4,
+       "emotion": {
+        "label": "hope then despair",
+        "intensity": 3
+       },
+       "who": [
+        "Bram",
+        "Hollis"
+       ]
+      }
+     ],
+     "humor": [
+      {
+       "lines": [
+        363,
+        365
+       ],
+       "joke": "'911 emergency \u2014 please hold.'",
+       "type": "irony"
+      }
+     ],
+     "quotes": [],
+     "moments": [
+      {
+       "lines": [
+        363,
+        366
+       ],
+       "what": "911 puts her on hold",
+       "emotion": "despair",
+       "intensity": 2
+      }
+     ],
+     "open_threads": []
+    },
+    {
+     "id": "c03-s4",
+     "lines": [
+      368,
+      388
+     ],
+     "setting_guess": "panic room",
+     "characters": [
+      "Bram",
+      "Hollis",
+      "Stephen"
+     ],
+     "summary": "They called Hollis's father, but the line was garbled; Bram insisted he would come because they still are a family. Hollis confessed she had been hiding that she was dizzy and thirsty.",
+     "beats": [
+      {
+       "id": "c03-b6",
+       "text": "A garbled call reaches Hollis's father; Bram insists he will come to help",
+       "lines": [
+        368,
+        382
+       ],
+       "kind": "plot",
+       "local_importance": 4,
+       "emotion": {
+        "label": "hope",
+        "intensity": 2
+       },
+       "who": [
+        "Bram",
+        "Hollis",
+        "Stephen"
+       ]
+      },
+      {
+       "id": "c03-b7",
+       "text": "Hollis admits she is dizzy and thirsty \u2014 her blood sugar is crashing",
+       "lines": [
+        383,
+        388
+       ],
+       "kind": "payoff",
+       "local_importance": 5,
+       "emotion": {
+        "label": "fear",
+        "intensity": 3
+       },
+       "who": [
+        "Hollis"
+       ]
+      }
+     ],
+     "humor": [
+      {
+       "lines": [
+        377,
+        377
+       ],
+       "joke": "'three what, three bears?'",
+       "type": "sarcasm"
+      }
+     ],
+     "quotes": [
+      {
+       "line": 380,
+       "why": "'we're still a family'"
+      }
+     ],
+     "moments": [
+      {
+       "lines": [
+        383,
+        388
+       ],
+       "what": "Hollis's confession",
+       "emotion": "fear",
+       "intensity": 3
+      }
+     ],
+     "open_threads": [
+      "Will the father come?"
+     ]
+    },
+    {
+     "id": "c03-s5",
+     "lines": [
+      389,
+      426
+     ],
+     "setting_guess": "cross-cutting: burglars / panic room",
+     "characters": [
+      "Rufus",
+      "Lena",
+      "Milo",
+      "Bram",
+      "Hollis"
+     ],
+     "summary": "Bram realized Hollis, a diabetic, needed sugar or her Glucagon shot, which was in the fridge in Hollis's room outside. Meanwhile Rufus gave up and tried to quit with a payout, but Milo declared nobody leaves and he would open the safe.",
+     "beats": [
+      {
+       "id": "c03-b8",
+       "text": "Hollis is diabetic; her emergency Glucagon injection is outside the room, in her bedroom fridge",
+       "lines": [
+        394,
+        422
+       ],
+       "kind": "plot",
+       "local_importance": 5,
+       "emotion": {
+        "label": "dread",
+        "intensity": 3
+       },
+       "who": [
+        "Bram",
+        "Hollis"
+       ]
+      },
+      {
+       "id": "c03-b9",
+       "text": "Rufus tries to quit; Milo declares nobody leaves",
+       "lines": [
+        405,
+        418
+       ],
+       "kind": "plot",
+       "local_importance": 4,
+       "emotion": {
+        "label": "menace",
+        "intensity": 2
+       },
+       "who": [
+        "Rufus",
+        "Milo"
+       ]
+      }
+     ],
+     "humor": [
+      {
+       "lines": [
+        397,
+        398
+       ],
+       "joke": "'I'm dizzy, not deaf.' 'Still a smart ass, excellent sign.'",
+       "type": "banter"
+      }
+     ],
+     "quotes": [
+      {
+       "line": 420,
+       "why": "plants the Glucagon"
+      }
+     ],
+     "moments": [
+      {
+       "lines": [
+        419,
+        426
+       ],
+       "what": "mother and daughter calm each other about the attack",
+       "emotion": "tender",
+       "intensity": 2
+      }
+     ],
+     "open_threads": [
+      "Can Bram get the Glucagon?"
+     ]
+    },
+    {
+     "id": "c03-s6",
+     "lines": [
+      427,
+      462
+     ],
+     "setting_guess": "house",
+     "characters": [
+      "Milo",
+      "Rufus",
+      "Lena"
+     ],
+     "summary": "When Rufus tried to walk out, Milo violently stopped him, apparently shooting him, then held Lena at gunpoint and forced him to come up with a way into the room.",
+     "beats": [
+      {
+       "id": "c03-b10",
+       "text": "Milo violently stops Rufus from leaving (apparently shooting him) and seizes control",
+       "lines": [
+        427,
+        447
+       ],
+       "kind": "plot",
+       "local_importance": 5,
+       "emotion": {
+        "label": "shock",
+        "intensity": 3
+       },
+       "who": [
+        "Milo",
+        "Rufus"
+       ]
+      },
+      {
+       "id": "c03-b11",
+       "text": "At gunpoint, Lena is forced to find a way into the room",
+       "lines": [
+        448,
+        462
+       ],
+       "kind": "plot",
+       "local_importance": 4,
+       "emotion": {
+        "label": "fear",
+        "intensity": 3
+       },
+       "who": [
+        "Milo",
+        "Lena"
+       ]
+      }
+     ],
+     "humor": [],
+     "quotes": [
+      {
+       "line": 445,
+       "why": "Milo's power grab"
+      }
+     ],
+     "moments": [
+      {
+       "lines": [
+        433,
+        447
+       ],
+       "what": "Milo turns on Rufus",
+       "emotion": "shock",
+       "intensity": 3
+      }
+     ],
+     "open_threads": []
+    },
+    {
+     "id": "c03-s7",
+     "lines": [
+      463,
+      479
+     ],
+     "setting_guess": "house, in view of the room's monitors",
+     "characters": [
+      "Stephen",
+      "Milo",
+      "Lena",
+      "Bram",
+      "Hollis"
+     ],
+     "summary": "Hollis's father arrived and was captured; the burglars beat him in front of the monitors to make Bram open the door. Hollis screamed for her daddy, Bram refused, Lena protested, and Hollis began to slip into a diabetic attack.",
+     "beats": [
+      {
+       "id": "c03-b12",
+       "text": "The father arrives and is captured; the burglars beat him on camera to force the door open",
+       "lines": [
+        463,
+        472
+       ],
+       "kind": "plot",
+       "local_importance": 5,
+       "emotion": {
+        "label": "horror",
+        "intensity": 3
+       },
+       "who": [
+        "Stephen",
+        "Milo",
+        "Lena"
+       ]
+      },
+      {
+       "id": "c03-b13",
+       "text": "Hollis goes into a diabetic attack and begs her mother for the injection",
+       "lines": [
+        473,
+        473
+       ],
+       "kind": "plot",
+       "local_importance": 5,
+       "emotion": {
+        "label": "terror",
+        "intensity": 3
+       },
+       "who": [
+        "Hollis",
+        "Bram"
+       ]
+      }
+     ],
+     "humor": [],
+     "quotes": [
+      {
+       "line": 470,
+       "why": "father's sacrifice"
+      },
+      {
+       "line": 473,
+       "why": "emotional peak"
+      }
+     ],
+     "moments": [
+      {
+       "lines": [
+        467,
+        473
+       ],
+       "what": "father beaten; Hollis screams 'DADDY!'",
+       "emotion": "horror",
+       "intensity": 3
+      }
+     ],
+     "open_threads": [
+      "Will Bram leave the room for the Glucagon?"
+     ]
+    }
+   ],
+   "story_so_far": "Bram and her diabetic daughter Hollis are trapped in a panic room while three burglars hunt for fourteen million dollars in a safe inside it: Rufus (the dead owner's grandson), Lena (a panic-room builder) and volatile Milo. Gas, a cellphone dash and a spliced 911 call fail; a garbled call reaches the father. Hollis's blood sugar crashes and her Glucagon is outside the room. Milo violently takes control from Rufus and forces Lena to find a way in; the father arrives, is captured and beaten on camera to make Bram open the door, as Hollis slips into a diabetic attack."
+  },
+  {
+   "roster_updates": [
+    {
+     "name": "Police officers",
+     "aliases": [
+      "Rick"
+     ],
+     "who": "officers responding to the father's call",
+     "evidence": "L540-L575"
+    }
+   ],
+   "scenes": [
+    {
+     "id": "c04-s1",
+     "lines": [
+      480,
+      509
+     ],
+     "setting_guess": "inside the panic room (burglars now inside with Hollis); Bram outside on the intercom",
+     "characters": [
+      "Bram",
+      "Hollis",
+      "Lena",
+      "Milo"
+     ],
+     "summary": "The positions had flipped: the burglars were now inside the panic room with Hollis while Bram, outside, screamed that her daughter needed her medicine. Learning that without the injection Hollis could fall into a coma and die, Lena decided to give her the shot himself despite Milo.",
+     "beats": [
+      {
+       "id": "c04-b1",
+       "text": "Positions flip: the burglars are locked in the panic room with Hollis while Bram is outside with the medicine",
+       "lines": [
+        480,
+        487
+       ],
+       "kind": "plot",
+       "local_importance": 5,
+       "emotion": {
+        "label": "desperation",
+        "intensity": 3
+       },
+       "who": [
+        "Bram",
+        "Hollis",
+        "Lena",
+        "Milo"
+       ]
+      },
+      {
+       "id": "c04-b2",
+       "text": "Told Hollis could fall into a coma and die, Lena insists on giving her the injection",
+       "lines": [
+        503,
+        509
+       ],
+       "kind": "character",
+       "local_importance": 5,
+       "emotion": {
+        "label": "compassion",
+        "intensity": 2
+       },
+       "who": [
+        "Lena",
+        "Milo"
+       ]
+      }
+     ],
+     "humor": [],
+     "quotes": [
+      {
+       "line": 504,
+       "why": "'Coma. Die.' stakes"
+      }
+     ],
+     "moments": [
+      {
+       "lines": [
+        503,
+        505
+       ],
+       "what": "'Coma. Die.' / 'I'll give her the shot.'",
+       "emotion": "tense",
+       "intensity": 3
+      }
+     ],
+     "open_threads": []
+    },
+    {
+     "id": "c04-s2",
+     "lines": [
+      510,
+      529
+     ],
+     "setting_guess": "panic room",
+     "characters": [
+      "Lena",
+      "Hollis",
+      "Milo"
+     ],
+     "summary": "Lena gave Hollis the shot while confessing he was a desperate gambler who had lost his house, car and wife; Hollis recovered, and Milo sneered that he had only saved her for ten minutes.",
+     "beats": [
+      {
+       "id": "c04-b3",
+       "text": "Lena injects Hollis and saves her, confessing that gambling debts drove him to crime",
+       "lines": [
+        510,
+        528
+       ],
+       "kind": "character",
+       "local_importance": 5,
+       "emotion": {
+        "label": "tender",
+        "intensity": 2
+       },
+       "who": [
+        "Lena",
+        "Hollis"
+       ]
+      },
+      {
+       "id": "c04-b4",
+       "text": "Milo: 'You saved her life for ten minutes' \u2014 he means to kill her",
+       "lines": [
+        529,
+        529
+       ],
+       "kind": "plot",
+       "local_importance": 4,
+       "emotion": {
+        "label": "menace",
+        "intensity": 3
+       },
+       "who": [
+        "Milo"
+       ]
+      }
+     ],
+     "humor": [
+      {
+       "lines": [
+        512,
+        512
+       ],
+       "joke": "'TV don't lie, right?'",
+       "type": "irony"
+      }
+     ],
+     "quotes": [
+      {
+       "line": 521,
+       "why": "'Bad cards, Kid.'"
+      },
+      {
+       "line": 527,
+       "why": "Lena's self-portrait"
+      }
+     ],
+     "moments": [
+      {
+       "lines": [
+        519,
+        527
+       ],
+       "what": "Lena's bad-cards confession while saving the girl",
+       "emotion": "melancholy",
+       "intensity": 2
+      }
+     ],
+     "open_threads": []
+    },
+    {
+     "id": "c04-s3",
+     "lines": [
+      530,
+      575
+     ],
+     "setting_guess": "front door; monitors",
+     "characters": [
+      "Bram",
+      "Police officers",
+      "Milo",
+      "Lena"
+     ],
+     "summary": "Police arrived after the father's call. Watched on the monitors by the burglars holding her daughter, Bram convinced the officers nothing was wrong with an embarrassing lie about a drunk call to her ex, and they left.",
+     "beats": [
+      {
+       "id": "c04-b5",
+       "text": "Police arrive, but with her daughter held hostage Bram lies and sends them away",
+       "lines": [
+        530,
+        575
+       ],
+       "kind": "plot",
+       "local_importance": 5,
+       "emotion": {
+        "label": "agonizing tension",
+        "intensity": 3
+       },
+       "who": [
+        "Bram",
+        "Police officers"
+       ]
+      }
+     ],
+     "humor": [
+      {
+       "lines": [
+        571,
+        575
+       ],
+       "joke": "the 'three things I'll do for you' cover story",
+       "type": "irony"
+      }
+     ],
+     "quotes": [
+      {
+       "line": 573,
+       "why": "the cover story"
+      }
+     ],
+     "moments": [
+      {
+       "lines": [
+        553,
+        567
+       ],
+       "what": "officer offers a secret signal; Bram declines",
+       "emotion": "tense",
+       "intensity": 3
+      }
+     ],
+     "open_threads": []
+    },
+    {
+     "id": "c04-s4",
+     "lines": [
+      576,
+      593
+     ],
+     "setting_guess": "panic room",
+     "characters": [
+      "Milo",
+      "Lena"
+     ],
+     "summary": "Milo announced the witnesses must die \u2014 the kid now, the other two later \u2014 and Lena refused; the safe was finally being opened.",
+     "beats": [
+      {
+       "id": "c04-b6",
+       "text": "Milo plans to kill all three witnesses; Lena refuses",
+       "lines": [
+        576,
+        588
+       ],
+       "kind": "plot",
+       "local_importance": 5,
+       "emotion": {
+        "label": "dread",
+        "intensity": 3
+       },
+       "who": [
+        "Milo",
+        "Lena"
+       ]
+      },
+      {
+       "id": "c04-b7",
+       "text": "The safe is opened",
+       "lines": [
+        589,
+        593
+       ],
+       "kind": "plot",
+       "local_importance": 4,
+       "emotion": {
+        "label": "anticipation",
+        "intensity": 2
+       },
+       "who": [
+        "Lena"
+       ]
+      }
+     ],
+     "humor": [],
+     "quotes": [
+      {
+       "line": 587,
+       "why": "'You know how this gotta end.'"
+      }
+     ],
+     "moments": [],
+     "open_threads": []
+    },
+    {
+     "id": "c04-s5",
+     "lines": [
+      594,
+      608
+     ],
+     "setting_guess": "house, chaotic final fight",
+     "characters": [
+      "Bram",
+      "Milo",
+      "Lena",
+      "Hollis"
+     ],
+     "summary": "In the chaotic finale someone broke through a wall from the neighbor's house; Bram turned the burglars' own gun on them, and Lena grabbed the money and ran as Milo shouted after him. (Physical action is largely absent from the dialogue; details are inferred.)",
+     "beats": [
+      {
+       "id": "c04-b8",
+       "text": "Final showdown: Bram gets hold of the gun and fights back",
+       "lines": [
+        594,
+        604
+       ],
+       "kind": "plot",
+       "local_importance": 5,
+       "emotion": {
+        "label": "fury",
+        "intensity": 3
+       },
+       "who": [
+        "Bram",
+        "Milo"
+       ]
+      },
+      {
+       "id": "c04-b9",
+       "text": "Lena grabs the money and flees",
+       "lines": [
+        605,
+        608
+       ],
+       "kind": "plot",
+       "local_importance": 4,
+       "emotion": {
+        "label": "panic",
+        "intensity": 3
+       },
+       "who": [
+        "Lena"
+       ]
+      }
+     ],
+     "humor": [
+      {
+       "lines": [
+        597,
+        599
+       ],
+       "joke": "'WHO BREAKS IN THROUGH THE NEIGHBOR'S HOUSE?!'",
+       "type": "irony"
+      }
+     ],
+     "quotes": [],
+     "moments": [
+      {
+       "lines": [
+        600,
+        606
+       ],
+       "what": "screaming climax",
+       "emotion": "chaos",
+       "intensity": 3
+      }
+     ],
+     "open_threads": [
+      "Do they survive? Does Lena escape?"
+     ]
+    },
+    {
+     "id": "c04-s6",
+     "lines": [
+      609,
+      610
+     ],
+     "setting_guess": "outside",
+     "characters": [
+      "Police officers",
+      "Lena"
+     ],
+     "summary": "Police ordered someone, apparently the fleeing Lena, to put their hands up.",
+     "beats": [
+      {
+       "id": "c04-b10",
+       "text": "Police order the fleeing burglar to put his hands up",
+       "lines": [
+        609,
+        610
+       ],
+       "kind": "payoff",
+       "local_importance": 4,
+       "emotion": {
+        "label": "resolution",
+        "intensity": 2
+       },
+       "who": [
+        "Police officers",
+        "Lena"
+       ]
+      }
+     ],
+     "humor": [],
+     "quotes": [],
+     "moments": [],
+     "open_threads": []
+    },
+    {
+     "id": "c04-s7",
+     "lines": [
+      611,
+      613
+     ],
+     "setting_guess": "later, a park bench",
+     "characters": [
+      "Bram",
+      "Hollis"
+     ],
+     "summary": "Later, mother and daughter browsed real-estate listings and wondered where they would live now.",
+     "beats": [
+      {
+       "id": "c04-b11",
+       "text": "Epilogue: safe, mother and daughter look for a new place to live",
+       "lines": [
+        611,
+        613
+       ],
+       "kind": "payoff",
+       "local_importance": 4,
+       "emotion": {
+        "label": "relief",
+        "intensity": 2
+       },
+       "who": [
+        "Bram",
+        "Hollis"
+       ]
+      }
+     ],
+     "humor": [
+      {
+       "lines": [
+        613,
+        613
+       ],
+       "joke": "house-hunting again after the house from hell",
+       "type": "irony"
+      }
+     ],
+     "quotes": [
+      {
+       "line": 613,
+       "why": "closing line"
+      }
+     ],
+     "moments": [
+      {
+       "lines": [
+        611,
+        613
+       ],
+       "what": "calm epilogue",
+       "emotion": "warm",
+       "intensity": 1
+      }
+     ],
+     "open_threads": []
+    }
+   ],
+   "story_so_far": "Bram and her diabetic daughter Hollis hide in a panic room from burglars Rufus, Lena and Milo, who want fourteen million dollars in its safe. After failed calls for help, Hollis's sugar crashes; Milo takes control and the captured father is beaten. Positions flip: the burglars end up inside the room with Hollis while Bram has the medicine; Lena saves Hollis with the injection. Bram sends the police away to protect her daughter. Milo plans to kill all witnesses; in the final fight Bram turns the gun on him, Lena runs with the money and is stopped by police. Later mother and daughter look for a new home."
+  }
+ ],
+ "bible": {
+  "logline": "A newly separated mother and her diabetic daughter hide in their new home's panic room from three burglars \u2014 but the fortune the thieves want is locked inside the room with them.",
+  "genre_tone": "home-invasion thriller with dark banter",
+  "characters": [
+   {
+    "name": "Bram",
+    "aliases": [
+     "Mom"
+    ],
+    "role": "protagonist",
+    "arc": "from anxious and claustrophobic to ferocious protector",
+    "importance": 100
+   },
+   {
+    "name": "Hollis",
+    "aliases": [
+     "Kid"
+    ],
+    "role": "protagonist",
+    "arc": "sharp kid whose illness becomes the ticking clock",
+    "importance": 85
+   },
+   {
+    "name": "Lena",
+    "aliases": [],
+    "role": "antagonist",
+    "arc": "reluctant thief and panic-room builder who saves the girl",
+    "importance": 80
+   },
+   {
+    "name": "Milo",
+    "aliases": [
+     "Buddy"
+    ],
+    "role": "antagonist",
+    "arc": "armed wildcard who becomes a killer",
+    "importance": 70
+   },
+   {
+    "name": "Rufus",
+    "aliases": [],
+    "role": "antagonist",
+    "arc": "grandson-planner, out of his depth, killed by Milo",
+    "importance": 55
+   },
+   {
+    "name": "Stephen",
+    "aliases": [
+     "Dad"
+    ],
+    "role": "ally",
+    "arc": "estranged father who comes and is beaten",
+    "importance": 40
+   }
+  ],
+  "threads": [
+   {
+    "id": "T1",
+    "title": "Bram vs the house: survival",
+    "summary": "trapped mother fights to protect her daughter",
+    "beats": [
+     "c01-b1",
+     "c01-b2",
+     "c01-b5",
+     "c01-b7",
+     "c02-b3",
+     "c02-b4",
+     "c02-b7",
+     "c02-b10",
+     "c02-b12",
+     "c03-b3",
+     "c03-b4",
+     "c03-b5",
+     "c03-b6",
+     "c03-b12",
+     "c04-b5",
+     "c04-b8",
+     "c04-b11"
+    ],
+    "importance": 100
+   },
+   {
+    "id": "T2",
+    "title": "The fortune in the panic room",
+    "summary": "the hidden millions and the safe",
+    "beats": [
+     "c01-b3",
+     "c01-b4",
+     "c01-b6",
+     "c01-b8",
+     "c02-b1",
+     "c02-b2",
+     "c02-b6",
+     "c02-b11",
+     "c04-b7",
+     "c04-b9"
+    ],
+    "importance": 85
+   },
+   {
+    "id": "T3",
+    "title": "The thieves fall apart",
+    "summary": "Rufus, Lena and Milo turn on each other; Lena's conscience",
+    "beats": [
+     "c01-b9",
+     "c01-b10",
+     "c02-b8",
+     "c02-b9",
+     "c02-b13",
+     "c03-b1",
+     "c03-b2",
+     "c03-b9",
+     "c03-b10",
+     "c03-b11",
+     "c04-b2",
+     "c04-b3",
+     "c04-b4",
+     "c04-b6",
+     "c04-b10"
+    ],
+    "importance": 75
+   },
+   {
+    "id": "T4",
+    "title": "Hollis's diabetes clock",
+    "summary": "the illness that forces the door open",
+    "beats": [
+     "c02-b5",
+     "c03-b7",
+     "c03-b8",
+     "c03-b13",
+     "c04-b1"
+    ],
+    "importance": 85
+   }
+  ],
+  "turning_points": {
+   "TP1_opportunity": "c01-b8",
+   "TP2_change_of_plans": "c02-b6",
+   "TP3_point_of_no_return": "c03-b10",
+   "TP4_major_setback": "c04-b1",
+   "TP5_climax": "c04-b8"
+  },
+  "beats": [
+   {
+    "id": "c01-b1",
+    "global_importance": 70,
+    "tier": "P1",
+    "requires": [],
+    "pays_off": [],
+    "thread": "T1",
+    "short": "newly separated Bram must buy a home fast",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c01-b2",
+    "global_importance": 20,
+    "tier": "P3",
+    "requires": [],
+    "pays_off": [],
+    "thread": "T1",
+    "short": "touring a huge brownstone",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c01-b3",
+    "global_importance": 68,
+    "tier": "P1",
+    "requires": [],
+    "pays_off": [],
+    "thread": "T2",
+    "short": "late owner's missing millions",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c01-b4",
+    "global_importance": 95,
+    "tier": "P0",
+    "requires": [],
+    "pays_off": [],
+    "thread": "T2",
+    "short": "the house has a steel panic room",
+    "spoiler_level": 2
+   },
+   {
+    "id": "c01-b5",
+    "global_importance": 40,
+    "tier": "P2",
+    "requires": [],
+    "pays_off": [],
+    "thread": "T1",
+    "short": "Bram is claustrophobic",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c01-b6",
+    "global_importance": 45,
+    "tier": "P2",
+    "requires": [
+     "c01-b4"
+    ],
+    "pays_off": [],
+    "thread": "T2",
+    "short": "door sensor stops it closing",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c01-b7",
+    "global_importance": 30,
+    "tier": "P2",
+    "requires": [],
+    "pays_off": [],
+    "thread": "T1",
+    "short": "first night, mother-daughter bond",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c01-b8",
+    "global_importance": 92,
+    "tier": "P0",
+    "requires": [],
+    "pays_off": [],
+    "thread": "T2",
+    "short": "three burglars break in; house is occupied",
+    "spoiler_level": 2
+   },
+   {
+    "id": "c01-b9",
+    "global_importance": 50,
+    "tier": "P2",
+    "requires": [
+     "c01-b8"
+    ],
+    "pays_off": [],
+    "thread": "T3",
+    "short": "Lena wants out; Rufus insists",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c01-b10",
+    "global_importance": 55,
+    "tier": "P1",
+    "requires": [
+     "c01-b8"
+    ],
+    "pays_off": [],
+    "thread": "T3",
+    "short": "Rufus brought armed Milo",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c02-b1",
+    "global_importance": 85,
+    "tier": "P0",
+    "requires": [
+     "c01-b8"
+    ],
+    "pays_off": [],
+    "thread": "T2",
+    "short": "$14 million is hidden upstairs",
+    "spoiler_level": 2
+   },
+   {
+    "id": "c02-b2",
+    "global_importance": 35,
+    "tier": "P2",
+    "requires": [
+     "c01-b8"
+    ],
+    "pays_off": [],
+    "thread": "T2",
+    "short": "they split up to grab mother and child",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c02-b3",
+    "global_importance": 93,
+    "tier": "P0",
+    "requires": [
+     "c01-b4"
+    ],
+    "pays_off": [],
+    "thread": "T1",
+    "short": "Bram and Hollis flee into the panic room",
+    "spoiler_level": 2
+   },
+   {
+    "id": "c02-b4",
+    "global_importance": 72,
+    "tier": "P1",
+    "requires": [
+     "c02-b3"
+    ],
+    "pays_off": [],
+    "thread": "T1",
+    "short": "the room's phone isn't connected",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c02-b5",
+    "global_importance": 55,
+    "tier": "P1",
+    "requires": [],
+    "pays_off": [],
+    "thread": "T4",
+    "short": "hint: Hollis has a medical condition",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c02-b6",
+    "global_importance": 90,
+    "tier": "P0",
+    "requires": [
+     "c02-b3"
+    ],
+    "pays_off": [],
+    "thread": "T2",
+    "short": "what they want is inside the room",
+    "spoiler_level": 2
+   },
+   {
+    "id": "c02-b7",
+    "global_importance": 35,
+    "tier": "P2",
+    "requires": [
+     "c02-b3"
+    ],
+    "pays_off": [],
+    "thread": "T1",
+    "short": "Bram refuses to come out",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c02-b8",
+    "global_importance": 65,
+    "tier": "P1",
+    "requires": [],
+    "pays_off": [],
+    "thread": "T3",
+    "short": "Lena builds panic rooms",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c02-b9",
+    "global_importance": 25,
+    "tier": "P3",
+    "requires": [],
+    "pays_off": [],
+    "thread": "T3",
+    "short": "they seal the house",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c02-b10",
+    "global_importance": 45,
+    "tier": "P2",
+    "requires": [
+     "c01-b5"
+    ],
+    "pays_off": [],
+    "thread": "T1",
+    "short": "Bram's panic attack; Hollis steadies her",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c02-b11",
+    "global_importance": 75,
+    "tier": "P1",
+    "requires": [
+     "c02-b3"
+    ],
+    "pays_off": [],
+    "thread": "T2",
+    "short": "Rufus gasses the room",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c02-b12",
+    "global_importance": 30,
+    "tier": "P2",
+    "requires": [
+     "c02-b3"
+    ],
+    "pays_off": [],
+    "thread": "T1",
+    "short": "SOS to the neighbor ignored",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c02-b13",
+    "global_importance": 20,
+    "tier": "P3",
+    "requires": [],
+    "pays_off": [],
+    "thread": "T3",
+    "short": "squabble over shares",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c03-b1",
+    "global_importance": 50,
+    "tier": "P2",
+    "requires": [
+     "c01-b3"
+    ],
+    "pays_off": [],
+    "thread": "T3",
+    "short": "Rufus is the owner's grandson",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c03-b2",
+    "global_importance": 25,
+    "tier": "P3",
+    "requires": [],
+    "pays_off": [],
+    "thread": "T3",
+    "short": "Milo threatens Lena",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c03-b3",
+    "global_importance": 60,
+    "tier": "P1",
+    "requires": [
+     "c02-b3"
+    ],
+    "pays_off": [],
+    "thread": "T1",
+    "short": "Bram's dash for the cellphone",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c03-b4",
+    "global_importance": 25,
+    "tier": "P3",
+    "requires": [
+     "c03-b3"
+    ],
+    "pays_off": [],
+    "thread": "T1",
+    "short": "no signal inside",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c03-b5",
+    "global_importance": 55,
+    "tier": "P1",
+    "requires": [
+     "c02-b4"
+    ],
+    "pays_off": [],
+    "thread": "T1",
+    "short": "911 puts her on hold",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c03-b6",
+    "global_importance": 60,
+    "tier": "P1",
+    "requires": [],
+    "pays_off": [],
+    "thread": "T1",
+    "short": "garbled call reaches the father",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c03-b7",
+    "global_importance": 80,
+    "tier": "P0",
+    "requires": [
+     "c02-b5"
+    ],
+    "pays_off": [],
+    "thread": "T4",
+    "short": "Hollis's blood sugar crashes",
+    "spoiler_level": 2
+   },
+   {
+    "id": "c03-b8",
+    "global_importance": 88,
+    "tier": "P0",
+    "requires": [
+     "c03-b7"
+    ],
+    "pays_off": [],
+    "thread": "T4",
+    "short": "her Glucagon is outside the room",
+    "spoiler_level": 2
+   },
+   {
+    "id": "c03-b9",
+    "global_importance": 40,
+    "tier": "P2",
+    "requires": [],
+    "pays_off": [],
+    "thread": "T3",
+    "short": "Rufus tries to quit",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c03-b10",
+    "global_importance": 82,
+    "tier": "P0",
+    "requires": [
+     "c01-b10"
+    ],
+    "pays_off": [],
+    "thread": "T3",
+    "short": "Milo shoots Rufus and takes control",
+    "spoiler_level": 2
+   },
+   {
+    "id": "c03-b11",
+    "global_importance": 45,
+    "tier": "P2",
+    "requires": [
+     "c03-b10"
+    ],
+    "pays_off": [],
+    "thread": "T3",
+    "short": "Lena forced to find a way in",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c03-b12",
+    "global_importance": 78,
+    "tier": "P1",
+    "requires": [
+     "c03-b6"
+    ],
+    "pays_off": [],
+    "thread": "T1",
+    "short": "father captured and beaten on camera",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c03-b13",
+    "global_importance": 80,
+    "tier": "P1",
+    "requires": [
+     "c03-b8"
+    ],
+    "pays_off": [],
+    "thread": "T4",
+    "short": "Hollis goes into a diabetic attack",
+    "spoiler_level": 2
+   },
+   {
+    "id": "c04-b1",
+    "global_importance": 94,
+    "tier": "P0",
+    "requires": [
+     "c03-b8"
+    ],
+    "pays_off": [],
+    "thread": "T4",
+    "short": "positions flip: thieves in the room with Hollis",
+    "spoiler_level": 2
+   },
+   {
+    "id": "c04-b2",
+    "global_importance": 70,
+    "tier": "P1",
+    "requires": [
+     "c04-b1"
+    ],
+    "pays_off": [],
+    "thread": "T3",
+    "short": "Lena chooses to give her the shot",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c04-b3",
+    "global_importance": 86,
+    "tier": "P0",
+    "requires": [
+     "c04-b1"
+    ],
+    "pays_off": [],
+    "thread": "T3",
+    "short": "Lena saves Hollis; bad-cards confession",
+    "spoiler_level": 2
+   },
+   {
+    "id": "c04-b4",
+    "global_importance": 55,
+    "tier": "P1",
+    "requires": [
+     "c03-b10"
+    ],
+    "pays_off": [],
+    "thread": "T3",
+    "short": "Milo: 'saved her for ten minutes'",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c04-b5",
+    "global_importance": 80,
+    "tier": "P1",
+    "requires": [
+     "c04-b1"
+    ],
+    "pays_off": [],
+    "thread": "T1",
+    "short": "Bram sends the police away",
+    "spoiler_level": 2
+   },
+   {
+    "id": "c04-b6",
+    "global_importance": 70,
+    "tier": "P1",
+    "requires": [
+     "c03-b10"
+    ],
+    "pays_off": [],
+    "thread": "T3",
+    "short": "Milo plans to kill all witnesses",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c04-b7",
+    "global_importance": 50,
+    "tier": "P2",
+    "requires": [
+     "c02-b6"
+    ],
+    "pays_off": [],
+    "thread": "T2",
+    "short": "the safe is opened",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c04-b8",
+    "global_importance": 96,
+    "tier": "P0",
+    "requires": [
+     "c04-b6"
+    ],
+    "pays_off": [],
+    "thread": "T1",
+    "short": "Bram turns the gun on Milo",
+    "spoiler_level": 2
+   },
+   {
+    "id": "c04-b9",
+    "global_importance": 60,
+    "tier": "P1",
+    "requires": [
+     "c04-b7"
+    ],
+    "pays_off": [],
+    "thread": "T2",
+    "short": "Lena flees with the money",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c04-b10",
+    "global_importance": 65,
+    "tier": "P1",
+    "requires": [
+     "c04-b9"
+    ],
+    "pays_off": [],
+    "thread": "T3",
+    "short": "police stop Lena",
+    "spoiler_level": 1
+   },
+   {
+    "id": "c04-b11",
+    "global_importance": 62,
+    "tier": "P1",
+    "requires": [],
+    "pays_off": [],
+    "thread": "T1",
+    "short": "mother and daughter house-hunt again",
+    "spoiler_level": 1
+   }
+  ],
+  "emotional_peaks": [
+   "c03-b13",
+   "c03-b12",
+   "c04-b3",
+   "c04-b8",
+   "c02-b10"
+  ],
+  "comedy_peaks": [
+   "c02-b7",
+   "c04-b5",
+   "c01-b9"
+  ],
+  "best_quotes": [
+   {
+    "line": 50,
+    "why": "'It's called a panic room.'"
+   },
+   {
+    "line": 213,
+    "why": "'What we want is in that room.'"
+   },
+   {
+    "line": 221,
+    "why": "'Get the fuck out of my house!'"
+   },
+   {
+    "line": 504,
+    "why": "'Coma. Die.'"
+   },
+   {
+    "line": 521,
+    "why": "'Bad cards, Kid.'"
+   }
+  ],
+  "themes": [
+   "safety as a prison",
+   "a mother's ferocity",
+   "greed vs conscience"
+  ]
+ },
+ "beats": [
+  {
+   "id": "c01-b1",
+   "scene": "c01-s1",
+   "text": "Bram, newly separated, must buy a home within 14 days to prove she can provide for her daughter",
+   "short": "newly separated Bram must buy a home fast",
+   "kind": "setup",
+   "lines": [
+    26,
+    29
+   ],
+   "t": 125.57777777777775,
+   "t_range": [
+    125.57777777777775,
+    148.3481481481481
+   ],
+   "score": 70,
+   "tier": "P1",
+   "requires": [],
+   "thread": "T1",
+   "emotion": {
+    "label": "anxious",
+    "intensity": 1
+   },
+   "forms": {
+    "full": 11.369230769230768,
+    "short": 5.246153846153846,
+    "micro": 2.153846153846154
+   }
+  },
+  {
+   "id": "c01-b2",
+   "scene": "c01-s1",
+   "text": "Agents show Bram and Hollis a huge four-floor brownstone with an elevator",
+   "short": "touring a huge brownstone",
+   "kind": "world",
+   "lines": [
+    0,
+    18
+   ],
+   "t": 5.0,
+   "t_range": [
+    5.0,
+    97.56296296296294
+   ],
+   "score": 20,
+   "tier": "P3",
+   "requires": [],
+   "thread": "T1",
+   "emotion": {
+    "label": "neutral",
+    "intensity": 0
+   },
+   "forms": {
+    "full": 7.907692307692307,
+    "short": 3.6884615384615387,
+    "micro": 1.4615384615384617
+   }
+  },
+  {
+   "id": "c01-b3",
+   "scene": "c01-s2",
+   "text": "The late owner was a paranoid recluse whose missing millions have his heirs suing each other",
+   "short": "late owner's missing millions",
+   "kind": "setup",
+   "lines": [
+    33,
+    38
+   ],
+   "t": 162.9111111111111,
+   "t_range": [
+    162.9111111111111,
+    187.22222222222217
+   ],
+   "score": 68,
+   "tier": "P1",
+   "requires": [],
+   "thread": "T2",
+   "emotion": {
+    "label": "intrigue",
+    "intensity": 1
+   },
+   "forms": {
+    "full": 10.215384615384615,
+    "short": 4.726923076923077,
+    "micro": 1.923076923076923
+   }
+  },
+  {
+   "id": "c01-b4",
+   "scene": "c01-s3",
+   "text": "A hidden panic room is revealed: steel walls, separate phone line, own ventilation, monitors on every room",
+   "short": "the house has a steel panic room",
+   "kind": "setup",
+   "lines": [
+    50,
+    64
+   ],
+   "t": 219.78518518518513,
+   "t_range": [
+    219.78518518518513,
+    295.1037037037036
+   ],
+   "score": 95,
+   "tier": "P0",
+   "requires": [],
+   "thread": "T2",
+   "emotion": {
+    "label": "awe",
+    "intensity": 1
+   },
+   "forms": {
+    "full": 10.984615384615385,
+    "short": 5.073076923076924,
+    "micro": 2.076923076923077
+   }
+  },
+  {
+   "id": "c01-b5",
+   "scene": "c01-s3",
+   "text": "Bram is uneasy about the claustrophobic room",
+   "short": "Bram is claustrophobic",
+   "kind": "character",
+   "lines": [
+    65,
+    71
+   ],
+   "t": 295.5037037037036,
+   "t_range": [
+    295.5037037037036,
+    310.85185185185185
+   ],
+   "score": 40,
+   "tier": "P2",
+   "requires": [],
+   "thread": "T1",
+   "emotion": {
+    "label": "unease",
+    "intensity": 1
+   },
+   "forms": {
+    "full": 4.8307692307692305,
+    "short": 2.4,
+    "micro": 1.2
+   }
+  },
+  {
+   "id": "c01-b6",
+   "scene": "c01-s3",
+   "text": "The steel door has an infrared sensor that stops it closing on anything in its way",
+   "short": "door sensor stops it closing",
+   "kind": "setup",
+   "lines": [
+    81,
+    86
+   ],
+   "t": 336.6000000000001,
+   "t_range": [
+    336.6000000000001,
+    352.11111111111126
+   ],
+   "score": 45,
+   "tier": "P2",
+   "requires": [
+    "c01-b4"
+   ],
+   "thread": "T2",
+   "emotion": {
+    "label": "neutral",
+    "intensity": 0
+   },
+   "forms": {
+    "full": 10.215384615384615,
+    "short": 4.726923076923077,
+    "micro": 1.923076923076923
+   }
+  },
+  {
+   "id": "c01-b7",
+   "scene": "c01-s4",
+   "text": "First night in the house: Bram and Hollis bond and share bitterness about the ex-husband",
+   "short": "first night, mother-daughter bond",
+   "kind": "relationship",
+   "lines": [
+    88,
+    102
+   ],
+   "t": 354.11111111111126,
+   "t_range": [
+    354.11111111111126,
+    382.6444444444448
+   ],
+   "score": 30,
+   "tier": "P2",
+   "requires": [],
+   "thread": "T1",
+   "emotion": {
+    "label": "bittersweet",
+    "intensity": 1
+   },
+   "forms": {
+    "full": 9.83076923076923,
+    "short": 4.5538461538461545,
+    "micro": 1.8461538461538463
+   }
+  },
+  {
+   "id": "c01-b8",
+   "scene": "c01-s5",
+   "text": "Three burglars break in and find the house unexpectedly occupied by a woman and a child",
+   "short": "three burglars break in; house is occupied",
+   "kind": "plot",
+   "lines": [
+    109,
+    122
+   ],
+   "t": 408.8666666666671,
+   "t_range": [
+    408.8666666666671,
+    448.1259259259264
+   ],
+   "score": 92,
+   "tier": "P0",
+   "requires": [],
+   "thread": "T2",
+   "emotion": {
+    "label": "alarm",
+    "intensity": 2
+   },
+   "forms": {
+    "full": 10.215384615384615,
+    "short": 4.726923076923077,
+    "micro": 1.923076923076923
+   }
+  },
+  {
+   "id": "c01-b9",
+   "scene": "c01-s5",
+   "text": "Lena wants out because people are home; Rufus insists the job takes only 45 minutes",
+   "short": "Lena wants out; Rufus insists",
+   "kind": "plot",
+   "lines": [
+    131,
+    140
+   ],
+   "t": 467.9185185185191,
+   "t_range": [
+    467.9185185185191,
+    506.33333333333377
+   ],
+   "score": 50,
+   "tier": "P2",
+   "requires": [
+    "c01-b8"
+   ],
+   "thread": "T3",
+   "emotion": {
+    "label": "conflict",
+    "intensity": 2
+   },
+   "forms": {
+    "full": 9.83076923076923,
+    "short": 4.5538461538461545,
+    "micro": 1.8461538461538463
+   }
+  },
+  {
+   "id": "c01-b10",
+   "scene": "c01-s5",
+   "text": "Rufus brought Milo, an unknown armed man, which alarms Lena",
+   "short": "Rufus brought armed Milo",
+   "kind": "character",
+   "lines": [
+    128,
+    149
+   ],
+   "t": 460.7037037037042,
+   "t_range": [
+    460.7037037037042,
+    537.8888888888893
+   ],
+   "score": 55,
+   "tier": "P1",
+   "requires": [
+    "c01-b8"
+   ],
+   "thread": "T3",
+   "emotion": {
+    "label": "menace",
+    "intensity": 2
+   },
+   "forms": {
+    "full": 6.753846153846153,
+    "short": 3.169230769230769,
+    "micro": 1.2307692307692308
+   }
+  },
+  {
+   "id": "c02-b1",
+   "scene": "c02-s1",
+   "text": "Rufus reveals the prize: fourteen million dollars hidden upstairs, enough to clear Lena's debts",
+   "short": "$14 million is hidden upstairs",
+   "kind": "plot",
+   "lines": [
+    164,
+    170
+   ],
+   "t": 581.0000000000005,
+   "t_range": [
+    581.0000000000005,
+    621.9185185185189
+   ],
+   "score": 85,
+   "tier": "P0",
+   "requires": [
+    "c01-b8"
+   ],
+   "thread": "T2",
+   "emotion": {
+    "label": "greed",
+    "intensity": 2
+   },
+   "forms": {
+    "full": 9.061538461538461,
+    "short": 4.207692307692308,
+    "micro": 1.6923076923076923
+   }
+  },
+  {
+   "id": "c02-b2",
+   "scene": "c02-s1",
+   "text": "The burglars split up to seize the woman and the girl",
+   "short": "they split up to grab mother and child",
+   "kind": "plot",
+   "lines": [
+    171,
+    173
+   ],
+   "t": 622.318518518519,
+   "t_range": [
+    622.318518518519,
+    632.4666666666672
+   ],
+   "score": 35,
+   "tier": "P2",
+   "requires": [
+    "c01-b8"
+   ],
+   "thread": "T2",
+   "emotion": {
+    "label": "menace",
+    "intensity": 2
+   },
+   "forms": {
+    "full": 7.138461538461538,
+    "short": 3.3423076923076924,
+    "micro": 1.3076923076923077
+   }
+  },
+  {
+   "id": "c02-b3",
+   "scene": "c02-s2",
+   "text": "Bram spots the intruders, grabs Hollis and they barely make it into the panic room",
+   "short": "Bram and Hollis flee into the panic room",
+   "kind": "plot",
+   "lines": [
+    174,
+    186
+   ],
+   "t": 632.8666666666672,
+   "t_range": [
+    632.8666666666672,
+    658.6592592592601
+   ],
+   "score": 93,
+   "tier": "P0",
+   "requires": [
+    "c01-b4"
+   ],
+   "thread": "T1",
+   "emotion": {
+    "label": "terror",
+    "intensity": 3
+   },
+   "forms": {
+    "full": 9.83076923076923,
+    "short": 4.5538461538461545,
+    "micro": 1.8461538461538463
+   }
+  },
+  {
+   "id": "c02-b4",
+   "scene": "c02-s2",
+   "text": "The panic room's separate phone line was never connected \u2014 they cannot call for help",
+   "short": "the room's phone isn't connected",
+   "kind": "plot",
+   "lines": [
+    187,
+    188
+   ],
+   "t": 659.0592592592601,
+   "t_range": [
+    659.0592592592601,
+    663.6222222222231
+   ],
+   "score": 72,
+   "tier": "P1",
+   "requires": [
+    "c02-b3"
+   ],
+   "thread": "T1",
+   "emotion": {
+    "label": "dread",
+    "intensity": 2
+   },
+   "forms": {
+    "full": 9.83076923076923,
+    "short": 4.5538461538461545,
+    "micro": 1.8461538461538463
+   }
+  },
+  {
+   "id": "c02-b5",
+   "scene": "c02-s3",
+   "text": "Bram checks Hollis for shakiness and chills \u2014 a hidden medical condition is planted",
+   "short": "hint: Hollis has a medical condition",
+   "kind": "setup",
+   "lines": [
+    197,
+    204
+   ],
+   "t": 684.7185185185193,
+   "t_range": [
+    684.7185185185193,
+    697.400000000001
+   ],
+   "score": 55,
+   "tier": "P1",
+   "requires": [],
+   "thread": "T4",
+   "emotion": {
+    "label": "worry",
+    "intensity": 1
+   },
+   "forms": {
+    "full": 9.061538461538461,
+    "short": 4.207692307692308,
+    "micro": 1.6923076923076923
+   }
+  },
+  {
+   "id": "c02-b6",
+   "scene": "c02-s4",
+   "text": "The burglars reveal that what they want is inside the panic room itself",
+   "short": "what they want is inside the room",
+   "kind": "plot",
+   "lines": [
+    211,
+    214
+   ],
+   "t": 708.9851851851863,
+   "t_range": [
+    708.9851851851863,
+    719.0740740740752
+   ],
+   "score": 90,
+   "tier": "P0",
+   "requires": [
+    "c02-b3"
+   ],
+   "thread": "T2",
+   "emotion": {
+    "label": "shock",
+    "intensity": 2
+   },
+   "forms": {
+    "full": 8.292307692307691,
+    "short": 3.861538461538461,
+    "micro": 1.5384615384615383
+   }
+  },
+  {
+   "id": "c02-b7",
+   "scene": "c02-s4",
+   "text": "Bram bluffs about the police and, coached by Hollis, defiantly refuses to come out",
+   "short": "Bram refuses to come out",
+   "kind": "character",
+   "lines": [
+    209,
+    221
+   ],
+   "t": 704.4814814814825,
+   "t_range": [
+    704.4814814814825,
+    740.940740740742
+   ],
+   "score": 35,
+   "tier": "P2",
+   "requires": [
+    "c02-b3"
+   ],
+   "thread": "T1",
+   "emotion": {
+    "label": "defiance",
+    "intensity": 2
+   },
+   "forms": {
+    "full": 9.061538461538461,
+    "short": 4.207692307692308,
+    "micro": 1.6923076923076923
+   }
+  },
+  {
+   "id": "c02-b8",
+   "scene": "c02-s5",
+   "text": "Lena turns out to be a builder of panic rooms who knows they cannot break in, so they must force the family out",
+   "short": "Lena builds panic rooms",
+   "kind": "character",
+   "lines": [
+    241,
+    248
+   ],
+   "t": 793.5481481481495,
+   "t_range": [
+    793.5481481481495,
+    828.9407407407421
+   ],
+   "score": 65,
+   "tier": "P1",
+   "requires": [],
+   "thread": "T3",
+   "emotion": {
+    "label": "irony",
+    "intensity": 1
+   },
+   "forms": {
+    "full": 14.446153846153845,
+    "short": 6.63076923076923,
+    "micro": 2.769230769230769
+   }
+  },
+  {
+   "id": "c02-b9",
+   "scene": "c02-s5",
+   "text": "They seal the house and refuse to let Milo hover with his gun",
+   "short": "they seal the house",
+   "kind": "plot",
+   "lines": [
+    249,
+    254
+   ],
+   "t": 829.340740740742,
+   "t_range": [
+    829.340740740742,
+    870.2296296296311
+   ],
+   "score": 25,
+   "tier": "P3",
+   "requires": [],
+   "thread": "T3",
+   "emotion": {
+    "label": "tension",
+    "intensity": 1
+   },
+   "forms": {
+    "full": 8.292307692307691,
+    "short": 3.861538461538461,
+    "micro": 1.5384615384615383
+   }
+  },
+  {
+   "id": "c02-b10",
+   "scene": "c02-s6",
+   "text": "Claustrophobic Bram has a panic attack; Hollis pulls her back",
+   "short": "Bram's panic attack; Hollis steadies her",
+   "kind": "relationship",
+   "lines": [
+    259,
+    281
+   ],
+   "t": 883.8888888888904,
+   "t_range": [
+    883.8888888888904,
+    935.7111111111129
+   ],
+   "score": 45,
+   "tier": "P2",
+   "requires": [
+    "c01-b5"
+   ],
+   "thread": "T1",
+   "emotion": {
+    "label": "fear/love",
+    "intensity": 3
+   },
+   "forms": {
+    "full": 6.753846153846153,
+    "short": 3.169230769230769,
+    "micro": 1.2307692307692308
+   }
+  },
+  {
+   "id": "c02-b11",
+   "scene": "c02-s7",
+   "text": "Rufus pumps gas into the room to force them out, over Lena's objections",
+   "short": "Rufus gasses the room",
+   "kind": "plot",
+   "lines": [
+    282,
+    303
+   ],
+   "t": 936.1111111111129,
+   "t_range": [
+    936.1111111111129,
+    1009.5777777777797
+   ],
+   "score": 75,
+   "tier": "P1",
+   "requires": [
+    "c02-b3"
+   ],
+   "thread": "T2",
+   "emotion": {
+    "label": "danger",
+    "intensity": 3
+   },
+   "forms": {
+    "full": 8.292307692307691,
+    "short": 3.861538461538461,
+    "micro": 1.5384615384615383
+   }
+  },
+  {
+   "id": "c02-b12",
+   "scene": "c02-s8",
+   "text": "Bram flashes an SOS to a neighbor, but he ignores it",
+   "short": "SOS to the neighbor ignored",
+   "kind": "plot",
+   "lines": [
+    305,
+    316
+   ],
+   "t": 1015.9333333333352,
+   "t_range": [
+    1015.9333333333352,
+    1040.7777777777792
+   ],
+   "score": 30,
+   "tier": "P2",
+   "requires": [
+    "c02-b3"
+   ],
+   "thread": "T1",
+   "emotion": {
+    "label": "hope/despair",
+    "intensity": 2
+   },
+   "forms": {
+    "full": 7.138461538461538,
+    "short": 3.3423076923076924,
+    "micro": 1.3076923076923077
+   }
+  },
+  {
+   "id": "c02-b13",
+   "scene": "c02-s8",
+   "text": "Rufus and Lena quarrel over shares of the money",
+   "short": "squabble over shares",
+   "kind": "relationship",
+   "lines": [
+    317,
+    319
+   ],
+   "t": 1041.177777777779,
+   "t_range": [
+    1041.177777777779,
+    1055.6814814814827
+   ],
+   "score": 20,
+   "tier": "P3",
+   "requires": [],
+   "thread": "T3",
+   "emotion": {
+    "label": "greed",
+    "intensity": 1
+   },
+   "forms": {
+    "full": 5.984615384615384,
+    "short": 2.823076923076923,
+    "micro": 1.2
+   }
+  },
+  {
+   "id": "c03-b1",
+   "scene": "c03-s1",
+   "text": "Rufus is the late owner's grandson, stealing from his own family's estate",
+   "short": "Rufus is the owner's grandson",
+   "kind": "character",
+   "lines": [
+    323,
+    324
+   ],
+   "t": 1068.7629629629644,
+   "t_range": [
+    1068.7629629629644,
+    1098.4222222222236
+   ],
+   "score": 50,
+   "tier": "P2",
+   "requires": [
+    "c01-b3"
+   ],
+   "thread": "T3",
+   "emotion": {
+    "label": "resentment",
+    "intensity": 2
+   },
+   "forms": {
+    "full": 7.907692307692307,
+    "short": 3.6884615384615387,
+    "micro": 1.4615384615384617
+   }
+  },
+  {
+   "id": "c03-b2",
+   "scene": "c03-s1",
+   "text": "Milo threatens Lena; Rufus says they cannot open the safe without Lena",
+   "short": "Milo threatens Lena",
+   "kind": "relationship",
+   "lines": [
+    325,
+    329
+   ],
+   "t": 1098.8222222222237,
+   "t_range": [
+    1098.8222222222237,
+    1140.0518518518534
+   ],
+   "score": 25,
+   "tier": "P3",
+   "requires": [],
+   "thread": "T3",
+   "emotion": {
+    "label": "tension",
+    "intensity": 2
+   },
+   "forms": {
+    "full": 7.907692307692307,
+    "short": 3.6884615384615387,
+    "micro": 1.4615384615384617
+   }
+  },
+  {
+   "id": "c03-b3",
+   "scene": "c03-s2",
+   "text": "Bram risks a dash out of the room to grab her cell phone and makes it back",
+   "short": "Bram's dash for the cellphone",
+   "kind": "plot",
+   "lines": [
+    333,
+    343
+   ],
+   "t": 1145.903703703705,
+   "t_range": [
+    1145.903703703705,
+    1170.525925925927
+   ],
+   "score": 60,
+   "tier": "P1",
+   "requires": [
+    "c02-b3"
+   ],
+   "thread": "T1",
+   "emotion": {
+    "label": "suspense",
+    "intensity": 3
+   },
+   "forms": {
+    "full": 10.984615384615385,
+    "short": 5.073076923076924,
+    "micro": 2.076923076923077
+   }
+  },
+  {
+   "id": "c03-b4",
+   "scene": "c03-s2",
+   "text": "The cell phone gets no signal inside the steel room",
+   "short": "no signal inside",
+   "kind": "plot",
+   "lines": [
+    345,
+    347
+   ],
+   "t": 1172.5259259259267,
+   "t_range": [
+    1172.5259259259267,
+    1184.0666666666675
+   ],
+   "score": 25,
+   "tier": "P3",
+   "requires": [
+    "c03-b3"
+   ],
+   "thread": "T1",
+   "emotion": {
+    "label": "despair",
+    "intensity": 2
+   },
+   "forms": {
+    "full": 6.753846153846153,
+    "short": 3.169230769230769,
+    "micro": 1.2307692307692308
+   }
+  },
+  {
+   "id": "c03-b5",
+   "scene": "c03-s3",
+   "text": "Bram splices into the main phone line and reaches 911, but is put on hold and cut off",
+   "short": "911 puts her on hold",
+   "kind": "plot",
+   "lines": [
+    348,
+    367
+   ],
+   "t": 1184.4666666666676,
+   "t_range": [
+    1184.4666666666676,
+    1250.4518518518514
+   ],
+   "score": 55,
+   "tier": "P1",
+   "requires": [
+    "c02-b4"
+   ],
+   "thread": "T1",
+   "emotion": {
+    "label": "hope then despair",
+    "intensity": 3
+   },
+   "forms": {
+    "full": 11.369230769230768,
+    "short": 5.246153846153846,
+    "micro": 2.153846153846154
+   }
+  },
+  {
+   "id": "c03-b6",
+   "scene": "c03-s4",
+   "text": "A garbled call reaches Hollis's father; Bram insists he will come to help",
+   "short": "garbled call reaches the father",
+   "kind": "plot",
+   "lines": [
+    368,
+    382
+   ],
+   "t": 1250.8518518518513,
+   "t_range": [
+    1250.8518518518513,
+    1295.399999999999
+   ],
+   "score": 60,
+   "tier": "P1",
+   "requires": [],
+   "thread": "T1",
+   "emotion": {
+    "label": "hope",
+    "intensity": 2
+   },
+   "forms": {
+    "full": 8.292307692307691,
+    "short": 3.861538461538461,
+    "micro": 1.5384615384615383
+   }
+  },
+  {
+   "id": "c03-b7",
+   "scene": "c03-s4",
+   "text": "Hollis admits she is dizzy and thirsty \u2014 her blood sugar is crashing",
+   "short": "Hollis's blood sugar crashes",
+   "kind": "payoff",
+   "lines": [
+    383,
+    388
+   ],
+   "t": 1295.7999999999988,
+   "t_range": [
+    1295.7999999999988,
+    1306.6740740740727
+   ],
+   "score": 80,
+   "tier": "P0",
+   "requires": [
+    "c02-b5"
+   ],
+   "thread": "T4",
+   "emotion": {
+    "label": "fear",
+    "intensity": 3
+   },
+   "forms": {
+    "full": 8.292307692307691,
+    "short": 3.861538461538461,
+    "micro": 1.5384615384615383
+   }
+  },
+  {
+   "id": "c03-b8",
+   "scene": "c03-s5",
+   "text": "Hollis is diabetic; her emergency Glucagon injection is outside the room, in her bedroom fridge",
+   "short": "her Glucagon is outside the room",
+   "kind": "plot",
+   "lines": [
+    394,
+    422
+   ],
+   "t": 1318.0518518518502,
+   "t_range": [
+    1318.0518518518502,
+    1420.9851851851822
+   ],
+   "score": 88,
+   "tier": "P0",
+   "requires": [
+    "c03-b7"
+   ],
+   "thread": "T4",
+   "emotion": {
+    "label": "dread",
+    "intensity": 3
+   },
+   "forms": {
+    "full": 9.83076923076923,
+    "short": 4.5538461538461545,
+    "micro": 1.8461538461538463
+   }
+  },
+  {
+   "id": "c03-b9",
+   "scene": "c03-s5",
+   "text": "Rufus tries to quit; Milo declares nobody leaves",
+   "short": "Rufus tries to quit",
+   "kind": "plot",
+   "lines": [
+    405,
+    418
+   ],
+   "t": 1360.7777777777756,
+   "t_range": [
+    1360.7777777777756,
+    1405.3111111111082
+   ],
+   "score": 40,
+   "tier": "P2",
+   "requires": [],
+   "thread": "T3",
+   "emotion": {
+    "label": "menace",
+    "intensity": 2
+   },
+   "forms": {
+    "full": 5.215384615384615,
+    "short": 2.476923076923077,
+    "micro": 1.2
+   }
+  },
+  {
+   "id": "c03-b10",
+   "scene": "c03-s6",
+   "text": "Milo violently stops Rufus from leaving (apparently shooting him) and seizes control",
+   "short": "Milo shoots Rufus and takes control",
+   "kind": "plot",
+   "lines": [
+    427,
+    447
+   ],
+   "t": 1431.3111111111082,
+   "t_range": [
+    1431.3111111111082,
+    1489.281481481478
+   ],
+   "score": 82,
+   "tier": "P0",
+   "requires": [
+    "c01-b10"
+   ],
+   "thread": "T3",
+   "emotion": {
+    "label": "shock",
+    "intensity": 3
+   },
+   "forms": {
+    "full": 7.907692307692307,
+    "short": 3.6884615384615387,
+    "micro": 1.4615384615384617
+   }
+  },
+  {
+   "id": "c03-b11",
+   "scene": "c03-s6",
+   "text": "At gunpoint, Lena is forced to find a way into the room",
+   "short": "Lena forced to find a way in",
+   "kind": "plot",
+   "lines": [
+    448,
+    462
+   ],
+   "t": 1489.681481481478,
+   "t_range": [
+    1489.681481481478,
+    1527.1925925925882
+   ],
+   "score": 45,
+   "tier": "P2",
+   "requires": [
+    "c03-b10"
+   ],
+   "thread": "T3",
+   "emotion": {
+    "label": "fear",
+    "intensity": 3
+   },
+   "forms": {
+    "full": 7.907692307692307,
+    "short": 3.6884615384615387,
+    "micro": 1.4615384615384617
+   }
+  },
+  {
+   "id": "c03-b12",
+   "scene": "c03-s7",
+   "text": "The father arrives and is captured; the burglars beat him on camera to force the door open",
+   "short": "father captured and beaten on camera",
+   "kind": "plot",
+   "lines": [
+    463,
+    472
+   ],
+   "t": 1527.5925925925883,
+   "t_range": [
+    1527.5925925925883,
+    1561.0888888888842
+   ],
+   "score": 78,
+   "tier": "P1",
+   "requires": [
+    "c03-b6"
+   ],
+   "thread": "T1",
+   "emotion": {
+    "label": "horror",
+    "intensity": 3
+   },
+   "forms": {
+    "full": 10.984615384615385,
+    "short": 5.073076923076924,
+    "micro": 2.076923076923077
+   }
+  },
+  {
+   "id": "c03-b13",
+   "scene": "c03-s7",
+   "text": "Hollis goes into a diabetic attack and begs her mother for the injection",
+   "short": "Hollis goes into a diabetic attack",
+   "kind": "plot",
+   "lines": [
+    473,
+    473
+   ],
+   "t": 1561.488888888884,
+   "t_range": [
+    1561.488888888884,
+    1563.340740740736
+   ],
+   "score": 80,
+   "tier": "P1",
+   "requires": [
+    "c03-b8"
+   ],
+   "thread": "T4",
+   "emotion": {
+    "label": "terror",
+    "intensity": 3
+   },
+   "forms": {
+    "full": 8.292307692307691,
+    "short": 3.861538461538461,
+    "micro": 1.5384615384615383
+   }
+  },
+  {
+   "id": "c04-b1",
+   "scene": "c04-s1",
+   "text": "Positions flip: the burglars are locked in the panic room with Hollis while Bram is outside with the medicine",
+   "short": "positions flip: thieves in the room with Hollis",
+   "kind": "plot",
+   "lines": [
+    480,
+    487
+   ],
+   "t": 1580.762962962958,
+   "t_range": [
+    1580.762962962958,
+    1603.3703703703652
+   ],
+   "score": 94,
+   "tier": "P0",
+   "requires": [
+    "c03-b8"
+   ],
+   "thread": "T4",
+   "emotion": {
+    "label": "desperation",
+    "intensity": 3
+   },
+   "forms": {
+    "full": 12.138461538461538,
+    "short": 5.592307692307693,
+    "micro": 2.3076923076923075
+   }
+  },
+  {
+   "id": "c04-b2",
+   "scene": "c04-s1",
+   "text": "Told Hollis could fall into a coma and die, Lena insists on giving her the injection",
+   "short": "Lena chooses to give her the shot",
+   "kind": "character",
+   "lines": [
+    503,
+    509
+   ],
+   "t": 1642.0518518518459,
+   "t_range": [
+    1642.0518518518459,
+    1671.5777777777719
+   ],
+   "score": 70,
+   "tier": "P1",
+   "requires": [
+    "c04-b1"
+   ],
+   "thread": "T3",
+   "emotion": {
+    "label": "compassion",
+    "intensity": 2
+   },
+   "forms": {
+    "full": 10.215384615384615,
+    "short": 4.726923076923077,
+    "micro": 1.923076923076923
+   }
+  },
+  {
+   "id": "c04-b3",
+   "scene": "c04-s2",
+   "text": "Lena injects Hollis and saves her, confessing that gambling debts drove him to crime",
+   "short": "Lena saves Hollis; bad-cards confession",
+   "kind": "character",
+   "lines": [
+    510,
+    528
+   ],
+   "t": 1671.977777777772,
+   "t_range": [
+    1671.977777777772,
+    1757.9629629629567
+   ],
+   "score": 86,
+   "tier": "P0",
+   "requires": [
+    "c04-b1"
+   ],
+   "thread": "T3",
+   "emotion": {
+    "label": "tender",
+    "intensity": 2
+   },
+   "forms": {
+    "full": 9.061538461538461,
+    "short": 4.207692307692308,
+    "micro": 1.6923076923076923
+   }
+  },
+  {
+   "id": "c04-b4",
+   "scene": "c04-s2",
+   "text": "Milo: 'You saved her life for ten minutes' \u2014 he means to kill her",
+   "short": "Milo: 'saved her for ten minutes'",
+   "kind": "plot",
+   "lines": [
+    529,
+    529
+   ],
+   "t": 1758.3629629629568,
+   "t_range": [
+    1758.3629629629568,
+    1761.3259259259198
+   ],
+   "score": 55,
+   "tier": "P1",
+   "requires": [
+    "c03-b10"
+   ],
+   "thread": "T3",
+   "emotion": {
+    "label": "menace",
+    "intensity": 3
+   },
+   "forms": {
+    "full": 9.061538461538461,
+    "short": 4.207692307692308,
+    "micro": 1.6923076923076923
+   }
+  },
+  {
+   "id": "c04-b5",
+   "scene": "c04-s3",
+   "text": "Police arrive, but with her daughter held hostage Bram lies and sends them away",
+   "short": "Bram sends the police away",
+   "kind": "plot",
+   "lines": [
+    530,
+    575
+   ],
+   "t": 1761.7259259259197,
+   "t_range": [
+    1761.7259259259197,
+    1935.5185185185103
+   ],
+   "score": 80,
+   "tier": "P1",
+   "requires": [
+    "c04-b1"
+   ],
+   "thread": "T1",
+   "emotion": {
+    "label": "agonizing tension",
+    "intensity": 3
+   },
+   "forms": {
+    "full": 9.061538461538461,
+    "short": 4.207692307692308,
+    "micro": 1.6923076923076923
+   }
+  },
+  {
+   "id": "c04-b6",
+   "scene": "c04-s4",
+   "text": "Milo plans to kill all three witnesses; Lena refuses",
+   "short": "Milo plans to kill all witnesses",
+   "kind": "plot",
+   "lines": [
+    576,
+    588
+   ],
+   "t": 1935.9185185185102,
+   "t_range": [
+    1935.9185185185102,
+    1973.9481481481396
+   ],
+   "score": 70,
+   "tier": "P1",
+   "requires": [
+    "c03-b10"
+   ],
+   "thread": "T3",
+   "emotion": {
+    "label": "dread",
+    "intensity": 3
+   },
+   "forms": {
+    "full": 5.984615384615384,
+    "short": 2.823076923076923,
+    "micro": 1.2
+   }
+  },
+  {
+   "id": "c04-b7",
+   "scene": "c04-s4",
+   "text": "The safe is opened",
+   "short": "the safe is opened",
+   "kind": "plot",
+   "lines": [
+    589,
+    593
+   ],
+   "t": 1974.3481481481394,
+   "t_range": [
+    1974.3481481481394,
+    1983.6222222222134
+   ],
+   "score": 50,
+   "tier": "P2",
+   "requires": [
+    "c02-b6"
+   ],
+   "thread": "T2",
+   "emotion": {
+    "label": "anticipation",
+    "intensity": 2
+   },
+   "forms": {
+    "full": 3.6769230769230767,
+    "short": 2.4,
+    "micro": 1.2
+   }
+  },
+  {
+   "id": "c04-b8",
+   "scene": "c04-s5",
+   "text": "Final showdown: Bram gets hold of the gun and fights back",
+   "short": "Bram turns the gun on Milo",
+   "kind": "plot",
+   "lines": [
+    594,
+    604
+   ],
+   "t": 1984.0222222222133,
+   "t_range": [
+    1984.0222222222133,
+    2018.0074074073982
+   ],
+   "score": 96,
+   "tier": "P0",
+   "requires": [
+    "c04-b6"
+   ],
+   "thread": "T1",
+   "emotion": {
+    "label": "fury",
+    "intensity": 3
+   },
+   "forms": {
+    "full": 7.138461538461538,
+    "short": 3.3423076923076924,
+    "micro": 1.3076923076923077
+   }
+  },
+  {
+   "id": "c04-b9",
+   "scene": "c04-s5",
+   "text": "Lena grabs the money and flees",
+   "short": "Lena flees with the money",
+   "kind": "plot",
+   "lines": [
+    605,
+    608
+   ],
+   "t": 2018.407407407398,
+   "t_range": [
+    2018.407407407398,
+    2027.7555555555464
+   ],
+   "score": 60,
+   "tier": "P1",
+   "requires": [
+    "c04-b7"
+   ],
+   "thread": "T2",
+   "emotion": {
+    "label": "panic",
+    "intensity": 3
+   },
+   "forms": {
+    "full": 4.061538461538461,
+    "short": 2.4,
+    "micro": 1.2
+   }
+  },
+  {
+   "id": "c04-b10",
+   "scene": "c04-s6",
+   "text": "Police order the fleeing burglar to put his hands up",
+   "short": "police stop Lena",
+   "kind": "payoff",
+   "lines": [
+    609,
+    610
+   ],
+   "t": 2028.1555555555462,
+   "t_range": [
+    2028.1555555555462,
+    2031.2370370370277
+   ],
+   "score": 65,
+   "tier": "P1",
+   "requires": [
+    "c04-b9"
+   ],
+   "thread": "T3",
+   "emotion": {
+    "label": "resolution",
+    "intensity": 2
+   },
+   "forms": {
+    "full": 6.753846153846153,
+    "short": 3.169230769230769,
+    "micro": 1.2307692307692308
+   }
+  },
+  {
+   "id": "c04-b11",
+   "scene": "c04-s7",
+   "text": "Epilogue: safe, mother and daughter look for a new place to live",
+   "short": "mother and daughter house-hunt again",
+   "kind": "payoff",
+   "lines": [
+    611,
+    613
+   ],
+   "t": 2031.6370370370275,
+   "t_range": [
+    2031.6370370370275,
+    2050.5851851851758
+   ],
+   "score": 62,
+   "tier": "P1",
+   "requires": [],
+   "thread": "T1",
+   "emotion": {
+    "label": "relief",
+    "intensity": 2
+   },
+   "forms": {
+    "full": 7.907692307692307,
+    "short": 3.6884615384615387,
+    "micro": 1.4615384615384617
+   }
+  }
+ ],
+ "calls": [
+  {
+   "task": "p1_c01",
+   "prompt_chars": 10572,
+   "prompt_sha": "6a2206ca7eb0",
+   "est_tokens": 2643
+  },
+  {
+   "task": "p1_c02",
+   "prompt_chars": 9981,
+   "prompt_sha": "54675b125301",
+   "est_tokens": 2495
+  },
+  {
+   "task": "p1_c03",
+   "prompt_chars": 10450,
+   "prompt_sha": "ac7192091bde",
+   "est_tokens": 2612
+  },
+  {
+   "task": "p1_c04",
+   "prompt_chars": 9891,
+   "prompt_sha": "c3efe3f9d418",
+   "est_tokens": 2472
+  },
+  {
+   "task": "p2_integrate",
+   "prompt_chars": 15847,
+   "prompt_sha": "017e4ff0fb58",
+   "est_tokens": 3961
+  }
+ ]
+}
