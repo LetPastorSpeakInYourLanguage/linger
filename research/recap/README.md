@@ -172,6 +172,14 @@ gates G1 (understanding), G2 (script) and G3 (cut), or let autopilot pass a gate
 layer as global → title → job → mid-run inbox, and only downstream steps re-run. Understanding is computed once
 per title version, and every recap, character story or Q&A is a cheap job on top of it.
 
+**exp15 — trait/theme compilations** ("all the times Joey was a good friend", Friends S1–S3,
+[results](experiments/exp15_trait/RESULTS.md)).
+- **Embedding search does no better than chance:** P@20 is 0.05–0.15 against a random-scene base rate of 0.10.
+  It found ~13% of an estimated 46 moments, because a trait is a judgment about *behavior*, not a topic.
+- **Fix:** record *acts* (helps / defends / sacrifices / lies… with target, cost and line evidence) in the per-scene
+  character ledger, then query, LLM-verify, and assemble with the normal duration/selection/render pipeline.
+  An on-demand trait sweep (~320k input tokens for Joey S1–S3) covers traits nobody anticipated.
+
 ## Honest limitations
 
 - **No Anthropic API key in this sandbox.** Every LLM call went through a file-based replay protocol
